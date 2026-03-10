@@ -71,6 +71,9 @@ export interface ProjectState {
     mode: "edit" | "live";
     setMode: (mode: "edit" | "live" | ((prev: "edit" | "live") => "edit" | "live")) => void;
 
+    isSimulating: boolean;
+    setIsSimulating: (v: boolean) => void;
+
     // Settings
     autoNext: boolean;
     setAutoNext: (v: boolean) => void;
@@ -240,6 +243,8 @@ export function useProjectStore<T = ProjectState>(
         setTTarget: player.setTTarget,
         mode: player.mode,
         setMode: player.setMode,
+        isSimulating: player.isSimulating,
+        setIsSimulating: player.setIsSimulating,
 
         // Settings
         autoNext: settings.autoNext,

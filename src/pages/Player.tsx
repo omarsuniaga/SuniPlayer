@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useProjectStore, doGen, toPlayer } from "../store/useProjectStore";
 import { useBuilderStore } from "../store/useBuilderStore.ts";
+import { usePlayerStore } from "../store/usePlayerStore.ts";
 import { THEME } from "../data/theme.ts";
 import { TRACKS } from "../data/constants.ts";
 import { Wave } from "../components/common/Wave.tsx";
@@ -134,6 +135,7 @@ export const Player: React.FC = () => {
 
     const setPQueue = useProjectStore(s => s.setPQueue);
     const setTrackNotes = useProjectStore(s => s.setTrackNotes);
+    const isSimulating = usePlayerStore(s => s.isSimulating);
 
     const [showUnlockModal, setShowUnlockModal] = useState(false);
     const [editingNotes, setEditingNotes] = useState<string | null>(null); // track ID with open note
@@ -446,6 +448,34 @@ export const Player: React.FC = () => {
                             </span>
                             <span style={{ marginLeft: "auto", fontSize: 11, color: THEME.colors.text.muted }}>
                                 Espacio para pausar · Flechas bloqueadas
+                            </span>
+                        </div>
+                    )}
+
+                    {/* ── Simulation Mode Indicator ── */}
+                    {isSimulating && playing && (
+                        <div
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "8px 14px",
+                                borderRadius: THEME.radius.md,
+                                backgroundColor: `${THEME.colors.status.warning}08`,
+                                border: `1px solid ${THEME.colors.status.warning}30`,
+                                animation: "fadeIn 0.3s ease-out",
+                            }}
+                        >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.status.warning} strokeWidth="2.5" strokeLinecap="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                            <span style={{ fontSize: 11, color: THEME.colors.status.warning, fontWeight: 700, letterSpacing: "0.04em" }}>
+                                MODO SIMULACIÓN — Sin archivos de audio reales
+                            </span>
+                            <span style={{ marginLeft: "auto", fontSize: 10, color: THEME.colors.text.muted }}>
+                                Copia MP3 a /public/audio/ para activar audio real
                             </span>
                         </div>
                     )}

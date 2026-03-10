@@ -30,6 +30,10 @@ interface PlayerState {
 
     mode: "edit" | "live";
     setMode: (mode: "edit" | "live" | ((prev: "edit" | "live") => "edit" | "live")) => void;
+
+    /** true when no real audio file loaded — audio engine running in simulation */
+    isSimulating: boolean;
+    setIsSimulating: (v: boolean) => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -70,6 +74,9 @@ export const usePlayerStore = create<PlayerState>()(
                 set((state) => ({
                     mode: typeof update === "function" ? update(state.mode) : update,
                 })),
+
+            isSimulating: false,
+            setIsSimulating: (isSimulating) => set({ isSimulating }),
         }),
         {
             name: "suniplayer-player",

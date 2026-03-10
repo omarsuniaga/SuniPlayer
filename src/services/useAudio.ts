@@ -27,6 +27,7 @@ export function useAudio() {
     const setPos = usePlayerStore(s => s.setPos);
     const setPlaying = usePlayerStore(s => s.setPlaying);
     const setElapsed = usePlayerStore(s => s.setElapsed);
+    const setIsSimulating = usePlayerStore(s => s.setIsSimulating);
 
     const autoNext = useSettingsStore(s => s.autoNext);
     const crossfade = useSettingsStore(s => s.crossfade);
@@ -87,7 +88,10 @@ export function useAudio() {
         audio.currentTime = 0;
         setPos(0);
 
-        const onCanPlay = () => { isReal.current = true; };
+        const onCanPlay = () => {
+            isReal.current = true;
+            setIsSimulating(false);
+        };
         audio.addEventListener("canplay", onCanPlay, { once: true });
         return () => audio.removeEventListener("canplay", onCanPlay);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,7 +126,10 @@ export function useAudio() {
         }
 
         // Try real playback (fire-and-forget; failure = simulation)
-        audio.play().catch(() => { isReal.current = false; });
+        audio.play().catch(() => {
+            isReal.current = false;
+            setIsSimulating(true);
+        });
 
         /**
          * advance() — move to next track or stop.
@@ -244,4 +251,5 @@ export function useAudio() {
     // Note: autoNext intentionally NOT in deps — read via ref in the tick
 
     return { isReal: isReal.current };
+    // Note: use usePlayerStore(s => s.isSimulating) for reactive UI updates
 }
