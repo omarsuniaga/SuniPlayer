@@ -39,21 +39,52 @@ interface BuildOpts {
     curve?: string;
     /** Tolerance in SECONDS around the target. Default: adaptive */
     tol?: number;
+    /** BPM range filter — tracks outside this range are excluded before generation */
+    bpmMin?: number;
+    bpmMax?: number;
+    /** Venue type — biases the energy range of selected tracks */
+    venue?: string;
 }
+
+// ── Venue → energy range bias ─────────────────────────────────────────────────
+const VENUE_ENERGY: Record<string, [number, number]> = {
+    lobby:    [0.3,  0.7],   // Neutral ambient, not too intense
+    dinner:   [0.2,  0.6],   // Quiet dinner, soft music
+    cocktail: [0.5,  0.85],  // Lively but not club-level
+    event:    [0.65, 1.0],   // High energy, celebration
+    cruise:   [0.0,  1.0],   // No restriction (variety)
+};
 
 /**
  * Build an optimized performance set.
  *
  * @param repo    Full track catalog
  * @param target  Target duration in SECONDS (e.g. 45*60 = 2700)
- * @param opts    curve, tolerance
+ * @param opts    curve, tolerance, bpmMin, bpmMax, venue
  */
 export function buildSet(
     repo: Track[],
     target: number,
     opts: BuildOpts = {}
 ): Track[] {
-    const { curve = "steady" } = opts;
+    const { curve = "steady", bpmMin, bpmMax, venue } = opts;
+
+    // ── Pre-filter by BPM range ───────────────────────────────────────────────
+    const bpmFiltered = (bpmMin !== undefined || bpmMax !== undefined)
+        ? repo.filter(t =>
+            (bpmMin === undefined || t.bpm >= bpmMin) &&
+            (bpmMax === undefined || t.bpm <= bpmMax)
+        )
+        : repo;
+
+    // ── Pre-filter by venue energy range ─────────────────────────────────────
+    let workRepo = bpmFiltered.length >= 3 ? bpmFiltered : repo;
+    if (venue && VENUE_ENERGY[venue]) {
+        const [eMin, eMax] = VENUE_ENERGY[venue];
+        const venueFiltered = workRepo.filter(t => t.energy >= eMin && t.energy <= eMax);
+        // Only apply if enough tracks remain; otherwise fall back to BPM-filtered set
+        workRepo = venueFiltered.length >= 3 ? venueFiltered : workRepo;
+    }
 
     // Adaptive tolerance: 15% of target or at least 180s (3 min), capped at 300s
     const adaptiveTol = Math.max(180, Math.min(300, Math.round(target * 0.15)));
@@ -68,7 +99,7 @@ export function buildSet(
 
     // ── Phase 1: Monte Carlo (600 iterations) ────────────────────────────────
     for (let attempt = 0; attempt < 600; attempt++) {
-        const shuffled = [...repo].sort(() => Math.random() - 0.5);
+        const shuffled = [...workRepo].sort(() => Math.random() - 0.5);
         const candidate: Track[] = [];
         let tot = 0;
 
@@ -103,7 +134,7 @@ export function buildSet(
         best = [];
         let tot = 0;
         // Sort longest-first for greedy fill
-        const sorted = [...repo].sort((a, b) => b.duration_ms - a.duration_ms);
+        const sorted = [...workRepo].sort((a, b) => b.duration_ms - a.duration_ms);
         for (const t of sorted) {
             const d = t.duration_ms / 1000;
             if (tot + d <= mx) {
@@ -115,7 +146,7 @@ export function buildSet(
         // If still nothing (e.g. target is very short), just take first N tracks
         if (best.length === 0) {
             let tot2 = 0;
-            for (const t of repo) {
+            for (const t of workRepo) {
                 if (tot2 + t.duration_ms / 1000 > mx) break;
                 best.push(t);
                 tot2 += t.duration_ms / 1000;

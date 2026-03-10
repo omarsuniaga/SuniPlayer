@@ -179,10 +179,9 @@ export const useProjectStore = create<ProjectState>()(
             },
 
             doGen: () => {
-                const { targetMin, curve } = get();
+                const { targetMin, curve, venue, bpmMin, bpmMax } = get();
                 const tSec = targetMin * 60;
-                // Adaptive tolerance instead of fixed 90s
-                set({ genSet: buildSet(TRACKS, tSec, { curve }) });
+                set({ genSet: buildSet(TRACKS, tSec, { curve, venue, bpmMin, bpmMax }) });
             },
 
             toPlayer: () => {
