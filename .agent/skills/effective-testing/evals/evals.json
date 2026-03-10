@@ -1,0 +1,23 @@
+{
+  "skill_name": "effective-testing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're adding a 'undo' feature to our document editor. What should I consider from a testing perspective before we start coding?",
+      "expected_output": "The response should demonstrate Prospective Testing by asking several of the 9 questions from the cheat sheet, specifically focusing on side effects (other features affected), error handling, and testability.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I've built a CLI tool that processes large CSV files and converts them to JSON. It uses a streaming parser to keep memory usage low. Give me a high-level test strategy.",
+      "expected_output": "The response should use the HTSM (Heuristic Test Strategy Model) to brainstorm coverage, specifically mentioning Platform (OS, filesystems), Data (large files, invalid CSVs, encoding), and Function (streaming, conversion logic). It should also mention risk-based prioritization.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Here's a snippet of our authentication logic. What are the potential bugs here?\n\n```python\ndef login(username, password):\n    user = db.query('SELECT * FROM users WHERE username = ?', (username,))\n    if user and user.password == hash(password):\n        session['user_id'] = user.id\n        return True\n    return False\n```",
+      "expected_output": "The response should apply Oracle heuristics (FEW HICCUPS) and mention specific risks like security (SQL injection is handled, but what about the hash function?), purpose (session management), and potential failures (DB errors, missing fields). It should also distinguish between testing and shallow checking.",
+      "files": []
+    }
+  ]
+}

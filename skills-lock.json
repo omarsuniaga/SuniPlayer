@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "skills": {
+    "effective-testing": {
+      "source": "ab22593k/skills",
+      "sourceType": "github",
+      "computedHash": "9ea4fb751563696a4cf4c6a7c29d2cb95b1c98462920c4f3aa35b1bbdc9dea35"
+    },
+    "expressive-design": {
+      "source": "ab22593k/skills",
+      "sourceType": "github",
+      "computedHash": "4dacaf60d9fb3ec87e8b9f10cb680be13b846a38ca4b673fc6bbb6f61eb3fe26"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "computedHash": "25872a21881a950edc3db1f3329664d60405d539660ce05b3265db2de06a7dfd"
+    },
+    "generative-thinker": {
+      "source": "ab22593k/skills",
+      "sourceType": "github",
+      "computedHash": "a71f62f636ee50f070084073e075d5b508f21a5ceb9a7768c3b6104f820ec08e"
+    },
+    "latency-principles": {
+      "source": "ab22593k/skills",
+      "sourceType": "github",
+      "computedHash": "cd358cb7acdd1a41948cf09f51fde83a53ad1375cc3a7985b5cf33c03567d432"
+    },
+    "skill-creator": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "57f470f512f45bdac598e302bc72fd62bf2b649fc7fad032efe97720149cde4d"
+    },
+    "systematic-debugging": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "computedHash": "72e9ab72627e4fd8ed26a582e82309a98ecdc4f6e1c99418430ac05682c9e91d"
+    },
+    "widget-previewer": {
+      "source": "ab22593k/skills",
+      "sourceType": "github",
+      "computedHash": "4335a42ccc2e7bac61395d6a773dd0e362d42a5da844789175c0aa0b497bbb72"
+    }
+  }
+}
