@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useProjectStore } from "../store/useProjectStore";
 import { THEME } from "../data/theme.ts";
-import { TRACKS, VENUES, CURVES, MOODS } from "../data/constants";
+import { TRACKS, VENUES, CURVES, MOODS } from "../data/constants.ts";
 import { TrackRow } from "../components/common/TrackRow";
 import { SetSummary } from "../components/common/SetSummary";
 import { ImportZone } from "../components/common/ImportZone";
-import { mc } from "../services/uiUtils";
+import { mc } from "../services/uiUtils.ts";
 
 export const Builder: React.FC = () => {
     const s = useProjectStore();
@@ -14,9 +14,30 @@ export const Builder: React.FC = () => {
     const customTracks = useProjectStore(st => st.customTracks);
     const removeCustomTrack = useProjectStore(st => st.removeCustomTrack);
     const tSec = s.targetMin * 60;
-    const [repoOpen, setRepoOpen] = useState(false);
+    const [repoOpen,   setRepoOpen]   = useState(false);
     const [importOpen, setImportOpen] = useState(false);
     const isPlaying = playing && pQueue.length > 0;
+
+    // ── Generated set drag-to-reorder (HTML5 Drag API) ───────────────────────
+    const dragIdx   = useRef<number | null>(null);
+    const [dropTarget, setDropTarget] = useState<number | null>(null);
+
+    const onGenDragStart = (i: number) => { dragIdx.current = i; };
+    const onGenDragOver  = (e: React.DragEvent, i: number) => { e.preventDefault(); setDropTarget(i); };
+    const onGenDrop      = (e: React.DragEvent, dropI: number) => {
+        e.preventDefault();
+        setDropTarget(null);
+        const fromI = dragIdx.current;
+        dragIdx.current = null;
+        if (fromI === null || fromI === dropI) return;
+        s.setGenSet(prev => {
+            const next = [...prev];
+            const [item] = next.splice(fromI, 1);
+            next.splice(fromI < dropI ? dropI - 1 : dropI, 0, item);
+            return next;
+        });
+    };
+    const onGenDragEnd = () => { dragIdx.current = null; setDropTarget(null); };
 
     const filtered = useMemo(() => {
         return TRACKS.filter((t) => {
@@ -416,16 +437,66 @@ export const Builder: React.FC = () => {
 
                             <SetSummary tracks={s.genSet} target={tSec} />
 
-                            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 4, backgroundColor: THEME.colors.panel, borderRadius: THEME.radius.lg, border: `1px solid ${THEME.colors.border}`, overflow: "hidden" }}>
-                                {s.genSet.map((t, i) => (
-                                    <TrackRow
-                                        key={t.id + i}
-                                        track={t}
-                                        idx={i}
-                                        showN
-                                        onRm={(j) => s.setGenSet((p) => p.filter((_, k) => k !== j))}
-                                    />
-                                ))}
+                            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", backgroundColor: THEME.colors.panel, borderRadius: THEME.radius.lg, border: `1px solid ${THEME.colors.border}`, overflow: "hidden" }}>
+                                {s.genSet.map((t, i) => {
+                                    const isDragging = dragIdx.current === i;
+                                    const isTarget   = dropTarget === i && dragIdx.current !== null && dragIdx.current !== i;
+                                    return (
+                                        <div
+                                            key={t.id + i}
+                                            draggable
+                                            onDragStart={() => onGenDragStart(i)}
+                                            onDragOver={e => onGenDragOver(e, i)}
+                                            onDrop={e => onGenDrop(e, i)}
+                                            onDragEnd={onGenDragEnd}
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "stretch",
+                                                opacity: isDragging ? 0.4 : 1,
+                                                borderTop: isTarget
+                                                    ? `2px solid ${THEME.colors.brand.violet}`
+                                                    : "2px solid transparent",
+                                                backgroundColor: isTarget
+                                                    ? `${THEME.colors.brand.violet}12`
+                                                    : undefined,
+                                                transition: "opacity 0.1s, border-top 0.1s, background-color 0.1s",
+                                            }}
+                                        >
+                                            {/* Drag grip */}
+                                            <div
+                                                title="Arrastra para reordenar"
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    padding: "0 6px 0 10px",
+                                                    color: THEME.colors.text.muted,
+                                                    opacity: 0.35,
+                                                    flexShrink: 0,
+                                                    cursor: "grab",
+                                                    userSelect: "none",
+                                                }}
+                                            >
+                                                <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+                                                    <circle cx="3" cy="2.5" r="1.2" />
+                                                    <circle cx="7" cy="2.5" r="1.2" />
+                                                    <circle cx="3" cy="7"   r="1.2" />
+                                                    <circle cx="7" cy="7"   r="1.2" />
+                                                    <circle cx="3" cy="11.5" r="1.2" />
+                                                    <circle cx="7" cy="11.5" r="1.2" />
+                                                </svg>
+                                            </div>
+                                            {/* Track row */}
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <TrackRow
+                                                    track={t}
+                                                    idx={i}
+                                                    showN
+                                                    onRm={(j) => s.setGenSet((p) => p.filter((_, k) => k !== j))}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </section>
                     ) : (
