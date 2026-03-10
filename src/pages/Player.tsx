@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useProjectStore } from "../store/useProjectStore";
+import { useProjectStore, doGen, toPlayer } from "../store/useProjectStore";
+import { useBuilderStore } from "../store/useBuilderStore.ts";
 import { THEME } from "../data/theme.ts";
-import { TRACKS } from "../data/constants";
-import { Wave } from "../components/common/Wave";
-import { fmt, fmtM, mc } from "../services/uiUtils";
+import { TRACKS } from "../data/constants.ts";
+import { Wave } from "../components/common/Wave.tsx";
+import { fmt, fmtM, mc } from "../services/uiUtils.ts";
 import { genWave } from "../services/setBuilderService.ts";
+import { sumTrackDurationMs } from "../utils/trackMetrics.ts";
 
 // ── Live Unlock Confirmation Modal ───────────────────────────────────────────
 const LiveUnlockModal: React.FC<{ onConfirm: () => void; onCancel: () => void }> = ({ onConfirm, onCancel }) => (
@@ -141,7 +143,7 @@ export const Player: React.FC = () => {
         const lines = [
             `== SuniPlayer · Set Export ==`,
             `Fecha: ${new Date().toLocaleString()}`,
-            `Total: ${pQueue.length} canciones · ${fmtM(pQueue.reduce((a, t) => a + t.duration_ms, 0))}`,
+            `Total: ${pQueue.length} canciones · ${fmtM(sumTrackDurationMs(pQueue))}`,
             ``,
             ...pQueue.map((t, i) => [
                 `${String(i + 1).padStart(2, "0")}. ${t.title} — ${t.artist}`,
@@ -169,7 +171,7 @@ export const Player: React.FC = () => {
         if (pQueue.length > 0 && masterPool.length === 0) {
             setMasterPool([...pQueue]);
         }
-    }, [pQueue.length]);
+    }, [masterPool.length, pQueue]);
 
     // Reset masterPool when a brand new set is loaded (different tracks)
     useEffect(() => {
@@ -215,7 +217,7 @@ export const Player: React.FC = () => {
     const isLive = mode === "live";
     const ct = pQueue[ci];
     const prog = ct ? pos / (ct.duration_ms || 1) : 0;
-    const qTot = pQueue.reduce((acc, t) => acc + t.duration_ms, 0);
+    const qTot = sumTrackDurationMs(pQueue);
     const mCol = isLive ? THEME.colors.brand.cyan : THEME.colors.brand.violet;
 
     const [waves] = useState(() => TRACKS.map((_, i) => genWave(i * 7)));
@@ -349,9 +351,8 @@ export const Player: React.FC = () => {
     // ── Empty state ───────────────────────────────────────────────────────────
     if (!pQueue.length) {
         const quickLoad = () => {
-            const store = useProjectStore.getState();
-            store.doGen();
-            setTimeout(() => useProjectStore.getState().toPlayer(), 50);
+            doGen();
+            setTimeout(() => toPlayer(), 50);
         };
         return (
             <div style={{
@@ -392,7 +393,7 @@ export const Player: React.FC = () => {
                         Generar Set Rápido (45 min)
                     </button>
                     <button
-                        onClick={() => useProjectStore.getState().setView("builder")}
+                        onClick={() => useBuilderStore.getState().setView("builder")}
                         style={{
                             padding: "12px", borderRadius: THEME.radius.md,
                             border: `1px solid ${THEME.colors.border}`,
@@ -633,7 +634,7 @@ export const Player: React.FC = () => {
                                 <div
                                     style={{
                                         height: "100%",
-                                        width: `${Math.min(100, (pQueue.slice(0, ci).reduce((acc: number, t) => acc + t.duration_ms, 0) + pos) / (qTot || 1) * 100)}%`,
+                                        width: `${Math.min(100, (sumTrackDurationMs(pQueue.slice(0, ci)) + pos) / (qTot || 1) * 100)}%`,
                                         background: THEME.gradients.brand,
                                         transition: "width 0.5s ease-out",
                                     }}

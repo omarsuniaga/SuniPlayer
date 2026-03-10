@@ -6,9 +6,12 @@
  *  - advance() called at most once per track (hasAdvanced guard)
  *  - No side-effects inside React state updaters
  *  - Crossfade uses setTimeout, cleanly cancelled on unmount
+ *
+ * Performance: imports domain stores directly (no composite hook overhead)
  */
 import { useEffect, useRef } from "react";
-import { useProjectStore } from "../store/useProjectStore";
+import { usePlayerStore } from "../store/usePlayerStore.ts";
+import { useSettingsStore } from "../store/useSettingsStore.ts";
 
 const AUDIO_BASE = "/audio/";
 const CROSSFADE_MS = 2000;   // crossfade duration
@@ -16,16 +19,17 @@ const TICK_MS = 250;    // position poll interval
 
 export function useAudio() {
     // ── Store selectors ──────────────────────────────────────────────────────
-    const pQueue = useProjectStore(s => s.pQueue);
-    const ci = useProjectStore(s => s.ci);
-    const playing = useProjectStore(s => s.playing);
-    const vol = useProjectStore(s => s.vol);
-    const autoNext = useProjectStore(s => s.autoNext);
-    const crossfade = useProjectStore(s => s.crossfade);
-    const setCi = useProjectStore(s => s.setCi);
-    const setPos = useProjectStore(s => s.setPos);
-    const setPlaying = useProjectStore(s => s.setPlaying);
-    const setElapsed = useProjectStore(s => s.setElapsed);
+    const pQueue = usePlayerStore(s => s.pQueue);
+    const ci = usePlayerStore(s => s.ci);
+    const playing = usePlayerStore(s => s.playing);
+    const vol = usePlayerStore(s => s.vol);
+    const setCi = usePlayerStore(s => s.setCi);
+    const setPos = usePlayerStore(s => s.setPos);
+    const setPlaying = usePlayerStore(s => s.setPlaying);
+    const setElapsed = usePlayerStore(s => s.setElapsed);
+
+    const autoNext = useSettingsStore(s => s.autoNext);
+    const crossfade = useSettingsStore(s => s.crossfade);
 
     // ── Stable refs (values that must survive effect teardown) ───────────────
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -96,7 +100,7 @@ export function useAudio() {
         next.src = nextTrack.blob_url ?? (AUDIO_BASE + nextTrack.file_path);
         next.volume = 0;
         next.load();
-    }, [nextTrack?.file_path]);
+    }, [nextTrack]);
 
     // ── Volume sync ──────────────────────────────────────────────────────────
     useEffect(() => {

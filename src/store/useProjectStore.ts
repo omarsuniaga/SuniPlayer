@@ -1,15 +1,45 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import { Track, SetHistoryItem } from "../types";
-import { TRACKS, VENUES } from "../data/constants";
+/**
+ * useProjectStore — Backward-compatible composite hook
+ *
+ * Combines all domain stores into a single API so existing components
+ * continue to work without changes.  Performance-critical code (useAudio)
+ * should import domain stores directly to minimise re-renders.
+ *
+ * Domain stores:
+ *   useBuilderStore  — view, targetMin, venue, curve, genSet, search, fMood
+ *   usePlayerStore   — pQueue, ci, playing, pos, vol, elapsed, tTarget, mode
+ *   useSettingsStore — autoNext, crossfade, showSettings, bpmMin, bpmMax, defaultVol
+ *   useHistoryStore  — history
+ *   useLibraryStore  — customTracks
+ */
+import { Track, SetHistoryItem } from "../types.ts";
+import { TRACKS, VENUES } from "../data/constants.ts";
 import { buildSet } from "../services/setBuilderService.ts";
+import { sumTrackDurationMs, sumTrackDurationSeconds } from "../utils/trackMetrics.ts";
 
-interface ProjectState {
-    // Navigation
-    view: "builder" | "player" | "history";
-    setView: (view: "builder" | "player" | "history") => void;
+import { useBuilderStore } from "./useBuilderStore.ts";
+import { usePlayerStore } from "./usePlayerStore.ts";
+import { useSettingsStore } from "./useSettingsStore.ts";
+import { useHistoryStore } from "./useHistoryStore.ts";
+import { useLibraryStore } from "./useLibraryStore.ts";
 
-    // Builder State
+// Re-export domain stores for direct use where performance matters
+export {
+    useBuilderStore,
+    usePlayerStore,
+    useSettingsStore,
+    useHistoryStore,
+    useLibraryStore,
+};
+
+// ── Combined state type ────────────────────────────────────────────────────
+
+type View = "builder" | "player" | "history";
+
+export interface ProjectState {
+    // Builder
+    view: View;
+    setView: (view: View) => void;
     targetMin: number;
     setTargetMin: (min: number) => void;
     venue: string;
@@ -23,7 +53,7 @@ interface ProjectState {
     fMood: string | null;
     setFMood: (mood: string | null) => void;
 
-    // Player State (not persisted across sessions)
+    // Player
     pQueue: Track[];
     setPQueue: (queue: Track[]) => void;
     ci: number;
@@ -41,20 +71,6 @@ interface ProjectState {
     mode: "edit" | "live";
     setMode: (mode: "edit" | "live" | ((prev: "edit" | "live") => "edit" | "live")) => void;
 
-    // Persisted History
-    history: SetHistoryItem[];
-    setHistory: (history: SetHistoryItem[] | ((prev: SetHistoryItem[]) => SetHistoryItem[])) => void;
-    clearHistory: () => void;
-
-    // User-Imported Custom Tracks (session-only — blob_url cannot be persisted)
-    customTracks: Track[];
-    addCustomTrack: (track: Track) => void;
-    removeCustomTrack: (id: string) => void;
-    clearCustomTracks: () => void;
-
-    // Per-track notes (performance reminders)
-    setTrackNotes: (trackId: string, notes: string) => void;
-
     // Settings
     autoNext: boolean;
     setAutoNext: (v: boolean) => void;
@@ -69,171 +85,195 @@ interface ProjectState {
     defaultVol: number;
     setDefaultVol: (v: number) => void;
 
-    // Derived Actions
+    // History
+    history: SetHistoryItem[];
+    setHistory: (history: SetHistoryItem[] | ((prev: SetHistoryItem[]) => SetHistoryItem[])) => void;
+    clearHistory: () => void;
+
+    // Library
+    customTracks: Track[];
+    addCustomTrack: (track: Track) => void;
+    removeCustomTrack: (id: string) => void;
+    clearCustomTracks: () => void;
+
+    // Cross-domain actions
+    setTrackNotes: (trackId: string, notes: string) => void;
     doGen: () => void;
     toPlayer: () => void;
     appendToQueue: (tracks: Track[]) => void;
     saveSet: () => void;
 }
 
-export const useProjectStore = create<ProjectState>()(
-    persist(
-        (set, get) => ({
-            view: "builder",
-            setView: (view) => set({ view }),
+// ── Cross-domain actions (module-level, use .getState() — no hooks needed) ─
 
-            targetMin: 45,
-            setTargetMin: (targetMin) => set({ targetMin }),
-            venue: "lobby",
-            setVenue: (venue) => set({ venue }),
-            curve: "steady",
-            setCurve: (curve) => set({ curve }),
-            genSet: [],
-            setGenSet: (update) => set((state) => ({
-                genSet: typeof update === "function" ? update(state.genSet) : update,
-            })),
-            search: "",
-            setSearch: (search) => set({ search }),
-            fMood: null,
-            setFMood: (fMood) => set({ fMood }),
+/** Update notes on a track in both pQueue and genSet */
+export function setTrackNotes(trackId: string, notes: string) {
+    usePlayerStore.setState((s) => ({
+        pQueue: s.pQueue.map((t) => (t.id === trackId ? { ...t, notes } : t)),
+    }));
+    useBuilderStore.setState((s) => ({
+        genSet: s.genSet.map((t) => (t.id === trackId ? { ...t, notes } : t)),
+    }));
+}
 
-            pQueue: [],
-            setPQueue: (pQueue) => set({ pQueue }),
-            ci: 0,
-            setCi: (ci) => set({ ci }),
-            playing: false,
-            setPlaying: (update) => set((state) => ({
-                playing: typeof update === "function" ? update(state.playing) : update,
-            })),
-            pos: 0,
-            setPos: (update) => set((state) => ({
-                pos: typeof update === "function" ? update(state.pos) : update,
-            })),
-            vol: 0.85,
-            setVol: (vol) => set({ vol }),
-            elapsed: 0,
-            setElapsed: (update) => set((state) => ({
-                elapsed: typeof update === "function" ? update(state.elapsed) : update,
-            })),
-            tTarget: 2700,
-            setTTarget: (tTarget) => set({ tTarget }),
-            mode: "edit",
-            setMode: (update) => set((state) => ({
-                mode: typeof update === "function" ? update(state.mode) : update,
-            })),
+/** Generate a set using current builder config + settings filters */
+export function doGen() {
+    const { targetMin, curve, venue } = useBuilderStore.getState();
+    const { bpmMin, bpmMax } = useSettingsStore.getState();
+    const tSec = targetMin * 60;
+    useBuilderStore.setState({
+        genSet: buildSet(TRACKS, tSec, { curve, venue, bpmMin, bpmMax }),
+    });
+}
 
-            // User-Imported Custom Tracks
-            customTracks: [],
-            addCustomTrack: (track) => set(state => ({ customTracks: [...state.customTracks, track] })),
-            removeCustomTrack: (id) => set(state => ({ customTracks: state.customTracks.filter(t => t.id !== id) })),
-            clearCustomTracks: () => set({ customTracks: [] }),
+/** Send generated set to the player (or just switch view if already playing) */
+export function toPlayer() {
+    const { genSet, targetMin } = useBuilderStore.getState();
+    const { playing } = usePlayerStore.getState();
+    if (!genSet.length) return;
+    const tSec = targetMin * 60;
+    if (playing) {
+        useBuilderStore.setState({ view: "player" });
+    } else {
+        usePlayerStore.setState({
+            pQueue: [...genSet],
+            ci: 0, pos: 0, playing: false, elapsed: 0,
+            tTarget: tSec, mode: "edit",
+        });
+        useBuilderStore.setState({ view: "player" });
+    }
+}
 
-            // Per-track notes — stored in pQueue and genSet
-            setTrackNotes: (trackId, notes) => set(state => ({
-                pQueue: state.pQueue.map(t => t.id === trackId ? { ...t, notes } : t),
-                genSet: state.genSet.map(t => t.id === trackId ? { ...t, notes } : t),
-            })),
+/** Append tracks to the active queue without interrupting playback */
+export function appendToQueue(tracks: Track[]) {
+    if (!tracks.length) return;
+    const { pQueue, ci, tTarget } = usePlayerStore.getState();
+    if (pQueue.length === 0) {
+        usePlayerStore.setState({
+            pQueue: [...tracks],
+            ci: 0, pos: 0, playing: false, elapsed: 0,
+            tTarget: sumTrackDurationSeconds(tracks),
+        });
+        useBuilderStore.setState({ view: "player" });
+    } else {
+        const newQueue = [
+            ...pQueue.slice(0, ci + 1),
+            ...tracks,
+            ...pQueue.slice(ci + 1),
+        ];
+        usePlayerStore.setState({
+            pQueue: newQueue,
+            tTarget: tTarget + sumTrackDurationSeconds(tracks),
+        });
+    }
+}
 
-            // Settings
-            autoNext: true,
-            setAutoNext: (autoNext) => set({ autoNext }),
-            crossfade: true,
-            setCrossfade: (crossfade) => set({ crossfade }),
-            showSettings: false,
-            setShowSettings: (showSettings) => set({ showSettings }),
-            bpmMin: 55,
-            setBpmMin: (bpmMin) => set({ bpmMin }),
-            bpmMax: 140,
-            setBpmMax: (bpmMax) => set({ bpmMax }),
-            defaultVol: 0.85,
-            setDefaultVol: (defaultVol) => set({ defaultVol, vol: defaultVol }),
+/** Save the current generated set to history */
+export function saveSet() {
+    const { genSet, targetMin, venue, curve } = useBuilderStore.getState();
+    if (!genSet.length) return;
+    const tSec = targetMin * 60;
+    const v = VENUES.find((x) => x.id === venue);
+    const newItem: SetHistoryItem = {
+        id: Date.now() + "",
+        name: (v?.label || "Set") + " " + targetMin + "min",
+        tracks: [...genSet],
+        total: sumTrackDurationMs(genSet),
+        target: tSec,
+        venue,
+        curve,
+        date: new Date().toLocaleString(),
+    };
+    useHistoryStore.setState((s) => ({ history: [newItem, ...s.history] }));
+}
 
-            history: [],
-            setHistory: (update) => set((state) => ({
-                history: typeof update === "function" ? update(state.history) : update,
-            })),
-            clearHistory: () => set({ history: [] }),
+/** Change defaultVol in settings AND sync to active player vol */
+export function setDefaultVol(v: number) {
+    useSettingsStore.getState().setDefaultVol(v);
+    usePlayerStore.getState().setVol(v);
+}
 
+// ── Composite hook — backward-compatible shim ──────────────────────────────
 
-            appendToQueue: (tracks: Track[]) => {
-                const { pQueue, ci, tTarget } = get();
-                if (!tracks.length) return;
-                if (pQueue.length === 0) {
-                    // Nothing loaded — behave like toPlayer
-                    set({
-                        pQueue: [...tracks],
-                        ci: 0, pos: 0, playing: false, elapsed: 0,
-                        tTarget: tracks.reduce((a, t) => a + t.duration_ms, 0) / 1000,
-                        view: "player",
-                    });
-                } else {
-                    // Append AFTER the current ci position without changing playback
-                    const newQueue = [
-                        ...pQueue.slice(0, ci + 1),
-                        ...tracks,
-                        ...pQueue.slice(ci + 1),
-                    ];
-                    const addedMs = tracks.reduce((a, t) => a + t.duration_ms, 0) / 1000;
-                    set({ pQueue: newQueue, tTarget: tTarget + addedMs });
-                }
-            },
+export function useProjectStore(): ProjectState;
+export function useProjectStore<T>(selector: (s: ProjectState) => T): T;
+export function useProjectStore<T = ProjectState>(
+    selector?: (s: ProjectState) => T
+): T | ProjectState {
+    const builder = useBuilderStore();
+    const player = usePlayerStore();
+    const settings = useSettingsStore();
+    const hist = useHistoryStore();
+    const library = useLibraryStore();
 
-            doGen: () => {
-                const { targetMin, curve, venue, bpmMin, bpmMax } = get();
-                const tSec = targetMin * 60;
-                set({ genSet: buildSet(TRACKS, tSec, { curve, venue, bpmMin, bpmMax }) });
-            },
+    const combined: ProjectState = {
+        // Builder
+        view: builder.view,
+        setView: builder.setView,
+        targetMin: builder.targetMin,
+        setTargetMin: builder.setTargetMin,
+        venue: builder.venue,
+        setVenue: builder.setVenue,
+        curve: builder.curve,
+        setCurve: builder.setCurve,
+        genSet: builder.genSet,
+        setGenSet: builder.setGenSet,
+        search: builder.search,
+        setSearch: builder.setSearch,
+        fMood: builder.fMood,
+        setFMood: builder.setFMood,
 
-            toPlayer: () => {
-                const { genSet, targetMin, playing } = get();
-                if (!genSet.length) return;
-                const tSec = targetMin * 60;
-                if (playing) {
-                    // Don't interrupt — just switch view, leave queue intact
-                    set({ view: "player" });
-                } else {
-                    set({
-                        pQueue: [...genSet],
-                        ci: 0, pos: 0, playing: false, elapsed: 0,
-                        tTarget: tSec, mode: "edit", view: "player",
-                    });
-                }
-            },
+        // Player
+        pQueue: player.pQueue,
+        setPQueue: player.setPQueue,
+        ci: player.ci,
+        setCi: player.setCi,
+        playing: player.playing,
+        setPlaying: player.setPlaying,
+        pos: player.pos,
+        setPos: player.setPos,
+        vol: player.vol,
+        setVol: player.setVol,
+        elapsed: player.elapsed,
+        setElapsed: player.setElapsed,
+        tTarget: player.tTarget,
+        setTTarget: player.setTTarget,
+        mode: player.mode,
+        setMode: player.setMode,
 
-            saveSet: () => {
-                const { genSet, targetMin, venue, curve } = get();
-                if (!genSet.length) return;
-                const tSec = targetMin * 60;
-                const v = VENUES.find((x) => x.id === venue);
-                const newItem: SetHistoryItem = {
-                    id: Date.now() + "",
-                    name: (v?.label || "Set") + " " + targetMin + "min",
-                    tracks: [...genSet],
-                    total: genSet.reduce((acc, t) => acc + t.duration_ms, 0),
-                    target: tSec,
-                    venue,
-                    curve,
-                    date: new Date().toLocaleString(),
-                };
-                set((state) => ({ history: [newItem, ...state.history] }));
-            },
-        }),
-        {
-            name: "suniplayer-state",
-            storage: createJSONStorage(() => localStorage),
-            partialize: (state) => ({
-                targetMin: state.targetMin,
-                venue: state.venue,
-                curve: state.curve,
-                vol: state.vol,
-                history: state.history,
-                genSet: state.genSet,
-                autoNext: state.autoNext,
-                crossfade: state.crossfade,
-                bpmMin: state.bpmMin,
-                bpmMax: state.bpmMax,
-                defaultVol: state.defaultVol,
-            }),
-        }
-    )
-);
+        // Settings
+        autoNext: settings.autoNext,
+        setAutoNext: settings.setAutoNext,
+        crossfade: settings.crossfade,
+        setCrossfade: settings.setCrossfade,
+        showSettings: settings.showSettings,
+        setShowSettings: settings.setShowSettings,
+        bpmMin: settings.bpmMin,
+        setBpmMin: settings.setBpmMin,
+        bpmMax: settings.bpmMax,
+        setBpmMax: settings.setBpmMax,
+        defaultVol: settings.defaultVol,
+        // Override: setDefaultVol syncs both stores
+        setDefaultVol,
+
+        // History
+        history: hist.history,
+        setHistory: hist.setHistory,
+        clearHistory: hist.clearHistory,
+
+        // Library
+        customTracks: library.customTracks,
+        addCustomTrack: library.addCustomTrack,
+        removeCustomTrack: library.removeCustomTrack,
+        clearCustomTracks: library.clearCustomTracks,
+
+        // Cross-domain actions
+        setTrackNotes,
+        doGen,
+        toPlayer,
+        appendToQueue,
+        saveSet,
+    };
+
+    return selector ? selector(combined) : combined;
+}

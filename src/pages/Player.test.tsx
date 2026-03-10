@@ -1,0 +1,43 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+
+import { TRACKS } from "../data/constants";
+import { Player } from "./Player";
+import { useBuilderStore } from "../store/useBuilderStore";
+import { usePlayerStore } from "../store/usePlayerStore";
+
+const resetStores = () => {
+    localStorage.clear();
+    useBuilderStore.setState(useBuilderStore.getInitialState(), true);
+    usePlayerStore.setState(usePlayerStore.getInitialState(), true);
+};
+
+describe("Player", () => {
+    beforeEach(() => {
+        resetStores();
+    });
+
+    it("shows the empty state when no set is loaded", () => {
+        render(<Player />);
+
+        expect(screen.getByText("No hay set cargado")).toBeTruthy();
+        expect(screen.getByText("Generar Set Rápido (45 min)")).toBeTruthy();
+    });
+
+    it("renders the current track metadata when a queue exists", () => {
+        usePlayerStore.setState({
+            pQueue: TRACKS.slice(0, 2),
+            ci: 0,
+            pos: 0,
+            elapsed: 0,
+            tTarget: 45 * 60,
+            mode: "edit",
+        });
+
+        render(<Player />);
+
+        expect(screen.getAllByText("Fly Me To The Moon").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Sinatra").length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/COLA/).length).toBeGreaterThan(0);
+    });
+});
