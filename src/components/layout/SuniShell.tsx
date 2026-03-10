@@ -1,13 +1,13 @@
 import React from "react";
 import { useProjectStore } from "../../store/useProjectStore";
-import { Navbar } from "./Navbar";
-import { BottomNav } from "./BottomNav";
-import { SettingsPanel } from "./SettingsPanel";
+import { Navbar } from "./Navbar.tsx";
+import { BottomNav } from "./BottomNav.tsx";
+import { SettingsPanel } from "./SettingsPanel.tsx";
 import { THEME } from "../../data/theme.ts";
-import { Builder } from "../../pages/Builder";
-import { Player } from "../../pages/Player";
-import { History } from "../../pages/History";
-import { useAudio } from "../../services/useAudio";
+import { Builder } from "../../pages/Builder.tsx";
+import { Player } from "../../pages/Player.tsx";
+import { History } from "../../pages/History.tsx";
+import { useAudio } from "../../services/useAudio.ts";
 
 export const SuniShell: React.FC = () => {
     const view = useProjectStore((s) => s.view);
@@ -18,18 +18,7 @@ export const SuniShell: React.FC = () => {
     useAudio();
 
     return (
-        <div
-            style={{
-                height: "100%",          // ← era minHeight:100vh (rompe scroll de hijos)
-                backgroundColor: THEME.colors.bg,
-                color: THEME.colors.text.primary,
-                display: "flex",
-                flexDirection: "column",
-                fontFamily: THEME.fonts.main,
-                position: "relative",
-                overflow: "hidden",
-            }}
-        >
+        <div className="app-shell">
             {/* Background Atmosphere - Generative Glow */}
             <div
                 style={{
@@ -63,34 +52,7 @@ export const SuniShell: React.FC = () => {
             {/* Settings drawer — rendered globally above all views */}
             <SettingsPanel />
 
-            {/* Global CSS for Animations */}
-            <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-          0% { transform: scale(1); opacity: 0.8; }
-          50% { transform: scale(1.6); opacity: 0; }
-          100% { transform: scale(1); opacity: 0.8; }
-        }
-        * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); borderRadius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
-        
-        input[type="range"]::-webkit-slider-thumb {
-          appearance: none;
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          background: white;
-          cursor: pointer;
-          border: 3px solid ${THEME.colors.brand.cyan};
-          box-shadow: 0 0 10px ${THEME.colors.brand.cyan}40;
-        }
-      `}</style>
+            {/* Global animations and range-thumb are in index.css */}
         </div>
     );
 };

@@ -1,162 +1,295 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
+/* ── Design tokens (mirrors src/data/theme.ts) ──────────────────────────────
+   Centralised here so CSS-only rules (scrollbars, range inputs, media
+   queries, utility classes) can reference them without importing JS.
+   The THEME object in theme.ts remains the single source of truth for
+   component-level inline styles.
+   ─────────────────────────────────────────────────────────────────────────*/
+:root {
+    /* Background / surface */
+    --c-bg:            #0A0E14;
+    --c-surface:       rgba(255, 255, 255, 0.02);
+    --c-surface-hover: rgba(255, 255, 255, 0.03);
+    --c-panel:         rgba(0, 0, 0, 0.15);
+
+    /* Borders */
+    --c-border:        rgba(255, 255, 255, 0.04);
+    --c-border-light:  rgba(255, 255, 255, 0.08);
+
+    /* Text */
+    --c-text:           #F0F4F8;
+    --c-text-secondary: rgba(255, 255, 255, 0.4);
+    --c-text-muted:     rgba(255, 255, 255, 0.25);
+    --c-text-dim:       rgba(255, 255, 255, 0.10);
+
+    /* Brand */
+    --c-cyan:        #06B6D4;
+    --c-violet:      #8B5CF6;
+    --c-pink:        #EC4899;
+    --c-cyan-glow:   rgba(6,   182, 212, 0.3);
+    --c-violet-glow: rgba(139,  92, 246, 0.3);
+
+    /* Status */
+    --c-success: #10B981;
+    --c-warning: #F59E0B;
+    --c-error:   #EF4444;
+
+    /* Gradients */
+    --grad-brand: linear-gradient(135deg, #06B6D4, #8B5CF6, #EC4899);
+    --grad-cyan:  linear-gradient(135deg, #06B6D4, #0891B2);
+    --grad-live:  linear-gradient(90deg,  #06B6D4, #8B5CF6);
+
+    /* Typography */
+    --font-main: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Radius */
+    --r-sm:   6px;
+    --r-md:   8px;
+    --r-lg:  10px;
+    --r-xl:  12px;
+    --r-full: 99px;
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html,
 body,
 #root {
-  height: 100%;
-  overflow: hidden;
+    height: 100%;
+    overflow: hidden;
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: #0a0a0f;
-  color: #f0f0ff;
-  -webkit-font-smoothing: antialiased;
+    font-family: var(--font-main);
+    background: var(--c-bg);
+    color: var(--c-text);
+    -webkit-font-smoothing: antialiased;
 }
 
-/* ── Scrollbar ── */
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+    width: 4px;
+    height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+    background: var(--c-border-light);
+    border-radius: var(--r-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.15);
 }
 
-/* ── Animations ── */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
+/* ── Range inputs ────────────────────────────────────────────────────────── */
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 0.8;
-  }
-
-  50% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 0.8;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes glow {
-
-  0%,
-  100% {
-    opacity: 0.06;
-  }
-
-  50% {
-    opacity: 0.14;
-  }
-}
-
-/* ── Range Input ── */
 input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  outline: none;
-  cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
 }
 
 input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: white;
-  cursor: pointer;
-  border: 3px solid #06B6D4;
-  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    border: 3px solid var(--c-cyan);
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
 }
 
-/* ── Responsive Utilities ── */
+/* ── Animations ─────────────────────────────────────────────────────────── */
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0%   { transform: scale(1);   opacity: 0.8; }
+    50%  { transform: scale(1.6); opacity: 0; }
+    100% { transform: scale(1);   opacity: 0.8; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow {
+    0%, 100% { opacity: 0.06; }
+    50%       { opacity: 0.14; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Utility: layout ────────────────────────────────────────────────────── */
+
+.flex-col      { display: flex; flex-direction: column; }
+.flex-center   { display: flex; align-items: center; justify-content: center; }
+.flex-between  { display: flex; align-items: center; justify-content: space-between; }
+.flex-grow     { flex: 1; min-width: 0; }
+.scroll-y      { overflow-y: auto; }
+.scroll-hidden { overflow: hidden; }
+.fill          { width: 100%; height: 100%; }
+
+/* ── Utility: surfaces ──────────────────────────────────────────────────── */
+
+.card {
+    background: var(--c-panel);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+}
+
+.surface {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+}
+
+/* ── Utility: typography ────────────────────────────────────────────────── */
+
+.mono           { font-family: var(--font-mono); }
+.text-primary   { color: var(--c-text); }
+.text-secondary { color: var(--c-text-secondary); }
+.text-muted     { color: var(--c-text-muted); }
+.text-dim       { color: var(--c-text-dim); }
+.text-cyan      { color: var(--c-cyan); }
+.text-violet    { color: var(--c-violet); }
+.text-success   { color: var(--c-success); }
+.text-warning   { color: var(--c-warning); }
+.text-error     { color: var(--c-error); }
+
+.label-caps {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--c-text-muted);
+}
+
+/* ── Utility: buttons ───────────────────────────────────────────────────── */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: var(--r-md);
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    outline: none;
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid var(--c-border);
+    color: var(--c-text-secondary);
+}
+.btn-ghost:hover {
+    background: var(--c-surface-hover);
+    color: var(--c-text);
+}
+
+.btn-primary {
+    background: var(--c-cyan);
+    color: white;
+}
+.btn-primary:hover { opacity: 0.88; }
+
+.btn-violet {
+    background: var(--c-violet);
+    color: white;
+}
+.btn-violet:hover { opacity: 0.88; }
+
+.btn-brand {
+    background: var(--grad-brand);
+    color: white;
+}
+
+/* ── Utility: badges ────────────────────────────────────────────────────── */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: var(--r-full);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* ── App shell ───────────────────────────────────────────────────────────── */
+
+/* Applied to the root SuniShell wrapper */
+.app-shell {
+    height: 100%;
+    background-color: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-main);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ── Responsive utilities ────────────────────────────────────────────────── */
+
 @media (max-width: 768px) {
+    .desktop-sidebar {
+        display: none !important;
+    }
 
-  /* Hide sidebar on mobile — Player shows queue below */
-  .desktop-sidebar {
-    display: none !important;
-  }
+    .player-layout,
+    .builder-layout {
+        flex-direction: column !important;
+    }
 
-  /* Stack layout vertically on mobile */
-  .player-layout {
-    flex-direction: column !important;
-  }
+    .main-content {
+        padding: 16px !important;
+    }
 
-  .builder-layout {
-    flex-direction: column !important;
-  }
+    .title-xl { font-size: 22px !important; }
+    .title-lg { font-size: 18px !important; }
 
-  /* Narrower padding on mobile */
-  .main-content {
-    padding: 16px !important;
-  }
+    .duration-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
 
-  /* Reduce font sizes on mobile */
-  .title-xl {
-    font-size: 22px !important;
-  }
-
-  .title-lg {
-    font-size: 18px !important;
-  }
-
-  /* Full-width buttons */
-  .duration-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-  }
+@media (max-width: 640px) {
+    .mobile-repo-fab      { display: flex !important; }
+    .mobile-repo-backdrop { display: block !important; }
+    .mobile-repo-sheet    { display: flex !important; }
 }
 
 @media (max-width: 480px) {
-  .player-controls-row {
-    gap: 16px !important;
-  }
-
-  .vol-slider {
-    width: 120px !important;
-  }
+    .player-controls-row { gap: 16px !important; }
+    .vol-slider { width: 120px !important; }
 }
