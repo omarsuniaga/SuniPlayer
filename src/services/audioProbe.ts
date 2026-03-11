@@ -10,6 +10,9 @@ const AUDIO_BASE = "/audio/";
 /**
  * Probe a single audio file path.
  * @returns true if the file exists and is accessible (HTTP 2xx), false otherwise.
+ * @remarks The path is URL-encoded via encodeURIComponent. Note: HTMLAudioElement.src
+ * uses the browser's own encoding, which may differ for characters like `'`, `+`, `!`.
+ * Current catalog filenames (alphanumeric, spaces, dashes) are unaffected.
  */
 export async function probeOne(filePath: string): Promise<boolean> {
     try {
@@ -23,6 +26,7 @@ export async function probeOne(filePath: string): Promise<boolean> {
 /**
  * Probe multiple audio file paths in parallel.
  * @returns Set of file_path strings that are available.
+ * @remarks Reserved for future catalog scanning. Not currently called by production code.
  */
 export async function probeFiles(filePaths: string[]): Promise<Set<string>> {
     const results = await Promise.allSettled(filePaths.map(fp => probeOne(fp)));
