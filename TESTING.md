@@ -1,218 +1,219 @@
 # TESTING.md — SuniPlayer Testing Strategy
 
-## Filosofia de Testing
+## Proposito
 
-SuniPlayer es una herramienta de performance en vivo. Un crash durante un show
-no es un "bug menor" — es un desastre profesional. La estrategia de testing
-refleja esta realidad.
-
-### Prioridades de testing (en orden)
-
-1. **Zero-crash guarantee**: la app no puede cerrarse inesperadamente
-2. **Audio reliability**: la reproduccion no puede interrumpirse
-3. **Data integrity**: los sets y la biblioteca no pueden corromperse
-4. **UI correctness**: los controles deben hacer lo que dicen
+SuniPlayer es una herramienta orientada a performance en vivo. Un fallo durante un show no es un bug menor: es un riesgo de producto. Esta estrategia separa claramente lo que hoy puede validarse en el repo de lo que se quiere alcanzar en la siguiente etapa.
 
 ---
 
-## Tipos de Tests
+## 1. Estado actual de validacion
 
-### 1. Unit Tests
+Hoy el repositorio cuenta con una validacion automatizada base ya operativa.
 
-Cobertura minima objetivo: 80%
+### Disponible hoy
 
-Que cubren:
-- Servicios (SetBuilderService, AudioService, DatabaseService)
-- Stores de Zustand (audioStore, queueStore, setStore)
-- Funciones utilitarias (formateo de tiempo, validaciones, algoritmos)
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run validate`
+- GitHub Actions base ejecutando `npm run validate`
 
-Donde viven:
-```
-__tests__/
-  services/
-    SetBuilderService.test.ts
-    AudioService.test.ts
-    DatabaseService.test.ts
-    SuggestionService.test.ts
-  stores/
-    audioStore.test.ts
-    queueStore.test.ts
-    setStore.test.ts
-    libraryStore.test.ts
-  utils/
-    time.test.ts
-    duration.test.ts
-    validation.test.ts
-```
+### No implementado aun como sistema estable de validacion
 
-Herramientas:
-- Jest 29
-- @testing-library/react-native (para componentes)
+- CI automatizada para quality gates
 
-Ejecucion:
-```bash
-npm run test              # una vez
-npm run test:watch        # modo watch
-npm run test:coverage     # con reporte de cobertura
-```
+### Implicacion
 
-### 2. Integration Tests
+Hoy la validacion real del proyecto depende principalmente de:
 
-Que cubren:
-- Flujo completo: generar set > cargar en player > reproducir
-- Persistencia: guardar set > cerrar app > reabrir > set existe
-- Audio: cargar track > play > pause > seek > verificar posicion
-
-Donde viven:
-```
-__tests__/
-  integration/
-    set-builder-flow.test.ts
-    player-flow.test.ts
-    persistence.test.ts
-```
-
-### 3. Smoke Tests
-
-Tests rapidos que verifican que la app arranca sin crash.
-Se ejecutan en CI en cada push.
-
-```
-__tests__/
-  smoke/
-    app-launches.test.ts
-    navigation-works.test.ts
-```
-
-### 4. Manual Testing Checklist
-
-Antes de cada "release" (instalar en el telefono para un show):
-
-```
-[ ] App abre sin crash
-[ ] Puedo ver mi biblioteca de canciones
-[ ] Puedo generar un set de 45 minutos
-[ ] El set suma correctamente la duracion
-[ ] Puedo enviar el set al player
-[ ] Play/pause funcionan
-[ ] Next/previous funcionan
-[ ] El timer cuenta correctamente
-[ ] El timer cambia de color a los 5 min y 2 min
-[ ] Modo LIVE bloquea la cola
-[ ] La app no se cierra al bloquear pantalla
-[ ] La app no se cierra al recibir una llamada
-[ ] Audio continua con la app en background
-[ ] Bateria no se drena excesivamente (>3h de uso)
-```
+- lint, typecheck, test y build exitosos
+- revision manual
+- comprobacion funcional del flujo principal en desarrollo
 
 ---
 
-## Configuracion de Jest
+## 2. Gaps actuales
 
-### jest.config.js
+Antes de hablar de autonomia fuerte o calidad repetible, el proyecto necesita:
 
-```javascript
-module.exports = {
-  preset: 'jest-expo',
-  testEnvironment: 'jsdom',
-  setupFilesAfterSetup: ['<rootDir>/jest.setup.js'],
-  testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
-  collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/**/types/**',
-    '!src/**/constants/**',
-  ],
-  coverageThreshold: {
-    global: {
-      branches: 70,
-      functions: 75,
-      lines: 80,
-      statements: 80,
-    },
-  },
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
-  },
-};
-```
+1. ampliar la cobertura de tests automatizados
+2. cubrir mejor flujos de player y persistencia
+3. endurecer los quality gates para cambios de arquitectura
+4. incorporar reportes mas claros de regresion
+5. sumar pruebas de escenarios mas cercanos a show real
 
-### jest.setup.js
-
-```javascript
-// Mock expo modules that don't work in test environment
-jest.mock('expo-audio', () => ({
-  useAudioPlayer: jest.fn(),
-  AudioPlayer: jest.fn(),
-}));
-
-jest.mock('expo-haptics', () => ({
-  impactAsync: jest.fn(),
-  notificationAsync: jest.fn(),
-}));
-
-jest.mock('expo-file-system', () => ({
-  documentDirectory: '/mock/documents/',
-  readDirectoryAsync: jest.fn(),
-  getInfoAsync: jest.fn(),
-}));
-```
+Hasta entonces, cualquier afirmacion de calidad debe entenderse como parcial.
 
 ---
 
-## Tests Criticos del SetBuilderService
+## 3. Estrategia minima inmediata
 
-Estos tests son los mas importantes porque validan el core del producto:
+Esta es la estrategia recomendada para la etapa actual del proyecto.
 
-```typescript
-describe('SetBuilderService', () => {
-  test('genera set dentro de tolerancia de +- 90 segundos', () => {
-    const result = buildSet(tracks, 2700, { tolerance: 90 });
-    const total = result.reduce((s, t) => s + t.duration, 0);
-    expect(total).toBeGreaterThanOrEqual(2610);
-    expect(total).toBeLessThanOrEqual(2790);
-  });
+### 3.1 Validacion tecnica minima
 
-  test('nunca genera set vacio si hay tracks disponibles', () => {
-    const result = buildSet(tracks, 2700);
-    expect(result.length).toBeGreaterThan(0);
-  });
+- lint, typecheck, test y build deben pasar siempre
+- cambios de contratos de datos deben revisarse manualmente
+- cambios en flujo builder > player > history deben verificarse manualmente
 
-  test('respeta el maximo de tracks', () => {
-    const result = buildSet(tracks, 7200, { max: 10 });
-    expect(result.length).toBeLessThanOrEqual(10);
-  });
+### 3.2 Escenarios manuales criticos actuales
 
-  test('ordena por energia ascendente cuando se pide', () => {
-    const result = buildSet(tracks, 2700, { curve: 'ascending' });
-    for (let i = 1; i < result.length; i++) {
-      expect(result[i].energy).toBeGreaterThanOrEqual(result[i-1].energy);
-    }
-  });
+Antes de considerar aceptable un cambio importante, deberia comprobarse manualmente:
 
-  test('ordena por energia descendente cuando se pide', () => {
-    const result = buildSet(tracks, 2700, { curve: 'descending' });
-    for (let i = 1; i < result.length; i++) {
-      expect(result[i].energy).toBeLessThanOrEqual(result[i-1].energy);
-    }
-  });
+- [ ] la app abre sin errores visibles
+- [ ] puedo generar un set de 45 minutos
+- [ ] el set cae dentro de la tolerancia esperada
+- [ ] puedo enviar el set al player
+- [ ] play / pause funcionan en la simulacion actual
+- [ ] next / previous funcionan
+- [ ] el timer avanza correctamente
+- [ ] historial guarda y muestra sets del prototipo
+- [ ] no se rompe el flujo al cambiar entre builder, player e historial
 
-  test('no repite tracks en el mismo set', () => {
-    const result = buildSet(tracks, 2700);
-    const ids = result.map(t => t.id);
-    expect(new Set(ids).size).toBe(ids.length);
-  });
-});
-```
+### 3.3 Areas mas sensibles hoy
+
+- algoritmo de set builder
+- consistencia de tiempos y duraciones
+- store global y flujo de cola
+- integridad del historial
+- legibilidad de la UI en modo escenario
 
 ---
 
-## Metricas de Calidad
+## 4. Estrategia objetivo de testing
 
-| Metrica | Objetivo | Donde se mide |
-|---------|----------|---------------|
-| Cobertura de tests | > 80% lineas | `npm run test:coverage` |
-| Zero crashes en show | 0 crashes por show | Testing manual |
-| Tiempo de build CI | < 3 minutos | GitHub Actions |
-| TypeScript errors | 0 | `npm run typecheck` |
-| Lint warnings | 0 | `npm run lint` |
+Con la base actual de validacion ya disponible, la estrategia debe evolucionar a este modelo.
+
+### 4.1 Prioridades de testing
+
+1. zero-crash en flujo critico
+2. integridad de datos
+3. exactitud del set builder
+4. fiabilidad del player
+5. correccion de la UI
+
+### 4.2 Tipos de tests objetivo
+
+#### Unit tests
+
+Cubren:
+
+- servicios de generacion de sets
+- stores de Zustand
+- utilidades de tiempo y formato
+- mapeos de datos y contratos
+
+#### Integration tests
+
+Cubren:
+
+- generar set > enviar al player > reproducir
+- guardar set > recuperar historial
+- cambiar track > mantener consistencia de cola y timer
+
+#### Smoke tests
+
+Cubren:
+
+- la app arranca
+- las vistas principales renderizan
+- el flujo principal no se rompe de inmediato
+
+#### Manual scenario tests
+
+Cubren:
+
+- set de 45 min
+- cambio de track en mitad del flujo
+- reordenamiento o seleccion de cola
+- reinicio de sesion
+- recuperacion de estado
+
+---
+
+## 5. Definition of Done de validacion
+
+Una tarea no deberia considerarse totalmente validada si no cumple lo siguiente, segun las capacidades disponibles del repo.
+
+### Hoy
+
+- `npm run build` pasa
+- el flujo manual afectado fue comprobado
+- no contradice `MVP_SCOPE.md`
+- no rompe contratos documentados en `DATA_MODEL.md` o `DECISIONS.md`
+
+### Objetivo proximo
+
+- `npm run lint` pasa
+- `npm run typecheck` pasa
+- `npm run test` pasa
+- `npm run build` pasa
+- se actualizaron docs si hubo cambio estructural
+
+---
+
+## 6. Escenarios criticos del MVP
+
+Estos escenarios vienen del caracter de herramienta de escenario y deben protegerse incluso antes de tener gran cobertura automatizada.
+
+- generar un set de 45 min dentro de tolerancia
+- enviar el set al player sin perder datos
+- reproducir y navegar por la cola sin inconsistencias
+- mostrar tiempo restante del set
+- conservar sets guardados en el flujo oficial
+- evitar errores catastroficos en mitad del uso
+
+---
+
+## 7. Primeros tests recomendados
+
+Cuando se incorpore el runner de tests, los primeros casos deberian concentrarse en el core del producto.
+
+### Set builder
+
+- genera set dentro de tolerancia
+- no devuelve set vacio si hay tracks
+- respeta maximo de tracks
+- respeta curvas de energia
+- no repite tracks en el mismo set
+
+### Store principal
+
+- enviar set al player resetea posicion y timer correctamente
+- guardar set agrega entrada al historial
+- cambiar track actual actualiza el estado esperado
+- persistir contexto ligero del player sin reanudar playback automaticamente
+
+### Audio hook
+
+- entra en modo simulacion cuando falla `play()` del navegador
+- sale de simulacion cuando el track emite `canplay`
+
+### Player
+
+- renderiza estado vacio sin queue cargada
+- renderiza metadata del track actual cuando hay queue
+
+### Utilidades
+
+- formato de tiempo consistente
+- conversion de duraciones consistente
+
+---
+
+## 8. Metricas objetivo
+
+| Metrica | Objetivo inicial | Estado actual |
+|---------|------------------|---------------|
+| Build estable | 100% en cambios normales | Operativo |
+| Type errors | 0 | Operativo |
+| Lint warnings | 0 | Operativo |
+| Cobertura de tests | > 80% en core con el tiempo | Inicial |
+| Fallos criticos de flujo | 0 en prueba manual seria | Pendiente |
+
+---
+
+## 9. Nota de plataforma
+
+Si el proyecto migra formalmente a Expo / React Native, esta estrategia debera adaptarse a esa plataforma. Hasta que esa decision quede tomada en `DECISIONS.md`, este documento debe priorizar la realidad actual del repo.

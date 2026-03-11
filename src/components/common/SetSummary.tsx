@@ -1,7 +1,8 @@
 import React from "react";
 import { Track } from "../../types";
-import { fmtM } from "../../services/uiUtils";
+import { fmtM } from "../../services/uiUtils.ts";
 import { THEME } from "../../data/theme.ts";
+import { sumTrackDurationMs } from "../../utils/trackMetrics.ts";
 
 interface SetSummaryProps {
     tracks: Track[];
@@ -9,7 +10,7 @@ interface SetSummaryProps {
 }
 
 export const SetSummary: React.FC<SetSummaryProps> = ({ tracks, target }) => {
-    const tot = tracks.reduce((s: number, t: Track) => s + t.duration_ms, 0);
+    const tot = sumTrackDurationMs(tracks);
     const diff = tot - (target * 1000);
     const dc = Math.abs(diff) <= 60000 ? "#10B981" : Math.abs(diff) <= 180000 ? "#F59E0B" : "#EF4444";
     const dl = diff === 0 ? "Exacto" : diff > 0 ? "+" + fmtM(diff) : "-" + fmtM(Math.abs(diff));

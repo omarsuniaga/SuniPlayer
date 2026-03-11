@@ -1,4 +1,4 @@
-import { THEME } from "../data/theme";
+import { THEME } from "../data/theme.ts";
 
 export const fmt = (ms: number) => {
     const s = Math.floor(ms / 1000);

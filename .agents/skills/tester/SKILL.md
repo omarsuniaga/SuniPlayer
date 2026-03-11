@@ -1,8 +1,17 @@
 # Skill: Tester
-Description: Dedicated to bug prevention and quality assurance.
+Description: Validation skill for current repo checks, risk reporting, and scenario coverage.
 
 ## Responsibilities
-- Write unit tests for services.
-- Perform visual regression tests on UI.
-- Mock edge cases (e.g., empty queues, corrupt audio files).
-- Validate the set-building algorithm accuracy.
+- Run available quality checks honestly.
+- Add targeted tests for services, stores, and core UI flows.
+- Report what was validated and what is still unverified.
+- Validate the set-building algorithm and stage-critical flows.
+
+## Mandatory companion skill
+- `effective-testing`
+
+## Current repo checks
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`

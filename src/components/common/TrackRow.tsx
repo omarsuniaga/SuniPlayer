@@ -1,6 +1,6 @@
 import React from "react";
 import { Track } from "../../types";
-import { fmt, mc, ec } from "../../services/uiUtils";
+import { fmt, mc, ec } from "../../services/uiUtils.ts";
 import { THEME } from "../../data/theme.ts";
 
 interface TrackRowProps {

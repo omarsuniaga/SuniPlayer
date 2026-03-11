@@ -9,3 +9,4 @@ Description: Ensures code quality and security standards.
 
 ## Protocol
 - Must review every major component migration.
+- Must flag mismatches between source-of-truth docs and implemented code.

@@ -1,5 +1,5 @@
-import { SuniShell } from "./components/layout/SuniShell";
+import { AppShell } from "./app/AppShell";
 
 export default function App() {
-    return <SuniShell />;
+    return <AppShell />;
 }

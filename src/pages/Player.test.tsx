@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
 
 import { TRACKS } from "../data/constants";
 import { Player } from "./Player";
@@ -15,6 +15,10 @@ const resetStores = () => {
 describe("Player", () => {
     beforeEach(() => {
         resetStores();
+    });
+
+    afterEach(() => {
+        cleanup();
     });
 
     it("shows the empty state when no set is loaded", () => {

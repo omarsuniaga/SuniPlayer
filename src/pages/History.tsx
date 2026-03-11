@@ -1,7 +1,7 @@
 import React from "react";
 import { useProjectStore } from "../store/useProjectStore";
 import { THEME } from "../data/theme.ts";
-import { fmtM } from "../services/uiUtils";
+import { fmtM } from "../services/uiUtils.ts";
 
 export const History: React.FC = () => {
     const s = useProjectStore();

@@ -1,6 +1,8 @@
 ---
-description: Genera un nuevo set musical basado en configuración local e IA.
+description: Workflow for generating and validating sets in the current SuniPlayer MVP.
 ---
-1. Consultar `libraryStore.js` para obtener `targetMin`, `venue` y `curve`.
-2. Ejecutar servicio `setBuilderService.js` utilizando el `AI Analysis` (energy, mood).
-3. Presentar un resumen del set detallando duración total y desviación del target.
+1. Read `MVP_SCOPE.md`, `DATA_MODEL.md`, and current set-builder contracts.
+2. Use current store inputs (`targetMin`, `venue`, `curve`, BPM filters if present).
+3. Execute `setBuilderService.ts` against the current `Track` contract using `duration_ms`.
+4. Tester validates tolerance, ordering behavior, and no-duplicate guarantees.
+5. Documenter updates docs if generation rules or data contracts changed.

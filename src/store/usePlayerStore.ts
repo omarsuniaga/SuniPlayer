@@ -1,6 +1,6 @@
 /**
  * usePlayerStore — Audio player runtime state
- * Persists only `vol` (session state resets on reload)
+ * Persists current queue/session context plus volume for lightweight recovery
  */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
@@ -81,8 +81,25 @@ export const usePlayerStore = create<PlayerState>()(
         {
             name: "suniplayer-player",
             storage: createJSONStorage(() => localStorage),
-            // Only persist volume — all runtime state resets on reload
-            partialize: (state) => ({ vol: state.vol }),
+            partialize: (state) => ({
+                pQueue: state.pQueue,
+                ci: state.ci,
+                pos: state.pos,
+                vol: state.vol,
+                tTarget: state.tTarget,
+                mode: state.mode,
+            }),
+            merge: (persistedState, currentState) => {
+                const persisted = persistedState as Partial<PlayerState>;
+
+                return {
+                    ...currentState,
+                    ...persisted,
+                    playing: false,
+                    elapsed: 0,
+                    isSimulating: false,
+                };
+            },
         }
     )
 );

@@ -9,3 +9,4 @@ Description: Specialized in information retrieval and documentation management.
 ## Rules of Engagement
 - Always search before proposing a new architectural pattern.
 - Distill chat learnings into long-term project knowledge.
+- Default search order should follow the source-of-truth hierarchy in `AGENTS.md`.

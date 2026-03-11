@@ -2,7 +2,49 @@
 
 **AI Performance Player for Live Musicians**
 
-SuniPlayer es un reproductor musical inteligente para musicos que actuan en vivo. Funciona como un copiloto de escenario: organiza tu repertorio, arma sets por duracion exacta, gestiona el flujo del show y analiza la reaccion del publico.
+SuniPlayer es un reproductor musical inteligente para musicos que actuan en vivo. Su objetivo es ayudar a preparar, ordenar y ejecutar sets sin aumentar la carga mental del musico en escenario.
+
+---
+
+## Estado actual del proyecto
+
+SuniPlayer esta hoy en una etapa de **alpha tecnica / prototipo funcional web**.
+
+- El repositorio actual corre con `React + TypeScript + Vite + Zustand`.
+- El flujo principal ya existe como prototipo: builder, player e historial.
+- La arquitectura todavia esta en transicion: el codigo activo ya es TypeScript, pero se conserva un prototipo legacy como referencia historica.
+- La documentacion de producto ya apunta a una evolucion futura mas ambiciosa, pero esa plataforma objetivo todavia no esta implementada en este repo.
+
+## Que hace hoy el prototipo
+
+- generar sets por duracion objetivo
+- ajustar venue y curva de energia
+- enviar el set al player
+- simular reproduccion con cola y timer
+- guardar sets en historial local dentro del prototipo
+
+## Stack actual
+
+| Capa | Tecnologia actual |
+|------|-------------------|
+| Frontend | React 18 |
+| Lenguaje | TypeScript + JSX legacy en transicion |
+| Bundler | Vite 5 |
+| Estado | Zustand |
+| Estilos | estilos inline + theme tokens |
+| Audio | simulacion de reproduccion en UI / prototipo |
+| Persistencia | `localStorage` para configuracion, historial y contexto ligero del player |
+
+## Direccion futura
+
+La direccion de producto sigue contemplando una evolucion hacia una app mas robusta para uso real en shows. Eso puede incluir:
+
+- audio real en web como siguiente paso del prototipo
+- persistencia local mas solida
+- decision formal de plataforma entre continuar web o migrar a Expo / React Native
+- evolucion futura a capacidades nativas si el audio en vivo lo exige
+
+**Importante:** esa direccion futura no debe confundirse con el estado actual del repositorio.
 
 ---
 
@@ -15,137 +57,119 @@ npm install
 # Iniciar en modo desarrollo
 npm run dev
 
-# Type check
-npm run typecheck
-
-# Lint
-npm run lint
-
-# Tests
-npm run test
+# Build de produccion
+npm run build
 ```
 
-## Stack Tecnico
+## Scripts disponibles hoy
 
-| Capa | Tecnologia |
-|------|-----------|
-| Platform | React Native + Expo SDK 53 |
-| Language | TypeScript (strict) |
-| State | Zustand |
-| Audio | expo-audio (MVP), modulos nativos (futuro) |
-| Database | SQLite (expo-sqlite) |
-| UI | NativeWind + Lucide React Native |
-| Navigation | Expo Router v5 |
-| Testing | Jest + @testing-library/react-native |
+| Comando | Estado | Descripcion |
+|---------|--------|-------------|
+| `npm run dev` | Disponible | Inicia Vite en modo desarrollo |
+| `npm run build` | Disponible | Ejecuta TypeScript y build de Vite |
+| `npm run preview` | Disponible | Previsualiza el build |
+| `npm run lint` | Disponible | Ejecuta ESLint |
+| `npm run typecheck` | Disponible | Ejecuta `tsc --noEmit` |
+| `npm run test` | Disponible | Ejecuta tests unitarios con Vitest |
+| `npm run test:watch` | Disponible | Ejecuta Vitest en modo watch |
+| `npm run validate` | Disponible | Corre lint + typecheck + test + build |
 
-## Estructura del Proyecto
+## Estado de validaciones
 
-```
-suniplayer/
-├── app/                    # Expo Router pages
-│   ├── (tabs)/
-│   │   ├── index.tsx       # Home / Player
-│   │   ├── library.tsx     # Music Library
-│   │   ├── sets.tsx        # Set Builder
-│   │   └── profile.tsx     # Settings
-│   ├── _layout.tsx         # Root layout
-│   └── +not-found.tsx
-├── src/
-│   ├── components/         # Reusable UI components
-│   │   ├── player/         # Player controls, waveform
-│   │   ├── queue/          # Queue list, track rows
-│   │   ├── library/        # Library browser, filters
-│   │   ├── timer/          # Set timer, alerts
-│   │   └── set-builder/    # Set generation UI
-│   ├── services/           # Business logic
-│   │   ├── AudioService.ts
-│   │   ├── SetBuilderService.ts
-│   │   ├── DatabaseService.ts
-│   │   └── SuggestionService.ts
-│   ├── stores/             # Zustand stores
-│   │   ├── audioStore.ts
-│   │   ├── queueStore.ts
-│   │   ├── setStore.ts
-│   │   └── libraryStore.ts
-│   ├── types/              # TypeScript type definitions
-│   │   ├── audio.ts
-│   │   ├── set.ts
-│   │   └── database.ts
-│   ├── utils/              # Helper functions
-│   │   ├── time.ts
-│   │   ├── duration.ts
-│   │   └── validation.ts
-│   └── constants/          # App constants
-│       ├── Colors.ts
-│       ├── Audio.ts
-│       └── Venues.ts
-├── docs/                   # Project documentation
-│   ├── ARCHITECTURE.md
-│   ├── TECH_STACK.md
-│   └── ALIGNMENT.md
-├── __tests__/              # Test files
-│   ├── services/
-│   ├── stores/
-│   └── utils/
-├── .github/
-│   └── workflows/
-│       └── ci.yml          # CI pipeline
-├── TASKS.md                # Development backlog
-├── TESTING.md              # Testing strategy
-├── AGENTS.md               # AI agent autonomy rules
-├── app.json                # Expo config
-├── tsconfig.json           # TypeScript config
-├── package.json
-└── README.md               # This file
-```
-
-## Modelo de Datos Principal
-
-```
-Track       → cancion con metadata (bpm, key, energy, mood, duration)
-Set         → lista de tracks con duracion objetivo y tipo de venue
-SetTrack    → track dentro de un set con posicion y config
-CuePoint    → marca temporal dentro de un track
-Session     → una presentacion real (fecha, venue, sets tocados)
-Reaction    → score de respuesta del publico por track
-```
-
-## Scripts Disponibles
-
-| Comando | Descripcion |
-|---------|------------|
-| `npm run dev` | Inicia Expo en modo desarrollo |
-| `npm run lint` | Ejecuta ESLint |
-| `npm run lint:fix` | Corrige errores de lint automaticamente |
-| `npm run typecheck` | Verifica tipos TypeScript |
-| `npm run test` | Ejecuta suite de tests |
-| `npm run test:watch` | Tests en modo watch |
-| `npm run test:coverage` | Tests con reporte de cobertura |
-| `npm run validate` | Ejecuta lint + typecheck + test (pre-commit) |
-
-## Roadmap
-
-- **v0.1** — Reproductor + Set Builder + Timer (actual)
-- **v0.2** — Biblioteca musical con importacion de archivos
-- **v0.3** — Persistencia SQLite + historial
-- **v0.4** — Crossfade basico + transiciones
-- **v1.0** — MVP completo para uso en shows reales
-
-## Documentacion
-
-- [Arquitectura Tecnica](docs/ARCHITECTURE.md)
-- [Estrategia de Stack](docs/TECH_STACK.md)
-- [Backlog de Tareas](TASKS.md)
-- [Estrategia de Testing](TESTING.md)
-- [Reglas de Agentes IA](AGENTS.md)
-
-## Principios de Desarrollo
-
-1. **Offline-first**: todo funciona sin internet
-2. **Stage-ready**: la UI debe ser usable en escenario con poca luz
-3. **Zero-crash**: la app no puede fallar durante un show
-4. **Musician-first**: cada feature debe resolver un problema real de performance
+- Validaciones automatizadas disponibles hoy: `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`, `npm run validate`
+- CI base disponible en `.github/workflows/validate.yml`
+- Gap pendiente para una base mas autonoma: ampliar la cobertura de tests y endurecer quality gates de producto
 
 ---
 
-*SuniPlayer — porque el musico debe concentrarse en tocar, no en gestionar playlists.*
+## Estructura actual del repo
+
+```text
+suniplayer/
+├── legacy/                    # Prototipos y referencias retiradas
+├── src/
+│   ├── App.tsx                # App principal actual
+│   ├── app/                   # Shell y composicion principal de la app
+│   ├── components/            # Componentes reutilizables
+│   ├── data/                  # Constantes, theme y mocks
+│   ├── features/              # Estructura por dominio en adopcion gradual
+│   ├── pages/                 # Vistas legacy/parciales
+│   ├── services/              # Logica de negocio
+│   ├── store/                 # Stores de Zustand
+│   ├── types.ts               # Tipos principales actuales
+│   └── utils/                 # Utilidades
+├── .agents/                   # Skills y workflows operativos
+├── AGENTS.md                  # Sistema multi-agente del proyecto
+├── MVP_SCOPE.md               # Fuente principal de verdad del alcance
+├── ROADMAP.md                 # Secuencia de evolucion del proyecto
+├── ARCHITECTURE.md            # Arquitectura tecnica actual / proxima
+├── DATA_MODEL.md              # Contratos de datos del dominio
+├── DECISIONS.md               # Registro de decisiones tecnicas
+├── TASKS.md                   # Backlog operativo
+├── TESTING.md                 # Estrategia de validacion
+└── package.json
+```
+
+## Estructura objetivo a medio plazo
+
+La estructura esta migrando hacia una organizacion mas clara por dominios, con separacion entre:
+
+- `app/` bootstrap
+- `shared/` utilidades y contratos base
+- `entities/` modelos de dominio
+- `features/` funcionalidad por modulo, ya usada en `set-builder`
+- `pages/` pantallas
+- `legacy/` codigo retirado gradualmente
+
+---
+
+## Modelo de datos principal
+
+Las entidades oficiales estan definidas en `DATA_MODEL.md`, pero a nivel conceptual el MVP gira en torno a:
+
+```text
+Track        -> cancion con metadata musical
+SetPlan      -> set generado para una duracion objetivo
+SetHistory   -> set guardado o ejecutado previamente
+QueueItem    -> track dentro de la cola activa
+Session      -> sesion de performance futura
+Reaction     -> señal futura de respuesta del publico
+```
+
+## Fuente de verdad documental
+
+Orden recomendado de lectura para humanos y agentes:
+
+1. `MVP_SCOPE.md`
+2. `DECISIONS.md`
+3. `ROADMAP.md`
+4. `ARCHITECTURE.md`
+5. `DATA_MODEL.md`
+6. `TASKS.md`
+7. `TESTING.md`
+8. `README.md`
+
+## Principios del proyecto
+
+1. **Musician-first**: cada feature debe resolver una necesidad real en vivo.
+2. **MVP before sophistication**: primero utilidad real, despues complejidad.
+3. **Offline-first**: lo critico del flujo debe funcionar sin internet.
+4. **Stage-ready**: la UI debe resistir uso rapido y bajo presion.
+5. **Arquitectura clara**: evitar mezclar UI, audio, negocio y datos en el mismo bloque.
+
+---
+
+## Documentacion relacionada
+
+- `MVP_SCOPE.md`
+- `ROADMAP.md`
+- `ARCHITECTURE.md`
+- `DATA_MODEL.md`
+- `DECISIONS.md`
+- `TASKS.md`
+- `TESTING.md`
+- `AGENTS.md`
+
+---
+
+*SuniPlayer existe para que el musico se concentre en tocar, no en pelear con la herramienta.*
