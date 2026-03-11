@@ -19,6 +19,8 @@ SuniPlayer esta hoy en una etapa de **alpha tecnica / prototipo funcional web**.
 
 - generar sets por duracion objetivo
 - ajustar venue y curva de energia
+- explorar repertorio por busqueda y mood
+- importar audio local por archivos individuales o carpeta seleccionada
 - enviar el set al player
 - simular reproduccion con cola y timer
 - guardar sets en historial local dentro del prototipo
@@ -34,6 +36,12 @@ SuniPlayer esta hoy en una etapa de **alpha tecnica / prototipo funcional web**.
 | Estilos | estilos inline + theme tokens |
 | Audio | simulacion de reproduccion en UI / prototipo |
 | Persistencia | `localStorage` para configuracion, historial y contexto ligero del player |
+
+## Importacion local de audio
+
+- `ImportZone` permite arrastrar archivos, seleccionar multiples archivos o elegir una carpeta local de audio.
+- En navegadores compatibles con File System Access API, tambien puede volver a sincronizar la carpeta elegida dentro de la misma sesion.
+- Los tracks importados por el usuario siguen siendo assets de sesion porque usan `blob_url` locales del navegador.
 
 ## Direccion futura
 

@@ -16,6 +16,7 @@ import { Track, SetHistoryItem } from "../types.ts";
 import { TRACKS, VENUES } from "../data/constants.ts";
 import { buildSet } from "../services/setBuilderService.ts";
 import { sumTrackDurationMs, sumTrackDurationSeconds } from "../utils/trackMetrics.ts";
+import { getEffectiveDuration } from "../services/uiUtils.ts";
 
 import { useBuilderStore } from "./useBuilderStore.ts";
 import { usePlayerStore } from "./usePlayerStore.ts";
@@ -34,7 +35,7 @@ export {
 
 // ── Combined state type ────────────────────────────────────────────────────
 
-type View = "builder" | "player" | "history";
+type View = "builder" | "player" | "history" | "library";
 
 export interface ProjectState {
     // Builder
@@ -87,6 +88,18 @@ export interface ProjectState {
     setBpmMax: (v: number) => void;
     defaultVol: number;
     setDefaultVol: (v: number) => void;
+    fadeEnabled: boolean;
+    setFadeEnabled: (v: boolean) => void;
+    fadeInMs: number;
+    setFadeInMs: (v: number) => void;
+    fadeOutMs: number;
+    setFadeOutMs: (v: number) => void;
+    splMeterEnabled: boolean;
+    setSplMeterEnabled: (v: boolean) => void;
+    splMeterTarget: "studio" | "small" | "hall" | "open";
+    setSplMeterTarget: (v: "studio" | "small" | "hall" | "open") => void;
+    splMeterExpanded: boolean;
+    setSplMeterExpanded: (v: boolean) => void;
 
     // History
     history: SetHistoryItem[];
@@ -98,9 +111,13 @@ export interface ProjectState {
     addCustomTrack: (track: Track) => void;
     removeCustomTrack: (id: string) => void;
     clearCustomTracks: () => void;
+    availableTags: string[];
+    addTag: (tag: string) => void;
 
     // Cross-domain actions
     setTrackNotes: (trackId: string, notes: string) => void;
+    setTrackTrim: (trackId: string, start: number, end: number) => void;
+    updateTrackMetadata: (trackId: string, updates: Partial<Track>) => void;
     doGen: () => void;
     toPlayer: () => void;
     appendToQueue: (tracks: Track[]) => void;
@@ -119,13 +136,57 @@ export function setTrackNotes(trackId: string, notes: string) {
     }));
 }
 
+/** Update trimming on a track in pQueue, genSet, and Library */
+export function setTrackTrim(trackId: string, startTime: number, endTime: number) {
+    usePlayerStore.setState((s) => {
+        const newQueue = s.pQueue.map((t) => (t.id === trackId ? { ...t, startTime, endTime } : t));
+        return {
+            pQueue: newQueue,
+            tTarget: newQueue.reduce((acc, t) => acc + getEffectiveDuration(t) / 1000, 0)
+        };
+    });
+    useBuilderStore.setState((s) => ({
+        genSet: s.genSet.map((t) => (t.id === trackId ? { ...t, startTime, endTime } : t)),
+    }));
+    useLibraryStore.getState().updateTrack(trackId, { startTime, endTime });
+}
+
+/** Helper to apply persisted metadata overrides (key, bpm, trim, etc) to a list of tracks */
+function applyOverrides(tracks: Track[]): Track[] {
+    const { trackOverrides } = useLibraryStore.getState();
+    return tracks.map((t) => ({
+        ...t,
+        ...(trackOverrides[t.id] || {}),
+    }));
+}
+
+/** Update generic metadata on a track in all stores */
+export function updateTrackMetadata(trackId: string, updates: Partial<Track>) {
+    usePlayerStore.setState((s) => {
+        const newQueue = s.pQueue.map((t) => (t.id === trackId ? { ...t, ...updates } : t));
+        return {
+            pQueue: newQueue,
+            tTarget: newQueue.reduce((acc, t) => acc + getEffectiveDuration(t) / 1000, 0)
+        };
+    });
+    useBuilderStore.setState((s) => ({
+        genSet: s.genSet.map((t) => (t.id === trackId ? { ...t, ...updates } : t)),
+    }));
+    useLibraryStore.getState().updateTrack(trackId, updates);
+}
+
 /** Generate a set using current builder config + settings filters */
 export function doGen() {
     const { targetMin, curve, venue } = useBuilderStore.getState();
     const { bpmMin, bpmMax } = useSettingsStore.getState();
     const tSec = targetMin * 60;
+    
+    // Apply overrides to catalog tracks BEFORE building the set if possible, 
+    // but building first then applying is safer for the algorithm's constraints.
+    const rawSet = buildSet(TRACKS, tSec, { curve, venue, bpmMin, bpmMax });
+    
     useBuilderStore.setState({
-        genSet: buildSet(TRACKS, tSec, { curve, venue, bpmMin, bpmMax }),
+        genSet: applyOverrides(rawSet),
     });
 }
 
@@ -134,16 +195,20 @@ export function toPlayer() {
     const { genSet, targetMin } = useBuilderStore.getState();
     const { playing } = usePlayerStore.getState();
     if (!genSet.length) return;
+    
+    // Ensure all tracks in the set have latest overrides
+    const finalizedSet = applyOverrides(genSet);
     const tSec = targetMin * 60;
+    
     if (playing) {
-        useBuilderStore.setState({ view: "player" });
+        useBuilderStore.setState({ view: "player", genSet: finalizedSet });
     } else {
         usePlayerStore.setState({
-            pQueue: [...genSet],
+            pQueue: finalizedSet,
             ci: 0, pos: 0, playing: false, elapsed: 0,
             tTarget: tSec, mode: "edit",
         });
-        useBuilderStore.setState({ view: "player" });
+        useBuilderStore.setState({ view: "player", genSet: finalizedSet });
     }
 }
 
@@ -151,22 +216,24 @@ export function toPlayer() {
 export function appendToQueue(tracks: Track[]) {
     if (!tracks.length) return;
     const { pQueue, ci, tTarget } = usePlayerStore.getState();
+    const tracksWithOverrides = applyOverrides(tracks);
+    
     if (pQueue.length === 0) {
         usePlayerStore.setState({
-            pQueue: [...tracks],
+            pQueue: tracksWithOverrides,
             ci: 0, pos: 0, playing: false, elapsed: 0,
-            tTarget: sumTrackDurationSeconds(tracks),
+            tTarget: sumTrackDurationSeconds(tracksWithOverrides),
         });
         useBuilderStore.setState({ view: "player" });
     } else {
         const newQueue = [
             ...pQueue.slice(0, ci + 1),
-            ...tracks,
+            ...tracksWithOverrides,
             ...pQueue.slice(ci + 1),
         ];
         usePlayerStore.setState({
             pQueue: newQueue,
-            tTarget: tTarget + sumTrackDurationSeconds(tracks),
+            tTarget: tTarget + sumTrackDurationSeconds(tracksWithOverrides),
         });
     }
 }
@@ -260,6 +327,18 @@ export function useProjectStore<T = ProjectState>(
         defaultVol: settings.defaultVol,
         // Override: setDefaultVol syncs both stores
         setDefaultVol,
+        fadeEnabled: settings.fadeEnabled,
+        setFadeEnabled: settings.setFadeEnabled,
+        fadeInMs: settings.fadeInMs,
+        setFadeInMs: settings.setFadeInMs,
+        fadeOutMs: settings.fadeOutMs,
+        setFadeOutMs: settings.setFadeOutMs,
+        splMeterEnabled: settings.splMeterEnabled,
+        setSplMeterEnabled: settings.setSplMeterEnabled,
+        splMeterTarget: settings.splMeterTarget,
+        setSplMeterTarget: settings.setSplMeterTarget,
+        splMeterExpanded: settings.splMeterExpanded,
+        setSplMeterExpanded: settings.setSplMeterExpanded,
 
         // History
         history: hist.history,
@@ -271,9 +350,13 @@ export function useProjectStore<T = ProjectState>(
         addCustomTrack: library.addCustomTrack,
         removeCustomTrack: library.removeCustomTrack,
         clearCustomTracks: library.clearCustomTracks,
+        availableTags: library.availableTags,
+        addTag: library.addTag,
 
         // Cross-domain actions
         setTrackNotes,
+        setTrackTrim,
+        updateTrackMetadata,
         doGen,
         toPlayer,
         appendToQueue,

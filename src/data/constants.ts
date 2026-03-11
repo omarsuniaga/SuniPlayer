@@ -19,6 +19,8 @@ export const TRACKS: Track[] = [
     { id: "16", title: "Havana", artist: "C. Cabello", duration_ms: 217000, bpm: 105, key: "Bm", energy: .75, mood: "energetic", file_path: "C. Cabello - Havana.mp3", analysis_cached: true },
     { id: "17", title: "Con Te Partiro", artist: "Bocelli", duration_ms: 250000, bpm: 68, key: "Bb", energy: .55, mood: "melancholic", file_path: "Bocelli - Con Te Partiro.mp3", analysis_cached: true },
     { id: "18", title: "Wonderful World", artist: "Armstrong", duration_ms: 140000, bpm: 72, key: "F", energy: .35, mood: "calm", file_path: "Armstrong - Wonderful World.mp3", analysis_cached: true },
+    { id: "local-1", title: "Audio Local", artist: "Prueba", duration_ms: 180000, bpm: 120, key: "C", energy: .6, mood: "happy", file_path: "audio.mp3", analysis_cached: true },
+    { id: "local-2", title: "Polo Margariteño", artist: "Instrumental", duration_ms: 240000, bpm: 85, key: "G", energy: .5, mood: "happy", file_path: "polo margariteño.  INSTRUMENTAL.mp3", analysis_cached: true },
 ];
 
 export const VENUES = [

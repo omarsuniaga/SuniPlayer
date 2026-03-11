@@ -102,6 +102,16 @@ export const SettingsPanel: React.FC = () => {
     const setTargetMin = useProjectStore(s => s.setTargetMin);
     const vol = useProjectStore(s => s.vol);
     const setVol = useProjectStore(s => s.setVol);
+    const fadeEnabled = useProjectStore(s => s.fadeEnabled);
+    const setFadeEnabled = useProjectStore(s => s.setFadeEnabled);
+    const fadeInMs = useProjectStore(s => s.fadeInMs);
+    const setFadeInMs = useProjectStore(s => s.setFadeInMs);
+    const fadeOutMs = useProjectStore(s => s.fadeOutMs);
+    const setFadeOutMs = useProjectStore(s => s.setFadeOutMs);
+    const splMeterEnabled = useProjectStore(s => s.splMeterEnabled);
+    const setSplMeterEnabled = useProjectStore(s => s.setSplMeterEnabled);
+    const splMeterTarget = useProjectStore(s => s.splMeterTarget);
+    const setSplMeterTarget = useProjectStore(s => s.setSplMeterTarget);
 
     if (!showSettings) return null;
 
@@ -202,6 +212,60 @@ export const SettingsPanel: React.FC = () => {
                         min={0} max={100} unit="%"
                         onChange={v => { setDefaultVol(v / 100); setVol(v / 100); }}
                     />
+
+                    <Toggle
+                        label="Efecto Fade (Suavizado)"
+                        description="Aplica crescendo al inicio y diminuendo al final/pausa"
+                        checked={fadeEnabled}
+                        onChange={setFadeEnabled}
+                    />
+
+                    {fadeEnabled && (
+                        <div style={{ paddingLeft: 12, borderLeft: `2px solid ${THEME.colors.brand.cyan}30`, marginBottom: 10 }}>
+                            <SliderRow
+                                label="Duración Fade-IN"
+                                value={fadeInMs}
+                                min={500} max={10000} step={500} unit=" ms"
+                                onChange={setFadeInMs}
+                            />
+                            <SliderRow
+                                label="Duración Fade-OUT"
+                                value={fadeOutMs}
+                                min={500} max={10000} step={500} unit=" ms"
+                                onChange={setFadeOutMs}
+                            />
+                        </div>
+                    )}
+
+                    <Toggle
+                        label="Sonómetro (dB SPL)"
+                        description="Mide el volumen ambiental con el micrófono"
+                        checked={splMeterEnabled}
+                        onChange={setSplMeterEnabled}
+                    />
+
+                    {splMeterEnabled && (
+                        <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8, marginTop: 4 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.colors.text.muted, marginBottom: 8, textTransform: "uppercase" }}>Calibración / Espacio</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                                {(["studio", "small", "hall", "open"] as const).map(t => (
+                                    <button
+                                        key={t}
+                                        onClick={() => setSplMeterTarget(t)}
+                                        style={{
+                                            padding: "8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                            backgroundColor: splMeterTarget === t ? THEME.colors.brand.cyan : "transparent",
+                                            color: splMeterTarget === t ? "black" : "white",
+                                            border: `1px solid ${splMeterTarget === t ? THEME.colors.brand.cyan : THEME.colors.border}`,
+                                            cursor: "pointer", transition: "all 0.2s", textTransform: "capitalize"
+                                        }}
+                                    >
+                                        {t === "studio" ? "Estudio" : t === "small" ? "Sala Pequeña" : t === "hall" ? "Auditorio" : "Abierto"}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Volumen actual */}
                     <div style={{ padding: "14px 0", borderBottom: `1px solid ${THEME.colors.border}` }}>

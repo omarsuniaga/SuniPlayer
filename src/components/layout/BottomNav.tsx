@@ -3,7 +3,7 @@ import { useProjectStore } from "../../store/useProjectStore";
 import { THEME } from "../../data/theme.ts";
 
 interface TabItem {
-    id: "builder" | "player" | "history";
+    id: "builder" | "player" | "history" | "library";
     label: string;
     icon: (active: boolean) => React.ReactNode;
 }
@@ -34,6 +34,17 @@ const TABS: TabItem[] = [
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? THEME.colors.brand.cyan : "currentColor"} strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
+            </svg>
+        ),
+    },
+    {
+        id: "library",
+        label: "Library",
+        icon: (active) => (
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? THEME.colors.brand.cyan : "currentColor"} strokeWidth="2" strokeLinecap="round">
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
             </svg>
         ),
     },

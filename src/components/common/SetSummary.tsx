@@ -1,8 +1,7 @@
 import React from "react";
 import { Track } from "../../types";
-import { fmtM } from "../../services/uiUtils.ts";
+import { fmtM, getEffectiveDuration } from "../../services/uiUtils.ts";
 import { THEME } from "../../data/theme.ts";
-import { sumTrackDurationMs } from "../../utils/trackMetrics.ts";
 
 interface SetSummaryProps {
     tracks: Track[];
@@ -10,7 +9,7 @@ interface SetSummaryProps {
 }
 
 export const SetSummary: React.FC<SetSummaryProps> = ({ tracks, target }) => {
-    const tot = sumTrackDurationMs(tracks);
+    const tot = tracks.reduce((s, t) => s + getEffectiveDuration(t), 0);
     const diff = tot - (target * 1000);
     const dc = Math.abs(diff) <= 60000 ? "#10B981" : Math.abs(diff) <= 180000 ? "#F59E0B" : "#EF4444";
     const dl = diff === 0 ? "Exacto" : diff > 0 ? "+" + fmtM(diff) : "-" + fmtM(Math.abs(diff));
@@ -18,17 +17,25 @@ export const SetSummary: React.FC<SetSummaryProps> = ({ tracks, target }) => {
 
     return (
         <div
+            className="set-summary-grid"
             style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                gap: 10,
-                padding: "12px 14px",
+                gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                gap: 12,
+                padding: "16px",
                 borderRadius: THEME.radius.lg,
                 backgroundColor: THEME.colors.surface,
                 border: `1px solid ${THEME.colors.border}`,
                 fontFamily: THEME.fonts.main,
             }}
         >
+            <style>{`
+                @media (max-width: 480px) {
+                    .set-summary-grid {
+                        grid-template-columns: 1fr 1fr !important;
+                    }
+                }
+            `}</style>
             <div>
                 <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1 }}>
                     Duracion

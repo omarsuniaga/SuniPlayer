@@ -25,6 +25,22 @@ interface SettingsState {
     // UI state (not persisted)
     showSettings: boolean;
     setShowSettings: (v: boolean) => void;
+
+    // Fade effect
+    fadeEnabled: boolean;
+    setFadeEnabled: (v: boolean) => void;
+    fadeInMs: number;
+    setFadeInMs: (v: number) => void;
+    fadeOutMs: number;
+    setFadeOutMs: (v: number) => void;
+
+    // SPL Meter
+    splMeterEnabled: boolean;
+    setSplMeterEnabled: (v: boolean) => void;
+    splMeterTarget: "studio" | "small" | "hall" | "open";
+    setSplMeterTarget: (v: "studio" | "small" | "hall" | "open") => void;
+    splMeterExpanded: boolean;
+    setSplMeterExpanded: (v: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -45,6 +61,24 @@ export const useSettingsStore = create<SettingsState>()(
             bpmMax: 140,
             setBpmMax: (bpmMax) => set({ bpmMax }),
 
+            fadeEnabled: true,
+            setFadeEnabled: (fadeEnabled) => set({ fadeEnabled }),
+
+            fadeInMs: 2000,
+            setFadeInMs: (fadeInMs) => set({ fadeInMs }),
+
+            fadeOutMs: 3000,
+            setFadeOutMs: (fadeOutMs) => set({ fadeOutMs }),
+
+            splMeterEnabled: false,
+            setSplMeterEnabled: (splMeterEnabled) => set({ splMeterEnabled }),
+
+            splMeterTarget: "small",
+            setSplMeterTarget: (splMeterTarget) => set({ splMeterTarget }),
+
+            splMeterExpanded: true,
+            setSplMeterExpanded: (splMeterExpanded) => set({ splMeterExpanded }),
+
             // Not persisted — panel always closes on reload
             showSettings: false,
             setShowSettings: (showSettings) => set({ showSettings }),
@@ -58,6 +92,12 @@ export const useSettingsStore = create<SettingsState>()(
                 defaultVol: state.defaultVol,
                 bpmMin: state.bpmMin,
                 bpmMax: state.bpmMax,
+                fadeEnabled: state.fadeEnabled,
+                fadeInMs: state.fadeInMs,
+                fadeOutMs: state.fadeOutMs,
+                splMeterEnabled: state.splMeterEnabled,
+                splMeterTarget: state.splMeterTarget,
+                splMeterExpanded: state.splMeterExpanded,
             }),
         }
     )

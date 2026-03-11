@@ -129,6 +129,7 @@ Cubren:
 - reordenamiento o seleccion de cola
 - reinicio de sesion
 - recuperacion de estado
+- importacion de archivos o carpeta local sin romper el builder
 
 ---
 
@@ -199,6 +200,7 @@ Cuando se incorpore el runner de tests, los primeros casos deberian concentrarse
 
 - formato de tiempo consistente
 - conversion de duraciones consistente
+- deteccion de archivos de audio soportados y parsing de nombres
 
 ---
 

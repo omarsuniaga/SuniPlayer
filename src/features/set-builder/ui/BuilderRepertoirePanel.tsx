@@ -19,6 +19,7 @@ interface BuilderRepertoirePanelProps {
     onMoodChange: (mood: string | null) => void;
     onAddTrack: (track: Track) => void;
     onAppendToQueue: (track: Track) => void;
+    onEditTrack: (track: Track) => void;
     onRemoveCustomTrack: (trackId: string) => void;
 }
 
@@ -48,6 +49,7 @@ export const BuilderRepertoirePanel: React.FC<BuilderRepertoirePanelProps> = ({
     onMoodChange,
     onAddTrack,
     onAppendToQueue,
+    onEditTrack,
     onRemoveCustomTrack,
 }) => {
     return (
@@ -160,7 +162,7 @@ export const BuilderRepertoirePanel: React.FC<BuilderRepertoirePanelProps> = ({
                 {filteredTracks.map((track) => (
                     <div key={track.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                            <TrackRow track={track} small idx={0} onAdd={onAddTrack} />
+                            <TrackRow track={track} small idx={0} onAdd={onAddTrack} onEdit={onEditTrack} />
                         </div>
                         {isPlaying && (
                             <button
@@ -192,7 +194,7 @@ export const BuilderRepertoirePanel: React.FC<BuilderRepertoirePanelProps> = ({
                         {customTracks.map((track) => (
                             <div key={track.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <TrackRow track={track} small idx={0} onAdd={onAddTrack} />
+                                    <TrackRow track={track} small idx={0} onAdd={onAddTrack} onEdit={onEditTrack} />
                                 </div>
                                 {isPlaying && (
                                     <button onClick={() => onAppendToQueue(track)} title="Agregar a la cola" style={queueButtonStyle}>

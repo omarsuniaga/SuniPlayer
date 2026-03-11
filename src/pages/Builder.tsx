@@ -5,6 +5,9 @@ import { BuilderRepertoirePanel } from "../features/set-builder/ui/BuilderRepert
 import { useProjectStore } from "../store/useProjectStore";
 import { THEME } from "../data/theme.ts";
 import { TRACKS } from "../data/constants.ts";
+import { TrackProfileModal } from "../components/common/TrackProfileModal.tsx";
+import { updateTrackMetadata } from "../store/useProjectStore.ts";
+import { Track } from "../types.ts";
 
 export const Builder: React.FC = () => {
     const s = useProjectStore();
@@ -15,6 +18,7 @@ export const Builder: React.FC = () => {
     const tSec = s.targetMin * 60;
     const [repoOpen,   setRepoOpen]   = useState(false);
     const [importOpen, setImportOpen] = useState(false);
+    const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const isPlaying = playing && pQueue.length > 0;
 
     // ── Generated set drag-to-reorder (HTML5 Drag API) ───────────────────────
@@ -81,6 +85,7 @@ export const Builder: React.FC = () => {
                         onDrop={onGenDrop}
                         onDragEnd={onGenDragEnd}
                         onRemoveTrack={(index) => s.setGenSet((previous) => previous.filter((_, itemIndex) => itemIndex !== index))}
+                        onEditTrack={setProfileTrack}
                     />
                 </main>
 
@@ -108,6 +113,7 @@ export const Builder: React.FC = () => {
                         onMoodChange={s.setFMood}
                         onAddTrack={addTrackToGeneratedSet}
                         onAppendToQueue={(track) => s.appendToQueue([track])}
+                        onEditTrack={setProfileTrack}
                         onRemoveCustomTrack={removeCustomTrack}
                     />
                 </aside>
@@ -231,6 +237,7 @@ export const Builder: React.FC = () => {
                                 onMoodChange={s.setFMood}
                                 onAddTrack={addTrackToGeneratedSet}
                                 onAppendToQueue={(track) => s.appendToQueue([track])}
+                                onEditTrack={setProfileTrack}
                                 onRemoveCustomTrack={removeCustomTrack}
                             />
                         </div>
@@ -246,6 +253,17 @@ export const Builder: React.FC = () => {
                     .mobile-repo-sheet    { display: flex !important; }
                 }
             `}</style>
+
+            {profileTrack && (
+                <TrackProfileModal
+                    track={profileTrack}
+                    onSave={(updates) => {
+                        updateTrackMetadata(profileTrack.id, updates);
+                        setProfileTrack(null);
+                    }}
+                    onCancel={() => setProfileTrack(null)}
+                />
+            )}
         </>
     );
 };

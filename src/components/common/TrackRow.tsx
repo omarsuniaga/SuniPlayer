@@ -1,6 +1,6 @@
 import React from "react";
 import { Track } from "../../types";
-import { fmt, mc, ec } from "../../services/uiUtils.ts";
+import { fmt, mc, ec, getEffectiveDuration } from "../../services/uiUtils.ts";
 import { THEME } from "../../data/theme.ts";
 
 interface TrackRowProps {
@@ -11,6 +11,8 @@ interface TrackRowProps {
     onRm?: (idx: number) => void;
     active?: boolean;
     onClick?: () => void;
+    onTrim?: (track: Track) => void;
+    onEdit?: (track: Track) => void;
     small?: boolean;
 }
 
@@ -22,16 +24,19 @@ export const TrackRow: React.FC<TrackRowProps> = ({
     onRm,
     active,
     onClick,
+    onTrim,
+    onEdit,
     small,
 }) => {
     return (
         <div
             onClick={onClick}
+            className={`track-row ${active ? 'active' : ''}`}
             style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
-                padding: small ? "8px 12px" : "12px 16px",
+                gap: small ? 8 : 12,
+                padding: small ? "8px 10px" : "12px 14px",
                 borderRadius: THEME.radius.md,
                 cursor: onClick ? "pointer" : "default",
                 backgroundColor: active ? `${THEME.colors.brand.cyan}15` : "transparent",
@@ -40,6 +45,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                 fontFamily: THEME.fonts.main,
                 position: "relative",
                 overflow: "hidden",
+                minWidth: 0,
             }}
             onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                 const target = e.currentTarget as HTMLDivElement;
@@ -50,24 +56,42 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                 target.style.backgroundColor = active ? `${THEME.colors.brand.cyan}15` : "transparent";
             }}
         >
+            <style>{`
+                .track-row { min-width: 0; }
+                .track-info { flex: 1; min-width: 0; }
+                .track-meta { display: flex; align-items: center; gap: 8; flex-shrink: 0; }
+                .track-actions { display: flex; gap: 4; margin-left: 8; flex-shrink: 0; }
+                
+                @media (max-width: 540px) {
+                    .meta-energy { display: none !important; }
+                    .meta-key { font-size: 9px !important; padding: 1px 4px !important; }
+                    .track-meta { gap: 6px; }
+                    .track-actions { gap: 2px; margin-left: 4px; }
+                    .action-btn { width: 24px !important; height: 24px !important; }
+                    .action-btn svg { width: 12px !important; height: 12px !important; }
+                }
+            `}</style>
+            
             {showN && (
                 <span
                     style={{
                         fontSize: 11,
                         color: active ? THEME.colors.brand.cyan : THEME.colors.text.muted,
                         fontFamily: THEME.fonts.mono,
-                        width: 24,
+                        width: 20,
                         textAlign: "right",
                         fontWeight: active ? 700 : 400,
+                        flexShrink: 0,
                     }}
                 >
                     {(idx + 1).toString().padStart(2, '0')}
                 </span>
             )}
-            <div style={{ flex: 1, minWidth: 0 }}>
+
+            <div className="track-info">
                 <div
                     style={{
-                        fontSize: 14,
+                        fontSize: small ? 13 : 14,
                         fontWeight: active ? 700 : 500,
                         color: active ? "white" : THEME.colors.text.primary,
                         whiteSpace: "nowrap",
@@ -78,11 +102,14 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                 >
                     {track.title}
                 </div>
-                <div style={{ fontSize: 12, color: THEME.colors.text.muted, marginTop: 2 }}>{track.artist}</div>
+                <div style={{ fontSize: 11, color: THEME.colors.text.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {track.artist}
+                </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="track-meta">
                 <span
+                    className="meta-key"
                     style={{
                         fontSize: 10,
                         padding: "2px 6px",
@@ -92,18 +119,21 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                         fontWeight: 700,
                         textTransform: "uppercase",
                         letterSpacing: "0.02em",
+                        flexShrink: 0,
                     }}
-                >
+                 >
                     {track.key}
                 </span>
 
                 <div
+                    className="meta-energy"
                     style={{
-                        width: 40,
+                        width: 32,
                         height: 4,
                         borderRadius: 2,
                         backgroundColor: "rgba(255,255,255,0.05)",
                         overflow: "hidden",
+                        flexShrink: 0,
                     }}
                     title={`Energy: ${Math.round(track.energy * 100)}%`}
                 >
@@ -119,20 +149,94 @@ export const TrackRow: React.FC<TrackRowProps> = ({
 
                 <span
                     style={{
-                        fontSize: 11,
+                        fontSize: 10,
                         color: THEME.colors.text.muted,
                         fontFamily: THEME.fonts.mono,
-                        width: 40,
+                        minWidth: 32,
                         textAlign: "right",
+                        flexShrink: 0,
                     }}
                 >
-                    {fmt(track.duration_ms)}
+                    {fmt(getEffectiveDuration(track))}
                 </span>
             </div>
 
-            <div style={{ display: "flex", gap: 4, marginLeft: 8 }}>
+            <div className="track-actions">
+                {onTrim && (
+                    <button
+                        className="action-btn"
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            onTrim(track);
+                        }}
+                        style={{
+                            background: THEME.colors.surfaceHover,
+                            border: `1px solid ${THEME.colors.border}`,
+                            borderRadius: THEME.radius.sm,
+                            width: 28,
+                            height: 28,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            color: THEME.colors.text.muted,
+                            transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.color = THEME.colors.brand.cyan;
+                            e.currentTarget.style.borderColor = THEME.colors.brand.cyan + "40";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.color = THEME.colors.text.muted;
+                            e.currentTarget.style.borderColor = THEME.colors.border;
+                        }}
+                        title="Recortar inicio/fin"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" />
+                            <line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" />
+                            <line x1="8.12" y1="8.12" x2="12" y2="12" />
+                        </svg>
+                    </button>
+                )}
+                {onEdit && (
+                    <button
+                        className="action-btn"
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            onEdit(track);
+                        }}
+                        style={{
+                            background: THEME.colors.surfaceHover,
+                            border: `1px solid ${THEME.colors.border}`,
+                            borderRadius: THEME.radius.sm,
+                            width: 28,
+                            height: 28,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            color: THEME.colors.text.muted,
+                            transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.color = THEME.colors.brand.violet;
+                            e.currentTarget.style.borderColor = THEME.colors.brand.violet + "40";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.color = THEME.colors.text.muted;
+                            e.currentTarget.style.borderColor = THEME.colors.border;
+                        }}
+                        title="Ver perfil y editar track"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                    </button>
+                )}
                 {onAdd && (
                     <button
+                        className="action-btn"
                         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                             e.stopPropagation();
                             onAdd(track);
@@ -166,6 +270,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                 )}
                 {onRm && (
                     <button
+                        className="action-btn"
                         onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                             e.stopPropagation();
                             onRm(idx);
@@ -200,3 +305,4 @@ export const TrackRow: React.FC<TrackRowProps> = ({
         </div>
     );
 };
+

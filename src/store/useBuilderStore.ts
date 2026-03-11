@@ -7,7 +7,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { Track } from "../types.ts";
 
-type View = "builder" | "player" | "history";
+type View = "builder" | "player" | "history" | "library";
 
 interface BuilderState {
     // Navigation

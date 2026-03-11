@@ -1,13 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useProjectStore, doGen, toPlayer } from "../store/useProjectStore";
+import { useProjectStore, doGen, toPlayer, setTrackTrim, updateTrackMetadata } from "../store/useProjectStore";
 import { useBuilderStore } from "../store/useBuilderStore.ts";
 import { usePlayerStore } from "../store/usePlayerStore.ts";
 import { THEME } from "../data/theme.ts";
-import { TRACKS } from "../data/constants.ts";
 import { Wave } from "../components/common/Wave.tsx";
 import { fmt, fmtM, mc } from "../services/uiUtils.ts";
-import { genWave } from "../services/setBuilderService.ts";
 import { sumTrackDurationMs } from "../utils/trackMetrics.ts";
+import { getWaveformData } from "../services/waveformService";
+import { TrackTrimmer } from "../components/common/TrackTrimmer";
+import { TrackProfileModal } from "../components/common/TrackProfileModal";
+import { Track } from "../types";
+import { SheetMusicViewer } from "../components/common/SheetMusicViewer";
+import { SplMeter } from "../components/common/SplMeter.tsx";
 
 // ── Live Unlock Confirmation Modal ───────────────────────────────────────────
 const LiveUnlockModal: React.FC<{ onConfirm: () => void; onCancel: () => void }> = ({ onConfirm, onCancel }) => (
@@ -127,11 +131,21 @@ export const Player: React.FC = () => {
     const tTarget = useProjectStore(s => s.tTarget);
     const vol = useProjectStore(s => s.vol);
     const mode = useProjectStore(s => s.mode);
+    const fadeEnabled = useProjectStore(s => s.fadeEnabled);
+    const fadeInMs = useProjectStore(s => s.fadeInMs);
+    const fadeOutMs = useProjectStore(s => s.fadeOutMs);
     const setPos = useProjectStore(s => s.setPos);
     const setCi = useProjectStore(s => s.setCi);
     const setPlaying = useProjectStore(s => s.setPlaying);
     const setVol = useProjectStore(s => s.setVol);
     const setMode = useProjectStore(s => s.setMode);
+    const setFadeEnabled = useProjectStore(s => s.setFadeEnabled);
+    const splMeterEnabled = useProjectStore(s => s.splMeterEnabled);
+    const setSplMeterEnabled = useProjectStore(s => s.setSplMeterEnabled);
+    const splMeterTarget = useProjectStore(s => s.splMeterTarget);
+    const splMeterExpanded = useProjectStore(s => s.splMeterExpanded);
+    const setSplMeterExpanded = useProjectStore(s => s.setSplMeterExpanded);
+
 
     const setPQueue = useProjectStore(s => s.setPQueue);
     const setTrackNotes = useProjectStore(s => s.setTrackNotes);
@@ -139,6 +153,10 @@ export const Player: React.FC = () => {
 
     const [showUnlockModal, setShowUnlockModal] = useState(false);
     const [editingNotes, setEditingNotes] = useState<string | null>(null); // track ID with open note
+    const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
+    const [profileTrack, setProfileTrack] = useState<Track | null>(null);
+    const [showSheetViewer, setShowSheetViewer] = useState(false);
+    const [currentWave, setCurrentWave] = useState<number[]>([]);
 
     // ── Export set as .txt ───────────────────────────────────────────────────
     const exportSet = () => {
@@ -222,7 +240,12 @@ export const Player: React.FC = () => {
     const qTot = sumTrackDurationMs(pQueue);
     const mCol = isLive ? THEME.colors.brand.cyan : THEME.colors.brand.violet;
 
-    const [waves] = useState(() => TRACKS.map((_, i) => genWave(i * 7)));
+    // ── Real Waveform Analysis ──
+    useEffect(() => {
+        if (!ct) return;
+        const url = ct.blob_url ?? (`/audio/${encodeURIComponent(ct.file_path)}`);
+        getWaveformData(url).then(setCurrentWave);
+    }, [ct]);
 
     // ── Stack Order (Live mode manual queue reordering) ───────────────────────
     const [stackOrder, setStackOrder] = useState<string[]>([]);
@@ -313,10 +336,10 @@ export const Player: React.FC = () => {
     // ── Keyboard Navigation (blocked in Live mode for track change) ───────────
     useEffect(() => {
         const h = (e: KeyboardEvent) => {
-            // Space: play/pause — always allowed in both modes
-            if (e.key === " ") {
-                e.preventDefault();
-                setPlaying((p: boolean) => !p);
+            // Ignore if typing in an input or textarea
+            const target = e.target as HTMLElement;
+            if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+                return;
             }
 
             // Track navigation — BLOCKED in Live mode
@@ -333,7 +356,7 @@ export const Player: React.FC = () => {
         };
         window.addEventListener("keydown", h);
         return () => window.removeEventListener("keydown", h);
-    }, [ci, isLive, pQueue.length, setPlaying, setCi, setPos]);
+    }, [ci, isLive, pQueue.length, setCi, setPos]);
 
     // ── Seek (blocked in Live mode) ───────────────────────────────────────────
     const seek = (e: React.MouseEvent) => {
@@ -475,7 +498,7 @@ export const Player: React.FC = () => {
                                 MODO SIMULACIÓN — Sin archivos de audio reales
                             </span>
                             <span style={{ marginLeft: "auto", fontSize: 10, color: THEME.colors.text.muted }}>
-                                Copia MP3 a /public/audio/ para activar audio real
+                                Usa la pestaña "Library" para seleccionar tu música local
                             </span>
                         </div>
                     )}
@@ -483,10 +506,33 @@ export const Player: React.FC = () => {
                     {/* ── Track Header ── */}
                     <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                            <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0, letterSpacing: "-0.03em" }} className="title-xl">{ct?.title || "--"}</h1>
+                            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                                <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0, letterSpacing: "-0.03em" }} className="title-xl">{ct?.title || "--"}</h1>
+                                {!isLive && ct && (
+                                    <button
+                                        onClick={() => setProfileTrack(ct)}
+                                        style={{
+                                            background: "rgba(255,255,255,0.05)",
+                                            border: `1px solid ${THEME.colors.border}`,
+                                            borderRadius: THEME.radius.md,
+                                            width: 36, height: 36,
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            cursor: "pointer", color: THEME.colors.text.muted,
+                                            transition: "all 0.2s"
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.color = THEME.colors.brand.violet; e.currentTarget.style.borderColor = THEME.colors.brand.violet + "40"; }}
+                                        onMouseLeave={e => { e.currentTarget.style.color = THEME.colors.text.muted; e.currentTarget.style.borderColor = THEME.colors.border; }}
+                                        title="Editar perfil de la canción"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
                             <p style={{ fontSize: 16, color: THEME.colors.text.muted, margin: "4px 0 0" }}>{ct?.artist}</p>
 
-                            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
                                 {ct && (
                                     <>
                                         <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: THEME.radius.sm, backgroundColor: THEME.colors.brand.cyan + "15", color: THEME.colors.brand.cyan, fontFamily: THEME.fonts.mono, fontWeight: 700 }}>
@@ -498,6 +544,58 @@ export const Player: React.FC = () => {
                                         <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: THEME.radius.sm, backgroundColor: mc(ct.mood) + "15", color: mc(ct.mood), fontWeight: 700, textTransform: "capitalize" }}>
                                             {ct.mood}
                                         </span>
+                                        <div style={{ display: "flex", gap: 8, paddingLeft: 8, borderLeft: `1px solid ${THEME.colors.border}`, marginLeft: 2 }}>
+                                            {(ct.sheetMusic && ct.sheetMusic.length > 0) && (
+                                                <button
+                                                    onClick={() => setShowSheetViewer(true)}
+                                                    style={{
+                                                        fontSize: 10, padding: "4px 10px", borderRadius: THEME.radius.sm,
+                                                        backgroundColor: `${THEME.colors.brand.violet}20`, color: THEME.colors.brand.violet,
+                                                        fontWeight: 800, border: `1px solid ${THEME.colors.brand.violet}40`,
+                                                        cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
+                                                        transition: "all 0.2s"
+                                                    }}
+                                                >
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                                                    </svg>
+                                                    SCORE
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => setFadeEnabled(!fadeEnabled)}
+                                                style={{
+                                                    fontSize: 10, padding: "4px 10px", borderRadius: THEME.radius.sm,
+                                                    backgroundColor: fadeEnabled ? `${THEME.colors.brand.cyan}20` : "rgba(255,255,255,0.05)",
+                                                    color: fadeEnabled ? THEME.colors.brand.cyan : THEME.colors.text.muted,
+                                                    fontWeight: 800, border: `1px solid ${fadeEnabled ? THEME.colors.brand.cyan + "40" : THEME.colors.border}`,
+                                                    cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
+                                                    transition: "all 0.2s"
+                                                }}
+                                            >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M2 20c.6-1 2.1-3.9 3.2-5.2m11.2-10.3c1.2-1.3 2.7-4.2 3.2-5.2"/>
+                                                    <path d="M2 10s3-3 10-3 10 3 10 3-3 3-10 3-10-3-10-3Z"/>
+                                                </svg>
+                                                FADE
+                                            </button>
+                                            <button
+                                                onClick={() => setSplMeterEnabled(!splMeterEnabled)}
+                                                style={{
+                                                    fontSize: 10, padding: "4px 10px", borderRadius: THEME.radius.sm,
+                                                    backgroundColor: splMeterEnabled ? `${THEME.colors.brand.violet}20` : "rgba(255,255,255,0.05)",
+                                                    color: splMeterEnabled ? THEME.colors.brand.violet : THEME.colors.text.muted,
+                                                    fontWeight: 800, border: `1px solid ${splMeterEnabled ? THEME.colors.brand.violet + "40" : THEME.colors.border}`,
+                                                    cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
+                                                    transition: "all 0.2s"
+                                                }}
+                                            >
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M12 2v3m0 14v3M4.93 4.93l2.12 2.12m10.6 10.6l2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m10.6-10.6l2.12-2.12"/>
+                                                </svg>
+                                                METER
+                                            </button>
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -527,8 +625,18 @@ export const Player: React.FC = () => {
                         </div>
                     </header>
 
-                    {/* ── Waveform + Seek (blocked in live) ── */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {/* ── Performance Monitoring Section ── */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {splMeterEnabled && (
+                            <SplMeter 
+                                target={splMeterTarget} 
+                                expanded={splMeterExpanded} 
+                                onToggleExpand={() => setSplMeterExpanded(!splMeterExpanded)} 
+                            />
+                        )}
+
+                        {/* Waveform + Seek (blocked in live) */}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         <div
                             onClick={seek}
                             style={{
@@ -540,9 +648,21 @@ export const Player: React.FC = () => {
                                 position: "relative",
                                 opacity: isLive ? 0.85 : 1,
                                 transition: "border-color 0.3s",
+                                minHeight: 76,
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center"
                             }}
                         >
-                            <Wave data={waves[TRACKS.findIndex((t) => t.id === ct?.id)] || waves[0]} progress={prog} color={mCol} />
+                            <Wave 
+                                data={currentWave.length > 0 ? currentWave : Array(100).fill(0.1)} 
+                                progress={prog} 
+                                color={mCol} 
+                                fadeEnabled={fadeEnabled}
+                                fadeInMs={fadeInMs}
+                                fadeOutMs={fadeOutMs}
+                                totalMs={ct.duration_ms}
+                            />
                             <div
                                 style={{
                                     position: "absolute",
@@ -575,6 +695,7 @@ export const Player: React.FC = () => {
                             <span>-{fmt(Math.max(0, (ct?.duration_ms || 0) - pos))}</span>
                         </div>
                     </div>
+                </div>
 
                     {/* ── Controls ── */}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 32, marginTop: 16 }}>
@@ -654,11 +775,27 @@ export const Player: React.FC = () => {
                     </div>
 
                     {/* ── Set Progress + Mode Toggle ── */}
-                    <div style={{ marginTop: "auto", padding: "24px", borderRadius: THEME.radius.xl, backgroundColor: THEME.colors.surface, border: `1px solid ${isLive ? THEME.colors.brand.cyan + "20" : THEME.colors.border}`, display: "flex", alignItems: "center", gap: 20, transition: "border-color 0.4s" }}>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: THEME.colors.text.muted }}>SET PROGRESS</span>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: mCol, fontFamily: THEME.fonts.mono }}>{fmtM(qTot)} TOTAL</span>
+                    <div style={{ 
+                        marginTop: "auto", 
+                        padding: "20px", 
+                        borderRadius: THEME.radius.xl, 
+                        backgroundColor: THEME.colors.surface, 
+                        border: `1px solid ${isLive ? THEME.colors.brand.cyan + "20" : THEME.colors.border}`, 
+                        display: "flex", 
+                        flexDirection: "column", 
+                        gap: 16, 
+                        transition: "border-color 0.4s" 
+                    }}>
+                        {/* Progress Row */}
+                        <div style={{ width: "100%" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 8, gap: 12 }}>
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    <span style={{ fontSize: 10, color: THEME.colors.text.muted, fontWeight: 800, letterSpacing: "0.05em" }}>SET PROGRESS</span>
+                                </div>
+                                <div style={{ textAlign: "right" }}>
+                                    <span style={{ fontSize: 12, fontWeight: 900, color: mCol, fontFamily: THEME.fonts.mono }}>{fmtM(qTot)}</span>
+                                    <span style={{ fontSize: 9, color: THEME.colors.text.muted, fontWeight: 700, marginLeft: 4 }}>TOTAL</span>
+                                </div>
                             </div>
                             <div style={{ height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.05)", overflow: "hidden" }}>
                                 <div
@@ -666,76 +803,80 @@ export const Player: React.FC = () => {
                                         height: "100%",
                                         width: `${Math.min(100, (sumTrackDurationMs(pQueue.slice(0, ci)) + pos) / (qTot || 1) * 100)}%`,
                                         background: THEME.gradients.brand,
+                                        boxShadow: `0 0 10px ${mCol}40`,
                                         transition: "width 0.5s ease-out",
                                     }}
                                 />
                             </div>
                         </div>
 
-                        {/* Export Set Button */}
-                        {!isLive && (
+                        {/* Actions Row */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                            <div style={{ display: "flex", gap: 8 }}>
+                                {!isLive && (
+                                    <button
+                                        onClick={exportSet}
+                                        title="Exportar lista del set como .txt"
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 6,
+                                            padding: "8px 14px",
+                                            borderRadius: THEME.radius.full,
+                                            cursor: "pointer",
+                                            backgroundColor: "transparent",
+                                            border: `1px solid ${THEME.colors.border}`,
+                                            color: THEME.colors.text.muted,
+                                            transition: "all 0.2s",
+                                        }}
+                                        onMouseEnter={e => {
+                                            e.currentTarget.style.borderColor = THEME.colors.brand.violet + "60";
+                                            e.currentTarget.style.color = THEME.colors.brand.violet;
+                                        }}
+                                        onMouseLeave={e => {
+                                            e.currentTarget.style.borderColor = THEME.colors.border;
+                                            e.currentTarget.style.color = THEME.colors.text.muted;
+                                        }}
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="7 10 12 15 17 10" />
+                                            <line x1="12" y1="15" x2="12" y2="3" />
+                                        </svg>
+                                        <span style={{ fontSize: 11, fontWeight: 600 }}>Export</span>
+                                    </button>
+                                )}
+                            </div>
+
                             <button
-                                onClick={exportSet}
-                                title="Exportar lista del set como .txt"
+                                onClick={handleModeToggle}
+                                title={isLive ? "Haz clic para desbloquear (pedirá confirmación)" : "Activar modo Live — bloquea la reproducción"}
                                 style={{
                                     display: "flex",
                                     alignItems: "center",
-                                    gap: 6,
-                                    padding: "8px 14px",
+                                    gap: 8,
+                                    padding: "8px 20px",
                                     borderRadius: THEME.radius.full,
                                     cursor: "pointer",
-                                    backgroundColor: "transparent",
-                                    border: `1px solid ${THEME.colors.border}`,
-                                    color: THEME.colors.text.muted,
-                                    transition: "all 0.2s",
-                                }}
-                                onMouseEnter={e => {
-                                    e.currentTarget.style.borderColor = THEME.colors.brand.violet + "60";
-                                    e.currentTarget.style.color = THEME.colors.brand.violet;
-                                }}
-                                onMouseLeave={e => {
-                                    e.currentTarget.style.borderColor = THEME.colors.border;
-                                    e.currentTarget.style.color = THEME.colors.text.muted;
+                                    backgroundColor: isLive ? THEME.colors.brand.cyan + "15" : THEME.colors.surfaceHover,
+                                    border: `1px solid ${isLive ? THEME.colors.brand.cyan + "50" : THEME.colors.border}`,
+                                    transition: "all 0.25s",
+                                    boxShadow: isLive ? `0 0 20px ${THEME.colors.brand.cyan}10` : "none",
                                 }}
                             >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                </svg>
-                                <span style={{ fontSize: 11, fontWeight: 600 }}>Export</span>
+                                {isLive
+                                    ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.brand.cyan} strokeWidth="2.5" strokeLinecap="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                    </svg>
+                                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.text.muted} strokeWidth="2.5" strokeLinecap="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                                    </svg>
+                                }
+                                <span style={{ fontSize: 12, color: isLive ? THEME.colors.brand.cyan : THEME.colors.text.muted, fontWeight: 700 }}>
+                                    {isLive ? "LIVE" : "EDIT"}
+                                </span>
                             </button>
-                        )}
-
-                        {/* Mode Toggle Button */}
-                        <button
-                            onClick={handleModeToggle}
-                            title={isLive ? "Haz clic para desbloquear (pedirá confirmación)" : "Activar modo Live — bloquea la reproducción"}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                padding: "8px 20px",
-                                borderRadius: THEME.radius.full,
-                                cursor: "pointer",
-                                backgroundColor: isLive ? THEME.colors.brand.cyan + "15" : THEME.colors.surfaceHover,
-                                border: `1px solid ${isLive ? THEME.colors.brand.cyan + "50" : THEME.colors.border}`,
-                                transition: "all 0.25s",
-                                boxShadow: isLive ? `0 0 20px ${THEME.colors.brand.cyan}10` : "none",
-                            }}
-                        >
-                            {isLive
-                                ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.brand.cyan} strokeWidth="2.5" strokeLinecap="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                </svg>
-                                : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.text.muted} strokeWidth="2.5" strokeLinecap="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" />
-                                </svg>
-                            }
-                            <span style={{ fontSize: 12, color: isLive ? THEME.colors.brand.cyan : THEME.colors.text.muted, fontWeight: 700 }}>
-                                {isLive ? "LIVE" : "EDIT"}
-                            </span>
-                        </button>
+                        </div>
                     </div>
                 </main>
 
@@ -928,23 +1069,25 @@ export const Player: React.FC = () => {
                                             {isLive && isStacked && (
                                                 <span style={{ fontSize: 9, color: THEME.colors.brand.violet, fontWeight: 700, letterSpacing: "0.05em" }}>NEXT {stackIdx + 1}</span>
                                             )}
-                                            {/* Note button (Edit mode only) */}
-                                            {!isLive && !isCurrent && editingNotes !== t.id && (
+                                            {/* Trimming/Profile button (Edit mode only) */}
+                                            {!isLive && (
                                                 <button
-                                                    onClick={e => { e.stopPropagation(); setEditingNotes(editingNotes === t.id ? null : t.id); }}
-                                                    title="Agregar nota de performance"
+                                                    onClick={e => { e.stopPropagation(); setProfileTrack(t); }}
+                                                    title="Ver perfil y editar track"
                                                     style={{
                                                         background: "none", border: "none",
                                                         cursor: "pointer", padding: "2px 3px",
-                                                        color: t.notes ? THEME.colors.brand.violet : THEME.colors.text.muted,
-                                                        opacity: t.notes ? 0.9 : 0.4,
+                                                        color: THEME.colors.text.muted,
+                                                        opacity: 0.4,
                                                         fontSize: 13, lineHeight: 1,
                                                         transition: "opacity 0.15s",
                                                     }}
-                                                    onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
-                                                    onMouseLeave={e => { e.currentTarget.style.opacity = t.notes ? "0.9" : "0.4"; }}
+                                                    onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = THEME.colors.brand.violet; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.opacity = "0.4"; e.currentTarget.style.color = THEME.colors.text.muted; }}
                                                 >
-                                                    ✏️
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+                                                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                                    </svg>
                                                 </button>
                                             )}
                                         </div>
@@ -1010,9 +1153,33 @@ export const Player: React.FC = () => {
                                             <div style={{ fontSize: 11, color: THEME.colors.text.muted }}>{t.artist}</div>
                                         </div>
 
-                                        <span style={{ fontSize: 11, fontFamily: THEME.fonts.mono, color: THEME.colors.text.muted, flexShrink: 0 }}>
-                                            {fmt(t.duration_ms)}
-                                        </span>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                            {!isLive && (
+                                                <button
+                                                    onClick={e => { e.stopPropagation(); setTrimmingTrack(t); }}
+                                                    title="Recortar inicio/fin"
+                                                    style={{
+                                                        background: "none", border: "none",
+                                                        cursor: "pointer", padding: "2px 3px",
+                                                        color: THEME.colors.text.muted,
+                                                        opacity: 0.4,
+                                                        fontSize: 13, lineHeight: 1,
+                                                        transition: "opacity 0.15s",
+                                                    }}
+                                                    onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.color = THEME.colors.brand.cyan; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.opacity = "0.4"; e.currentTarget.style.color = THEME.colors.text.muted; }}
+                                                >
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+                                                        <circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" />
+                                                        <line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" />
+                                                        <line x1="8.12" y1="8.12" x2="12" y2="12" />
+                                                    </svg>
+                                                </button>
+                                            )}
+                                            <span style={{ fontSize: 11, fontFamily: THEME.fonts.mono, color: THEME.colors.text.muted, flexShrink: 0 }}>
+                                                {fmt(t.duration_ms)}
+                                            </span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -1029,6 +1196,37 @@ export const Player: React.FC = () => {
                     </div>
                 </aside>
             </div>
+
+            {trimmingTrack && (
+                <TrackTrimmer 
+                    key={trimmingTrack.id}
+                    track={trimmingTrack}
+                    onSave={(start, end) => {
+                        setTrackTrim(trimmingTrack.id, start, end);
+                        setTrimmingTrack(null);
+                    }}
+                    onCancel={() => setTrimmingTrack(null)}
+                />
+            )}
+
+            {profileTrack && (
+                <TrackProfileModal
+                    key={profileTrack.id + "profile"}
+                    track={profileTrack}
+                    onSave={(updates) => {
+                        updateTrackMetadata(profileTrack.id, updates);
+                        setProfileTrack(null);
+                    }}
+                    onCancel={() => setProfileTrack(null)}
+                />
+            )}
+
+            {showSheetViewer && ct?.sheetMusic && ct.sheetMusic.length > 0 && (
+                <SheetMusicViewer
+                    items={ct.sheetMusic}
+                    onClose={() => setShowSheetViewer(false)}
+                />
+            )}
         </>
     );
 };

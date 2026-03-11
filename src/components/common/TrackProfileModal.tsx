@@ -1,0 +1,438 @@
+import React, { useState } from "react";
+import { Track } from "../../types.ts";
+import { THEME } from "../../data/theme.ts";
+import { fmt } from "../../services/uiUtils.ts";
+import { TrackTrimmer } from "./TrackTrimmer.tsx";
+import { useLibraryStore } from "../../store/useLibraryStore.ts";
+import { analyzeAudio } from "../../services/analysisService.ts";
+import { saveAsset, deleteAsset } from "../../services/assetStorage.ts";
+
+interface TrackProfileModalProps {
+    track: Track;
+    onSave: (updates: Partial<Track>) => void;
+    onCancel: () => void;
+}
+
+export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onSave, onCancel }) => {
+    const { availableTags, addTag } = useLibraryStore();
+    const [edit, setEdit] = useState<Partial<Track>>({ ...track });
+    const [newTag, setNewTag] = useState("");
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [showTrimmer, setShowTrimmer] = useState(false);
+    const [activeTab, setActiveTab] = useState<"info" | "notes" | "audio" | "sheet">("info");
+    const [isUploadingSheet, setIsUploadingSheet] = useState(false);
+
+    const handleSave = () => {
+        onSave(edit);
+    };
+
+    const toggleTag = (tag: string) => {
+        const tags = edit.tags || [];
+        if (tags.includes(tag)) {
+            setEdit({ ...edit, tags: tags.filter(t => t !== tag) });
+        } else {
+            setEdit({ ...edit, tags: [...tags, tag] });
+        }
+    };
+
+    const handleAddTag = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && newTag.trim()) {
+            addTag(newTag.trim());
+            toggleTag(newTag.trim());
+            setNewTag("");
+        }
+    };
+
+    const handleAutoAnalyze = async () => {
+        const url = track.blob_url ?? (track.file_path ? `/audio/${encodeURIComponent(track.file_path)}` : null);
+        
+        if (!url) {
+            alert("No se puede analizar: El archivo no tiene una ruta válida.");
+            return;
+        }
+
+        try {
+            setIsAnalyzing(true);
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Fetch failed");
+            
+            const arrayBuffer = await response.arrayBuffer();
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            
+            const results = await analyzeAudio(audioBuffer);
+            
+            setEdit(prev => ({
+                ...prev,
+                bpm: results.bpm,
+                key: results.key,
+                energy: results.energy,
+                mood: results.energy > 0.7 ? "energetic" : results.energy > 0.4 ? "happy" : "calm",
+                analysis_cached: true
+            }));
+            console.log("Analysis results:", results);
+        } catch (err) {
+            console.error("Analysis failed:", err);
+            alert("Error al analizar el audio.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleSheetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        try {
+            setIsUploadingSheet(true);
+            const newItems: { id: string; type: "pdf" | "image"; name: string }[] = [];
+            
+            for (const file of files) {
+                const isPdf = file.type === "application/pdf";
+                const isImg = file.type.startsWith("image/");
+                if (!isPdf && !isImg) continue;
+
+                const assetId = `${track.id}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                await saveAsset(assetId, file);
+                newItems.push({
+                    id: assetId,
+                    type: isPdf ? "pdf" : "image",
+                    name: file.name
+                });
+            }
+
+            setEdit(prev => ({
+                ...prev,
+                sheetMusic: [...(prev.sheetMusic || []), ...newItems]
+            }));
+        } catch (err) {
+            console.error("Sheet upload failed:", err);
+            alert("Error al guardar la partitura.");
+        } finally {
+            setIsUploadingSheet(false);
+            e.target.value = ""; // reset input
+        }
+    };
+
+    const removeSheetItem = async (id: string) => {
+        if (!confirm("¿Deseas eliminar este archivo?")) return;
+        try {
+            await deleteAsset(id);
+            setEdit(prev => ({
+                ...prev,
+                sheetMusic: (prev.sheetMusic || []).filter(item => item.id !== id)
+            }));
+        } catch (err) {
+            console.error("Delete failed:", err);
+        }
+    };
+
+    return (
+        <div style={{
+            position: "fixed", inset: 0, zIndex: 3000,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 20, backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)",
+            animation: "fadeIn 0.2s ease-out"
+        }}>
+            <div style={{
+                backgroundColor: "#0D1117",
+                border: `1px solid ${THEME.colors.borderLight}`,
+                borderRadius: THEME.radius.xl,
+                width: "min(500px, 95vw)",
+                maxHeight: "90vh",
+                overflow: "hidden",
+                display: "flex", flexDirection: "column",
+                boxShadow: `0 30px 100px rgba(0,0,0,0.8)`,
+                animation: "scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+            }}>
+                {/* Header */}
+                <header style={{ 
+                    padding: "24px 28px", 
+                    borderBottom: `1px solid ${THEME.colors.border}`,
+                    background: `linear-gradient(to bottom, rgba(139,92,246,0.05), transparent)`
+                }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.brand.violet, textTransform: "uppercase", letterSpacing: "0.1em" }}>Track Profile</span>
+                            <h3 style={{ margin: "4px 0 0", fontSize: 24, fontWeight: 800, color: "white", letterSpacing: "-0.02em" }}>{edit.title}</h3>
+                            <p style={{ margin: "2px 0 0", fontSize: 14, color: THEME.colors.text.muted }}>{edit.artist}</p>
+                        </div>
+                        <button onClick={onCancel} style={{ background: "none", border: "none", color: THEME.colors.text.dim, cursor: "pointer", padding: 4 }}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                        </button>
+                    </div>
+
+                    {/* Tabs */}
+                    <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
+                        {(["info", "notes", "audio", "sheet"] as const).map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                style={{
+                                    background: "none", border: "none", padding: "0 0 8px",
+                                    fontSize: 13, fontWeight: 700, color: activeTab === tab ? THEME.colors.brand.cyan : THEME.colors.text.muted,
+                                    cursor: "pointer", position: "relative", textTransform: "capitalize",
+                                    transition: "color 0.2s"
+                                }}
+                            >
+                                {tab === "info" ? "Detalles" : tab === "notes" ? "Notas" : tab === "audio" ? "Recorte" : "Partitura"}
+                                {activeTab === tab && <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 2, backgroundColor: THEME.colors.brand.cyan, borderRadius: 1 }} />}
+                            </button>
+                        ))}
+                    </div>
+                </header>
+
+                {/* Content */}
+                <div style={{ flex: 1, overflowY: "auto", padding: "28px" }}>
+                    {activeTab === "info" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                <div>
+                                    <label style={labelStyle}>Título</label>
+                                    <input value={edit.title} onChange={e => setEdit({...edit, title: e.target.value})} style={inputStyle} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Artista / Compositor</label>
+                                    <input value={edit.artist} onChange={e => setEdit({...edit, artist: e.target.value})} style={inputStyle} />
+                                </div>
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+                                <div>
+                                    <label style={labelStyle}>BPM</label>
+                                    <input type="number" value={edit.bpm} onChange={e => setEdit({...edit, bpm: parseInt(e.target.value)})} style={inputStyle} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Tono (Key)</label>
+                                    <input value={edit.key} onChange={e => setEdit({...edit, key: e.target.value})} style={inputStyle} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Energía</label>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, height: 40 }}>
+                                        <input type="range" min={0} max={1} step={0.1} value={edit.energy} onChange={e => setEdit({...edit, energy: parseFloat(e.target.value)})} style={{ flex: 1, accentColor: THEME.colors.brand.cyan }} />
+                                        <span style={{ fontSize: 13, color: THEME.colors.brand.cyan, fontWeight: 700 }}>{Math.round((edit.energy || 0)*10)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                                    <label style={{ ...labelStyle, marginBottom: 0 }}>Categorías / Tags</label>
+                                    <div style={{ display: "flex", gap: 8 }}>
+                                        <input 
+                                            placeholder="+ Nueva" 
+                                            value={newTag} 
+                                            onChange={e => setNewTag(e.target.value)}
+                                            onKeyDown={handleAddTag}
+                                            style={{ ...inputStyle, height: 28, width: 100, fontSize: 11, padding: "0 8px", background: "transparent" }} 
+                                        />
+                                    </div>
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                    {availableTags.map(tag => {
+                                        const isSelected = edit.tags?.includes(tag);
+                                        return (
+                                            <button
+                                                key={tag}
+                                                onClick={() => toggleTag(tag)}
+                                                style={{
+                                                    padding: "6px 12px", borderRadius: THEME.radius.full, border: `1px solid ${isSelected ? THEME.colors.brand.violet : THEME.colors.border}`,
+                                                    background: isSelected ? `${THEME.colors.brand.violet}15` : "transparent",
+                                                    color: isSelected ? THEME.colors.brand.violet : THEME.colors.text.muted,
+                                                    fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s"
+                                                }}
+                                            >
+                                                {tag}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "notes" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                            <label style={labelStyle}>Notas para el show (se mostrarán durante la previa)</label>
+                            <textarea
+                                value={edit.notes || ""}
+                                onChange={e => setEdit({...edit, notes: e.target.value})}
+                                placeholder="Ej: Intro larga de 4 compases, terminar en fade out..."
+                                style={{
+                                    ...inputStyle,
+                                    height: 200, padding: "12px 16px", resize: "none", fontSize: 14, lineHeight: 1.6
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    {activeTab === "audio" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 20, alignItems: "center", textAlign: "center", padding: "20px 0" }}>
+                            <div style={{ width: 64, height: 64, borderRadius: "50%", background: `${THEME.colors.brand.cyan}10`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8 }}>
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.brand.cyan} strokeWidth="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                            </div>
+                            <div>
+                                <h4 style={{ margin: 0, fontSize: 16 }}>Recortar Segmento</h4>
+                                <p style={{ fontSize: 13, color: THEME.colors.text.muted, marginTop: 8, maxWidth: 300, lineHeight: 1.5 }}>
+                                    Ajusta el punto de inicio y fin para esta canción. El set se adaptará automáticamente.
+                                </p>
+                            </div>
+                            
+                            <div style={{ 
+                                padding: "12px 20px", borderRadius: THEME.radius.md, background: "rgba(255,255,255,0.03)", border: `1px solid ${THEME.colors.border}`,
+                                display: "flex", gap: 24
+                            }}>
+                                <div style={{ textAlign: "left" }}>
+                                    <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase" }}>Inicio</div>
+                                    <div style={{ fontSize: 16, fontFamily: THEME.fonts.mono, fontWeight: 700 }}>{fmt(edit.startTime || 0)}</div>
+                                </div>
+                                <div style={{ textAlign: "left" }}>
+                                    <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase" }}>Fin</div>
+                                    <div style={{ fontSize: 16, fontFamily: THEME.fonts.mono, fontWeight: 700 }}>{fmt(edit.endTime || edit.duration_ms || 0)}</div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => setShowTrimmer(true)}
+                                style={{
+                                    padding: "12px 24px", borderRadius: THEME.radius.md, border: "none",
+                                    background: THEME.colors.brand.cyan, color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer",
+                                    boxShadow: `0 8px 24px ${THEME.colors.brand.cyan}30`
+                                }}
+                            >
+                                Abrir Editor de Audio
+                            </button>
+                        </div>
+                    )}
+
+                    {activeTab === "sheet" && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                            <div style={{ textAlign: "center", padding: "10px 0" }}>
+                                <div style={{ width: 48, height: 48, borderRadius: "50%", background: `${THEME.colors.brand.violet}10`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.brand.violet} strokeWidth="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                                    </svg>
+                                </div>
+                                <h4 style={{ margin: 0, fontSize: 16 }}>Partituras y Documentos</h4>
+                                <p style={{ fontSize: 13, color: THEME.colors.text.muted, marginTop: 4 }}>Sube PDFs o imágenes de tus arreglos.</p>
+                            </div>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                {edit.sheetMusic?.map((item) => (
+                                    <div key={item.id} style={{
+                                        display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                                        backgroundColor: "rgba(255,255,255,0.03)", border: `1px solid ${THEME.colors.border}`, borderRadius: THEME.radius.md
+                                    }}>
+                                        <div style={{ color: item.type === "pdf" ? "#ff4d4d" : THEME.colors.brand.cyan }}>
+                                            {item.type === "pdf" ? (
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                            ) : (
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                            )}
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</div>
+                                            <div style={{ fontSize: 10, color: THEME.colors.text.muted, textTransform: "uppercase" }}>{item.type}</div>
+                                        </div>
+                                        <button
+                                            onClick={() => removeSheetItem(item.id)}
+                                            style={{ background: "none", border: "none", color: THEME.colors.status.error, cursor: "pointer", padding: 4, display: "flex", opacity: 0.6 }}
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                        </button>
+                                    </div>
+                                ))}
+                                <label style={{
+                                    display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                                    padding: "16px", borderRadius: THEME.radius.md, border: `2px dashed ${THEME.colors.border}`,
+                                    cursor: "pointer", color: THEME.colors.text.muted, transition: "all 0.2s",
+                                    marginTop: 8
+                                }}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    <span style={{ fontSize: 14, fontWeight: 600 }}>{isUploadingSheet ? "Subiendo..." : "Añadir Archivo(s)"}</span>
+                                    <input type="file" multiple accept="application/pdf,image/*" onChange={handleSheetUpload} disabled={isUploadingSheet} style={{ display: "none" }} />
+                                </label>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <footer style={{ padding: "20px 28px", borderTop: `1px solid ${THEME.colors.border}`, display: "flex", gap: 12, backgroundColor: "rgba(0,0,0,0.2)" }}>
+                    <button
+                        onClick={handleAutoAnalyze}
+                        disabled={isAnalyzing}
+                        style={{
+                            padding: "0 16px", borderRadius: THEME.radius.md, border: `1px solid ${THEME.colors.brand.cyan}40`,
+                            backgroundColor: "transparent", color: THEME.colors.brand.cyan, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                            display: "flex", alignItems: "center", gap: 8, opacity: isAnalyzing ? 0.5 : 1
+                        }}
+                    >
+                        {isAnalyzing ? "Analizando..." : "Auto-Analizar"}
+                    </button>
+                    <div style={{ flex: 1 }} />
+                    <button
+                        onClick={onCancel}
+                        style={{
+                            padding: "14px 24px", borderRadius: THEME.radius.md, border: `1px solid ${THEME.colors.border}`,
+                            backgroundColor: "transparent", color: THEME.colors.text.muted, fontSize: 14, fontWeight: 600, cursor: "pointer"
+                        }}
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        style={{
+                            padding: "14px 28px", borderRadius: THEME.radius.md, border: "none",
+                            background: THEME.gradients.brand, color: "white", fontSize: 14, fontWeight: 700, cursor: "pointer"
+                        }}
+                    >
+                        Guardar Perfil
+                    </button>
+                </footer>
+            </div>
+
+            {showTrimmer && (
+                <TrackTrimmer
+                    track={track}
+                    onSave={(start, end) => {
+                        setEdit({ ...edit, startTime: start, endTime: end });
+                        setShowTrimmer(false);
+                    }}
+                    onCancel={() => setShowTrimmer(false)}
+                />
+            )}
+
+            <style>{`
+                @keyframes scaleIn {
+                    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
+                }
+            `}</style>
+        </div>
+    );
+};
+
+const labelStyle: React.CSSProperties = {
+    display: "block",
+    fontSize: 11,
+    fontWeight: 700,
+    color: THEME.colors.text.muted,
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    marginBottom: 8
+};
+
+const inputStyle: React.CSSProperties = {
+    width: "100%",
+    height: 44,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    border: `1px solid ${THEME.colors.border}`,
+    borderRadius: THEME.radius.md,
+    color: "white",
+    padding: "0 14px",
+    fontSize: 14,
+    outline: "none",
+    fontFamily: THEME.fonts.main,
+    transition: "border-color 0.2s"
+};

@@ -14,6 +14,7 @@
         "validate": "npm run lint && npm run typecheck && npm run test && npm run build"
     },
     "dependencies": {
+        "idb": "^8.0.3",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "zustand": "^4.5.0"

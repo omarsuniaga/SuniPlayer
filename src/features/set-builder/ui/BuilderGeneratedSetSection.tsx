@@ -17,6 +17,7 @@ interface BuilderGeneratedSetSectionProps {
     onDrop: (event: React.DragEvent, index: number) => void;
     onDragEnd: () => void;
     onRemoveTrack: (index: number) => void;
+    onEditTrack: (track: Track) => void;
 }
 
 export const BuilderGeneratedSetSection: React.FC<BuilderGeneratedSetSectionProps> = ({
@@ -31,6 +32,7 @@ export const BuilderGeneratedSetSection: React.FC<BuilderGeneratedSetSectionProp
     onDrop,
     onDragEnd,
     onRemoveTrack,
+    onEditTrack,
 }) => {
     if (tracks.length === 0) {
         return (
@@ -42,9 +44,16 @@ export const BuilderGeneratedSetSection: React.FC<BuilderGeneratedSetSectionProp
 
     return (
         <section style={{ animation: "fadeIn 0.4s ease-out" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 700 }}>Generated Set</h2>
-                <div style={{ display: "flex", gap: 8 }}>
+            <div className="section-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <style>{`
+                    @media (max-width: 480px) {
+                        .section-header { flex-direction: column; align-items: flex-start !important; gap: 8px; }
+                        .header-actions { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+                        .header-actions button { padding: 8px 4px !important; font-size: 10px !important; }
+                    }
+                `}</style>
+                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Generated Set</h2>
+                <div className="header-actions" style={{ display: "flex", gap: 8 }}>
                     <button
                         onClick={onSave}
                         style={{
@@ -126,7 +135,7 @@ export const BuilderGeneratedSetSection: React.FC<BuilderGeneratedSetSectionProp
                                 </svg>
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                                <TrackRow track={track} idx={index} showN onRm={onRemoveTrack} />
+                                <TrackRow track={track} idx={index} showN onRm={onRemoveTrack} onEdit={onEditTrack} />
                             </div>
                         </div>
                     );

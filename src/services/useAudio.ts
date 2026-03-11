@@ -24,6 +24,7 @@ export function useAudio() {
     const pQueue = usePlayerStore(s => s.pQueue);
     const ci = usePlayerStore(s => s.ci);
     const playing = usePlayerStore(s => s.playing);
+    const pos = usePlayerStore(s => s.pos);
     const vol = usePlayerStore(s => s.vol);
     const setCi = usePlayerStore(s => s.setCi);
     const setPos = usePlayerStore(s => s.setPos);
@@ -33,6 +34,9 @@ export function useAudio() {
 
     const autoNext = useSettingsStore(s => s.autoNext);
     const crossfade = useSettingsStore(s => s.crossfade);
+    const fadeEnabled = useSettingsStore(s => s.fadeEnabled);
+    const fadeInMs = useSettingsStore(s => s.fadeInMs);
+    const fadeOutMs = useSettingsStore(s => s.fadeOutMs);
 
     // ── Stable refs (values that must survive effect teardown) ───────────────
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -53,6 +57,8 @@ export function useAudio() {
     pQueueLenRef.current = pQueue.length;
     autoNextRef.current = autoNext;
     volRef.current = vol;
+    // Removed fadeEnabledRef, fadeInMsRef, fadeOutMsRef
+    const isPausingRef = useRef(false); // flag to prevent immediate pause during fade-out
 
     const ct = pQueue[ci];
     const nextTrack = pQueue[ci + 1] ?? null;
@@ -74,7 +80,7 @@ export function useAudio() {
             audioRef.current?.pause();
             nextAudioRef.current?.pause();
         };
-    }, []);
+    }, [setIsSimulating]);
 
     // ── Load + reset when ci changes ─────────────────────────────────────────
     useEffect(() => {
@@ -86,6 +92,11 @@ export function useAudio() {
         hasAdvanced.current = false;
         isReal.current = false;
         posRef.current = 0;
+        
+        // Reset volume for fade-in if enabled
+        if (fadeEnabled && audio) { // Changed to use reactive fadeEnabled
+            audio.volume = 0;
+        }
 
         // Cancel any in-flight crossfade timer
         if (crossTimerRef.current) {
@@ -105,10 +116,12 @@ export function useAudio() {
         }
 
         // blob_url for user-imported files, file_path for built-in catalog
-        audio.src = ct.blob_url ?? (AUDIO_BASE + ct.file_path);
+        audio.src = ct.blob_url ?? (AUDIO_BASE + encodeURIComponent(ct.file_path));
         audio.volume = volRef.current;
-        audio.currentTime = 0;
-        setPos(0);
+        const startOffset = (ct.startTime || 0);
+        audio.currentTime = startOffset / 1000;
+        posRef.current = startOffset;
+        setPos(startOffset);
 
         const onCanPlay = () => {
             isReal.current = true;
@@ -119,14 +132,13 @@ export function useAudio() {
             probeActive = false;
             audio.removeEventListener("canplay", onCanPlay);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ci, ct?.id]);
+    }, [ci, ct, setIsSimulating, setPos, fadeEnabled]); // Added fadeEnabled to deps
 
     // ── Preload next track ───────────────────────────────────────────────────
     useEffect(() => {
         const next = nextAudioRef.current;
         if (!next || !nextTrack) return;
-        next.src = nextTrack.blob_url ?? (AUDIO_BASE + nextTrack.file_path);
+        next.src = nextTrack.blob_url ?? (AUDIO_BASE + encodeURIComponent(nextTrack.file_path));
         next.volume = 0;
         next.load();
     }, [nextTrack]);
@@ -135,6 +147,20 @@ export function useAudio() {
     useEffect(() => {
         if (audioRef.current) audioRef.current.volume = vol;
     }, [vol]);
+
+    // ── Seek sync (Listen to store changes for manual jumps) ─────────────────
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio || !ct) return;
+
+        // If the store pos is significantly different from our local posRef,
+        // it means the user manually seeking (e.g. clicking the waveform).
+        const diff = Math.abs(pos - posRef.current);
+        if (diff > 1500) { // >1.5s jump usually means manual seek
+            audio.currentTime = pos / 1000;
+            posRef.current = pos;
+        }
+    }, [pos, ct]);
 
     // ── Main play/pause + auto-next engine ───────────────────────────────────
     useEffect(() => {
@@ -146,9 +172,36 @@ export function useAudio() {
         clearInterval(elapsedRef.current ?? undefined);
 
         if (!playing) {
+            // Fade-on-pause logic
+            if (fadeEnabled && isReal.current && audio && !audio.paused && !isPausingRef.current) { // Changed to use reactive fadeEnabled
+                isPausingRef.current = true;
+                const duration = fadeOutMs; // Changed to use reactive fadeOutMs
+                const steps = 15;
+                const interval = duration / steps;
+                let step = 0;
+                const vBase = audio.volume;
+
+                const pauseFade = setInterval(() => {
+                    step++;
+                    const factor = 1 - (step / steps);
+                    audio.volume = Math.max(0, vBase * Math.pow(factor, 2));
+
+                    if (step >= steps || !isPausingRef.current) {
+                        clearInterval(pauseFade);
+                        audio.pause();
+                        isPausingRef.current = false;
+                    }
+                }, interval);
+                return;
+            }
+            
+            isPausingRef.current = false;
             audio.pause();
             return;
         }
+
+        // Cancel any pending pause fade if we resumed
+        isPausingRef.current = false;
 
         // Try real playback (fire-and-forget; failure = simulation)
         audio.play().catch(() => {
@@ -221,14 +274,36 @@ export function useAudio() {
 
         // ── Tick ─────────────────────────────────────────────────────────────
         simRef.current = setInterval(() => {
-            const duration = ct.duration_ms;
+            const trackEnd = ct.endTime || ct.duration_ms;
+            const trackStart = ct.startTime || 0;
 
             if (isReal.current && audio) {
                 // Real audio path
                 const posMs = Math.floor(audio.currentTime * 1000);
-                const remMs = duration - posMs;
+                const remMs = trackEnd - posMs;
+                const elapsedInTrack = posMs - trackStart;
                 posRef.current = posMs;
                 setPos(posMs);
+
+                // Apply dynamic fading if enabled
+                if (fadeEnabled && !isPausingRef.current) { // Changed to use reactive fadeEnabled
+                    const v = volRef.current;
+                    const fIn = fadeInMs; // Changed to use reactive fadeInMs
+                    const fOut = fadeOutMs; // Changed to use reactive fadeOutMs
+
+                    if (elapsedInTrack < fIn) {
+                        // Fade in logic
+                        const factor = elapsedInTrack / fIn;
+                        audio.volume = v * Math.pow(factor, 2); // Logarithmic-ish fade in
+                    } else if (remMs < fOut && !hasAdvanced.current) {
+                        // Fade out logic (only if not already crossfading)
+                        const factor = remMs / fOut;
+                        audio.volume = v * Math.pow(factor, 2);
+                    } else if (!hasAdvanced.current) {
+                        // Normal playback volume
+                        audio.volume = v;
+                    }
+                }
 
                 if (autoNextRef.current) {
                     if (crossfade && remMs <= CROSSFADE_MS && ciRef.current < pQueueLenRef.current - 1) {
@@ -242,9 +317,9 @@ export function useAudio() {
 
             } else {
                 // Simulation (no real audio files)
-                posRef.current = Math.min(posRef.current + TICK_MS, duration);
+                posRef.current = Math.min(posRef.current + TICK_MS, trackEnd);
                 const posMs = posRef.current;
-                const remMs = duration - posMs;
+                const remMs = trackEnd - posMs;
                 setPos(posMs);
 
                 if (autoNextRef.current) {
@@ -255,7 +330,7 @@ export function useAudio() {
                     }
                 } else if (remMs <= 0) {
                     // Stop at end of queue, no auto-next
-                    setPos(duration);
+                    setPos(trackEnd);
                     setPlaying(false);
                     clearInterval(simRef.current ?? undefined);
                 }
@@ -271,8 +346,7 @@ export function useAudio() {
             clearInterval(simRef.current ?? undefined);
             clearInterval(elapsedRef.current ?? undefined);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [playing, ci, ct?.id, pQueue.length, crossfade]);
+    }, [playing, ci, ct, pQueue.length, crossfade, setCi, setElapsed, setIsSimulating, setPlaying, setPos]);
     // Note: autoNext intentionally NOT in deps — read via ref in the tick
 
     return { isReal: isReal.current };

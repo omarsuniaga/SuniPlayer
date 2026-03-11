@@ -2,6 +2,8 @@ export interface Track {
     id: string;
     title: string;
     artist: string;
+    composer?: string;    // Composer name
+    tags?: string[];     // Categories/Tags (e.g. "classic", "jazz", "ballad")
     duration_ms: number;
     bpm: number;
     key: string;
@@ -12,6 +14,9 @@ export interface Track {
     blob_url?: string;   // Object URL for user-imported files (session-only)
     notes?: string;      // Performance notes (e.g. "intro larga", "pedir aplauso")
     isCustom?: boolean;  // true = imported by user, not from built-in catalog
+    startTime?: number;  // ms - custom start offset
+    endTime?: number;    // ms - custom end offset
+    sheetMusic?: { id: string; type: "pdf" | "image"; name: string }[];
 }
 
 export interface Venue {

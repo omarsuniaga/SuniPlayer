@@ -26,3 +26,13 @@ export const ec = (e: number) =>
     e > 0.7 ? THEME.colors.status.error :
         e > 0.4 ? THEME.colors.status.warning :
             THEME.colors.brand.cyan;
+
+/** 
+ * Returns the "effective" duration of a track in ms, 
+ * accounting for custom startTime/endTime trimming.
+ */
+export const getEffectiveDuration = (track: { duration_ms: number; startTime?: number; endTime?: number }) => {
+    const start = track.startTime ?? 0;
+    const end = track.endTime ?? track.duration_ms;
+    return Math.max(0, end - start);
+};

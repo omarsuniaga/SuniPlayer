@@ -9,7 +9,7 @@ export const Navbar: React.FC = () => {
     const playing = useProjectStore(s => s.playing);
     const setShowSettings = useProjectStore(s => s.setShowSettings);
 
-    const navBtn = (id: "builder" | "player" | "history", label: string, icon: React.ReactNode) => {
+    const navBtn = (id: "builder" | "player" | "history" | "library", label: string, icon: React.ReactNode) => {
         const active = view === id;
         return (
             <button
@@ -138,6 +138,13 @@ export const Navbar: React.FC = () => {
                 {navBtn("history", "History",
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                    </svg>
+                )}
+                {navBtn("library", "Library",
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <path d="M9 18V5l12-2v13" />
+                        <circle cx="6" cy="18" r="3" />
+                        <circle cx="18" cy="16" r="3" />
                     </svg>
                 )}
             </nav>

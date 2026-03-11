@@ -12,6 +12,7 @@ import { useLibraryStore } from "../../store/useLibraryStore";
 import { THEME } from "../../data/theme.ts";
 import { Track } from "../../types";
 import { ImportCandidate, getRelativeAudioPath, isSupportedAudioFile, parseTrackName } from "../../features/library/lib/audioImport";
+import { analyzeAudio } from "../../services/analysisService.ts";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -253,14 +254,31 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
             const blobUrl = URL.createObjectURL(file);
             const { title, artist } = parseTrackName(file.name);
             const duration_ms = await readDuration(file);
+            
+            let autoBpm = 120;
+            let autoKey = "C";
+            let autoEnergy = 0.6;
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                const analysis = await analyzeAudio(audioBuffer);
+                autoBpm = analysis.bpm;
+                autoKey = analysis.key;
+                autoEnergy = analysis.energy;
+            } catch (e) {
+                console.error("Auto analysis failed for", file.name, e);
+            }
+
             tracks.push({
                 id: `custom_${Date.now()}_${Math.random().toString(36).slice(2)}`,
                 title,
                 artist,
-                bpm: 120,
-                energy: 0.6,
-                mood: "calm",
-                key: "C",
+                bpm: autoBpm,
+                energy: autoEnergy,
+                mood: autoEnergy > 0.7 ? "energetic" : autoEnergy > 0.4 ? "happy" : "calm",
+                key: autoKey,
                 duration_ms,
                 blobUrl,
                 fileName: getRelativeAudioPath(file, relativePath),
@@ -342,7 +360,7 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
             energy:          p.energy,
             mood:            p.mood,
             file_path:       p.fileName,
-            analysis_cached: false,
+            analysis_cached: true,
             blob_url:        p.blobUrl,
             isCustom:        true,
         }));
