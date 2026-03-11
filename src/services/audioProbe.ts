@@ -13,7 +13,7 @@ const AUDIO_BASE = "/audio/";
  */
 export async function probeOne(filePath: string): Promise<boolean> {
     try {
-        const res = await fetch(AUDIO_BASE + filePath, { method: "HEAD" });
+        const res = await fetch(AUDIO_BASE + encodeURIComponent(filePath), { method: "HEAD" });
         return res.ok;
     } catch {
         return false;

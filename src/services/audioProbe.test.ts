@@ -39,7 +39,7 @@ describe("audioProbe", () => {
             );
             await probeOne("Sinatra - My Way.mp3");
             expect(fetch).toHaveBeenCalledWith(
-                "/audio/Sinatra - My Way.mp3",
+                "/audio/Sinatra%20-%20My%20Way.mp3",
                 { method: "HEAD" }
             );
         });
