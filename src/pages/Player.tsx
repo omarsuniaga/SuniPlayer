@@ -10,6 +10,7 @@ import { Track } from "../types";
 import { SheetMusicViewer } from "../components/common/SheetMusicViewer";
 import { Dashboard } from "../components/player/Dashboard";
 import { LiveUnlockModal } from "../components/player/LiveUnlockModal";
+import { getWaveformData } from "../services/waveformService";
 
 // ── Player Page ───────────────────────────────────────────────────────────────
 export const Player: React.FC = () => {
@@ -50,13 +51,23 @@ export const Player: React.FC = () => {
     const crossExpanded = useProjectStore(s => s.crossExpanded);
     const setCrossExpanded = useProjectStore(s => s.setCrossExpanded);
     const isSimulating = useProjectStore(s => s.isSimulating);
+    const stackOrder = useProjectStore(s => s.stackOrder);
+    const setStackOrder = useProjectStore(s => s.setStackOrder);
 
     // ── UI State ──
     const [showUnlockModal, setShowUnlockModal] = useState(false);
     const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
-    const [showSheetViewer, setShowSheetViewer] = useState(false);
+    const [viewingSheetTrack, setViewingSheetTrack] = useState<Track | null>(null);
     const [showQueue, setShowQueue] = useState(window.innerWidth > 1000);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 800);
+
+    // Dynamic resize tracking
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 800);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     const ct = pQueue[ci];
     const isLive = mode === "live";
@@ -70,13 +81,17 @@ export const Player: React.FC = () => {
     const prog = pos / durMs;
     const qTot = sumTrackDurationMs(pQueue);
 
-    // Waveform simulation
     const [currentWave, setCurrentWave] = useState<number[]>([]);
+    const [isLoadingWave, setIsLoadingWave] = useState(false);
+
     useEffect(() => {
         if (!ct) return;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setCurrentWave(Array.from({ length: 100 }, () => 0.1 + Math.random() * 0.8));
-    }, [ct?.id, ct]);
+        const url = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
+        setIsLoadingWave(true);
+        getWaveformData(url)
+            .then(setCurrentWave)
+            .finally(() => setIsLoadingWave(false));
+    }, [ct?.id]);
 
     // ── Handlers ──
     const seek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -93,13 +108,26 @@ export const Player: React.FC = () => {
 
     const handleQueueClick = (track: Track) => {
         if (isLive) {
-            const idx = pQueue.findIndex(t => t.id === track.id);
-            if (idx !== -1) { setCi(idx); setPos(0); }
+            // LIVE: Priority stack toggle
+            if (ct?.id === track.id) return; // ignore current
+            
+            setStackOrder(prev => {
+                if (prev.includes(track.id)) {
+                    return prev.filter(id => id !== track.id);
+                } else {
+                    return [...prev, track.id];
+                }
+            });
             return;
         }
-        const exists = pQueue.find(t => t.id === track.id);
-        if (exists) setPQueue(pQueue.filter(t => t.id !== track.id));
-        else setPQueue([...pQueue, track]);
+        
+        // EDIT: Immediate jump
+        const idx = pQueue.findIndex(t => t.id === track.id);
+        if (idx !== -1) {
+            setCi(idx);
+            setPos(0);
+            setStackOrder([]); // clear stack on jump
+        }
     };
 
     const onDrop = (dragIdx: number, targetIndex: number) => {
@@ -108,6 +136,7 @@ export const Player: React.FC = () => {
         const [movedItem] = newQueue.splice(dragIdx, 1);
         newQueue.splice(targetIndex, 0, movedItem);
         setPQueue(newQueue);
+        setStackOrder([]); // Clear stack on reorder
         if (ci === dragIdx) setCi(targetIndex);
         else if (ci > dragIdx && ci <= targetIndex) setCi(ci - 1);
         else if (ci < dragIdx && ci >= targetIndex) setCi(ci + 1);
@@ -136,7 +165,51 @@ export const Player: React.FC = () => {
                     {/* 1. SECCIÓN CABECERA */}
                     <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                            <h1 style={{ fontSize: 36, fontWeight: 900, margin: 0, letterSpacing: "-0.03em", lineHeight: 1.1 }}>{ct?.title || "--"}</h1>
+                            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                                <h1 style={{ fontSize: 36, fontWeight: 900, margin: 0, letterSpacing: "-0.03em", lineHeight: 1.1 }}>{ct?.title || "--"}</h1>
+                                    <div style={{ display: "flex", gap: 8 }}>
+                                        <button 
+                                            onClick={() => setProfileTrack(ct)}
+                                            title="Perfil de Canción"
+                                            style={{ 
+                                                background: "rgba(255,255,255,0.05)", 
+                                                border: "none", 
+                                                borderRadius: "50%", 
+                                                width: 32, 
+                                                height: 32, 
+                                                display: "flex", 
+                                                alignItems: "center", 
+                                                justifyContent: "center",
+                                                color: THEME.colors.text.muted,
+                                                cursor: "pointer",
+                                                transition: "all 0.2s"
+                                            }}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        </button>
+                                        {ct?.sheetMusic && ct.sheetMusic.length > 0 && (
+                                            <button 
+                                                onClick={() => setViewingSheetTrack(ct)}
+                                                title="Ver Partitura"
+                                                style={{ 
+                                                    background: "rgba(139,92,246,0.1)", 
+                                                    border: "none", 
+                                                    borderRadius: "50%", 
+                                                    width: 32, 
+                                                    height: 32, 
+                                                    display: "flex", 
+                                                    alignItems: "center", 
+                                                    justifyContent: "center",
+                                                    color: THEME.colors.brand.violet,
+                                                    cursor: "pointer",
+                                                    transition: "all 0.2s"
+                                                }}
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                            </button>
+                                        )}
+                                    </div>
+                            </div>
                             <p style={{ fontSize: 18, color: THEME.colors.text.muted, margin: "4px 0 16px" }}>{ct?.artist || "--"}</p>
 
                             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -169,7 +242,7 @@ export const Player: React.FC = () => {
                         <button onClick={() => setFadeEnabled(!fadeEnabled)} style={{ padding: "10px 16px", borderRadius: THEME.radius.md, border: `1px solid ${fadeEnabled ? THEME.colors.brand.cyan : "rgba(255,255,255,0.1)"}`, background: fadeEnabled ? THEME.colors.brand.cyan + "20" : "transparent", color: fadeEnabled ? THEME.colors.brand.cyan : THEME.colors.text.muted, fontSize: 11, fontWeight: 900, cursor: "pointer" }}>FADE</button>
                         <button onClick={() => setSplMeterEnabled(!splMeterEnabled)} style={{ padding: "10px 16px", borderRadius: THEME.radius.md, border: `1px solid ${splMeterEnabled ? THEME.colors.brand.violet : "rgba(255,255,255,0.1)"}`, background: splMeterEnabled ? THEME.colors.brand.violet + "20" : "transparent", color: splMeterEnabled ? THEME.colors.brand.violet : THEME.colors.text.muted, fontSize: 11, fontWeight: 900, cursor: "pointer" }}>METER</button>
                         {ct?.sheetMusic && ct.sheetMusic.length > 0 && (
-                            <button onClick={() => setShowSheetViewer(true)} style={{ padding: "10px 16px", borderRadius: THEME.radius.md, border: `1px solid rgba(255,255,255,0.1)`, background: "transparent", color: THEME.colors.brand.violet, fontSize: 11, fontWeight: 900, cursor: "pointer" }}>PARTITURA</button>
+                            <button onClick={() => setViewingSheetTrack(ct)} style={{ padding: "10px 16px", borderRadius: THEME.radius.md, border: `1px solid rgba(255,255,255,0.1)`, background: "transparent", color: THEME.colors.brand.violet, fontSize: 11, fontWeight: 900, cursor: "pointer" }}>PARTITURA</button>
                         )}
                         <button onClick={() => setShowQueue(!showQueue)} style={{ marginLeft: "auto", width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "none", color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg></button>
                     </div>
@@ -185,9 +258,10 @@ export const Player: React.FC = () => {
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         <div onClick={seek} style={{
                             height: 160, backgroundColor: "rgba(255,255,255,0.01)", border: `1px solid ${isLive ? THEME.colors.brand.cyan + "20" : THEME.colors.border}`,
-                            borderRadius: THEME.radius.xl, position: "relative", cursor: isLive ? "default" : "pointer", overflow: "hidden"
+                            borderRadius: THEME.radius.xl, position: "relative", cursor: isLive ? "default" : "pointer", overflow: "hidden",
+                            opacity: isLoadingWave ? 0.4 : 1, transition: "opacity 0.3s"
                         }}>
-                            <Wave data={currentWave} progress={prog} color={mCol} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} totalMs={durMs} />
+                            <Wave data={currentWave.length > 0 ? currentWave : Array(100).fill(0.15)} progress={prog} color={mCol} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} totalMs={durMs} />
                             <div style={{ position: "absolute", top: 0, bottom: 0, left: `${prog * 100}%`, width: 3, background: mCol, boxShadow: `0 0 20px ${mCol}`, zIndex: 5 }} />
                             {isLive && playing && (
                                 <div style={{ position: "absolute", top: 12, left: 12, padding: "6px 14px", borderRadius: 6, background: THEME.colors.brand.cyan + "30", border: `1px solid ${THEME.colors.brand.cyan}50`, color: THEME.colors.brand.cyan, fontSize: 10, fontWeight: 900 }}>LIVE MODE PROTECTED</div>
@@ -244,12 +318,30 @@ export const Player: React.FC = () => {
             </div>
 
             {/* Queue Sidebar (Drawer) */}
+            {/* Mobile backdrop */}
+            {showQueue && isMobile && (
+                <div 
+                    onClick={() => setShowQueue(false)}
+                    style={{
+                        position: "fixed", inset: 0, 
+                        backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)",
+                        zIndex: 1000, animation: "fadeIn 0.3s ease-out"
+                    }}
+                />
+            )}
             <aside style={{
-                width: showQueue ? 360 : 0, transition: "width 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-                backgroundColor: THEME.colors.panel, borderLeft: showQueue ? `1px solid ${THEME.colors.border}` : "none",
-                display: "flex", flexDirection: "column", overflow: "hidden", position: "relative"
+                position: isMobile ? "fixed" : "relative",
+                right: 0, top: 0, bottom: 0,
+                width: showQueue ? "min(360px, 100vw)" : 0, 
+                transition: "width 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                backgroundColor: THEME.colors.panel, 
+                borderLeft: `1px solid ${showQueue ? THEME.colors.border : "transparent"}`,
+                display: "flex", flexDirection: "column", 
+                overflow: "hidden",
+                zIndex: 1001,
+                boxShadow: showQueue && isMobile ? "-10px 0 30px rgba(0,0,0,0.5)" : "none"
             }}>
-                <div style={{ width: 360, height: "100%", display: "flex", flexDirection: "column" }}>
+                <div style={{ width: isMobile ? "100vw" : 360, maxWidth: 360, height: "100%", display: "flex", flexDirection: "column" }}>
                     <div style={{ padding: "24px", borderBottom: `1px solid ${THEME.colors.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                             <h2 style={{ fontSize: 13, fontWeight: 900, margin: 0, opacity: 0.8, letterSpacing: "0.05em" }}>SETLIST QUEUE</h2>
@@ -271,21 +363,67 @@ export const Player: React.FC = () => {
                         </button>
                     </div>
                     <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
-                        {pQueue.map((t, i) => (
-                            <div key={t.id} onClick={() => handleQueueClick(t)} draggable={!isLive} onDragStart={(e) => { e.dataTransfer.setData("idx", i.toString()); }} onDragOver={e => e.preventDefault()} onDrop={e => onDrop(parseInt(e.dataTransfer.getData("idx")), i)} style={{
-                                padding: "14px", borderRadius: THEME.radius.md, marginBottom: 6, cursor: "pointer",
-                                background: ci === i ? `${mCol}15` : "transparent",
-                                border: `1px solid ${ci === i ? mCol + "40" : "transparent"}`,
-                                display: "flex", gap: 14, alignItems: "center", opacity: ci === i ? 1 : 0.7
-                            }}>
-                                <span style={{ fontFamily: THEME.fonts.mono, fontSize: 11, opacity: 0.3 }}>{String(i + 1).padStart(2, '0')}</span>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: ci === i ? "white" : THEME.colors.text.primary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.title}</div>
-                                    <div style={{ fontSize: 12, color: THEME.colors.text.muted }}>{t.artist}</div>
+                        {pQueue.map((t, i) => {
+                            const stackIdx = stackOrder.indexOf(t.id);
+                            const isActive = ci === i;
+                            
+                            return (
+                                <div key={t.id} onClick={() => handleQueueClick(t)} draggable={!isLive} onDragStart={(e) => { e.dataTransfer.setData("idx", i.toString()); }} onDragOver={e => e.preventDefault()} onDrop={e => onDrop(parseInt(e.dataTransfer.getData("idx")), i)} style={{
+                                    padding: "14px", borderRadius: THEME.radius.md, marginBottom: 6, cursor: "pointer",
+                                    background: isActive ? `${mCol}15` : "rgba(255,255,255,0.03)",
+                                    border: `1px solid ${isActive ? mCol + "40" : "transparent"}`,
+                                    display: "flex", gap: 14, alignItems: "center", transition: "all 0.2s",
+                                    opacity: isActive ? 1 : 0.8
+                                }}>
+                                    <span style={{ fontFamily: THEME.fonts.mono, fontSize: 11, opacity: 0.3, minWidth: 20 }}>{String(i + 1).padStart(2, '0')}</span>
+                                    
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: isActive ? "white" : THEME.colors.text.primary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.title}</div>
+                                        <div style={{ fontSize: 11, color: THEME.colors.text.muted, fontWeight: 600 }}>{t.artist.toUpperCase()}</div>
+                                    </div>
+
+                                    {/* LIVE: Stack Priority Indicator */}
+                                    {isLive && stackIdx !== -1 && (
+                                        <div style={{ 
+                                            backgroundColor: THEME.colors.brand.cyan, color: "black",
+                                            width: 22, height: 22, borderRadius: "50%",
+                                            display: "flex", alignItems: "center", justifyContent: "center",
+                                            fontSize: 10, fontWeight: 900, boxShadow: `0 0 15px ${THEME.colors.brand.cyanGlow}`
+                                        }}>
+                                            {stackIdx + 1}
+                                        </div>
+                                    )}
+
+                                    {/* Sheet Music Button (if exists) */}
+                                    {t.sheetMusic && t.sheetMusic.length > 0 && (
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setViewingSheetTrack(t); }}
+                                            style={{ background: "none", border: "none", color: THEME.colors.brand.violet, cursor: "pointer", opacity: 0.6 }}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        </button>
+                                    )}
+
+                                    {/* EDIT: Profile / Edit Buttons */}
+                                    {!isLive && (
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setProfileTrack(t); }}
+                                            style={{ background: "none", border: "none", color: THEME.colors.text.muted, cursor: "pointer", opacity: 0.5 }}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        </button>
+                                    )}
+
+                                    {isActive && playing && (
+                                        <div style={{ display: "flex", gap: 3, height: 16, alignItems: "flex-end" }}>
+                                            <div style={{ width: 3, height: "60%", background: mCol }} />
+                                            <div style={{ width: 3, height: "100%", background: mCol }} />
+                                            <div style={{ width: 3, height: "40%", background: mCol }} />
+                                        </div>
+                                    )}
                                 </div>
-                                {ci === i && playing && <div style={{ display: "flex", gap: 3, height: 16, alignItems: "flex-end" }}><div style={{ width: 3, height: "60%", background: mCol }} /><div style={{ width: 3, height: "100%", background: mCol }} /><div style={{ width: 3, height: "40%", background: mCol }} /></div>}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </aside>
@@ -293,7 +431,7 @@ export const Player: React.FC = () => {
             {/* Modals */}
             {trimmingTrack && <TrackTrimmer track={trimmingTrack} onSave={(s, e) => { setTrackTrim(trimmingTrack.id, s, e); setTrimmingTrack(null); }} onCancel={() => setTrimmingTrack(null)} />}
             {profileTrack && <TrackProfileModal track={profileTrack} onSave={(u) => { updateTrackMetadata(profileTrack.id, u); setProfileTrack(null); }} onCancel={() => setProfileTrack(null)} />}
-            {showSheetViewer && ct?.sheetMusic && <SheetMusicViewer items={ct.sheetMusic} onClose={() => setShowSheetViewer(false)} />}
+            {viewingSheetTrack && <SheetMusicViewer items={viewingSheetTrack.sheetMusic || []} onClose={() => setViewingSheetTrack(null)} />}
         </div>
     );
 };
