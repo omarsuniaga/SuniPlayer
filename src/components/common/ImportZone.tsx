@@ -6,10 +6,12 @@
  *   2. Editor     → editable metadata per track (BPM, energy, mood, key, title, artist)
  *   3. Success    → confirmation screen, auto-closes after 2.5 s
  */
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { useProjectStore } from "../../store/useProjectStore";
+import { useLibraryStore } from "../../store/useLibraryStore";
 import { THEME } from "../../data/theme.ts";
 import { Track } from "../../types";
+import { ImportCandidate, getRelativeAudioPath, isSupportedAudioFile, parseTrackName } from "../../features/library/lib/audioImport";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -24,16 +26,6 @@ const MOOD_LABELS: Record<Mood, string> = {
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Parse "Artist - Title.mp3" → { artist, title } with smart fallbacks */
-function parseName(filename: string): { title: string; artist: string } {
-    const base = filename.replace(/\.[^/.]+$/, "");
-    const parts = base.split(" - ");
-    if (parts.length >= 2) {
-        return { artist: parts[0].trim(), title: parts.slice(1).join(" - ").trim() };
-    }
-    return { artist: "Unknown Artist", title: base.trim() };
-}
 
 /** Read audio duration from a File via HTMLAudioElement */
 function readDuration(file: File): Promise<number> {
@@ -210,42 +202,128 @@ const MetadataRow: React.FC<MetadataRowProps> = ({ track, onChange }) => (
 
 interface Props { onClose?: () => void }
 
+interface DirectoryPickerHandle {
+    kind: "directory";
+    name: string;
+    values: () => AsyncIterableIterator<DirectoryEntryHandle>;
+}
+
+interface FileEntryHandle {
+    kind: "file";
+    name: string;
+    getFile: () => Promise<File>;
+}
+
+type DirectoryEntryHandle = DirectoryPickerHandle | FileEntryHandle;
+
+interface WindowWithDirectoryPicker extends Window {
+    showDirectoryPicker?: () => Promise<DirectoryPickerHandle>;
+}
+
 export const ImportZone: React.FC<Props> = ({ onClose }) => {
     const addCustomTrack = useProjectStore(s => s.addCustomTrack);
     const appendToQueue  = useProjectStore(s => s.appendToQueue);
+    const selectedFolderName = useLibraryStore((state) => state.selectedFolderName);
+    const setSelectedFolderName = useLibraryStore((state) => state.setSelectedFolderName);
 
     const inputRef = useRef<HTMLInputElement>(null);
+    const directoryInputRef = useRef<HTMLInputElement>(null);
+    const selectedFolderHandleRef = useRef<DirectoryPickerHandle | null>(null);
     const [dragging,   setDragging]   = useState(false);
     const [processing, setProcessing] = useState(false);
     const [pending,    setPending]    = useState<PendingTrack[]>([]);
     const [results,    setResults]    = useState<{ title: string; ok: boolean }[]>([]);
+    const [importSourceLabel, setImportSourceLabel] = useState<string | null>(selectedFolderName);
 
-    // ── Phase 1: read files ──────────────────────────────────────────────────
+    useEffect(() => {
+        if (!directoryInputRef.current) return;
 
-    const processFiles = useCallback(async (files: FileList | File[]) => {
-        const arr = Array.from(files).filter(f =>
-            f.type.startsWith("audio/") || /\.(mp3|wav|ogg|aac|m4a|flac)$/i.test(f.name)
-        );
+        directoryInputRef.current.setAttribute("webkitdirectory", "");
+        directoryInputRef.current.setAttribute("directory", "");
+    }, []);
+
+    const processImportCandidates = useCallback(async (items: ImportCandidate[]) => {
+        const arr = items.filter(({ file }) => isSupportedAudioFile(file));
         if (!arr.length) return;
 
         setProcessing(true);
         const tracks: PendingTrack[] = [];
 
-        for (const file of arr) {
+        for (const { file, relativePath } of arr) {
             const blobUrl = URL.createObjectURL(file);
-            const { title, artist } = parseName(file.name);
+            const { title, artist } = parseTrackName(file.name);
             const duration_ms = await readDuration(file);
             tracks.push({
                 id: `custom_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-                title, artist,
-                bpm: 120, energy: 0.6, mood: "calm", key: "C",
-                duration_ms, blobUrl, fileName: file.name,
+                title,
+                artist,
+                bpm: 120,
+                energy: 0.6,
+                mood: "calm",
+                key: "C",
+                duration_ms,
+                blobUrl,
+                fileName: getRelativeAudioPath(file, relativePath),
             });
         }
 
         setProcessing(false);
-        setPending(tracks); // → editor phase
+        setPending(tracks);
     }, []);
+
+    const collectDirectoryAudioFiles = useCallback(async (directoryHandle: DirectoryPickerHandle, prefix = directoryHandle.name): Promise<ImportCandidate[]> => {
+        const items: ImportCandidate[] = [];
+
+        for await (const entry of directoryHandle.values()) {
+            const nextPath = `${prefix}/${entry.name}`;
+
+            if (entry.kind === "file") {
+                const file = await entry.getFile();
+                if (isSupportedAudioFile(file)) {
+                    items.push({ file, relativePath: nextPath });
+                }
+                continue;
+            }
+
+            items.push(...await collectDirectoryAudioFiles(entry, nextPath));
+        }
+
+        return items;
+    }, []);
+
+    // ── Phase 1: read files ──────────────────────────────────────────────────
+
+    const processFiles = useCallback(async (files: FileList | File[]) => {
+        await processImportCandidates(Array.from(files).map((file) => ({ file })));
+    }, [processImportCandidates]);
+
+    const openFolderPicker = useCallback(async () => {
+        const pickerWindow = window as WindowWithDirectoryPicker;
+
+        if (!pickerWindow.showDirectoryPicker) {
+            directoryInputRef.current?.click();
+            return;
+        }
+
+        try {
+            const handle = await pickerWindow.showDirectoryPicker();
+            selectedFolderHandleRef.current = handle;
+            setSelectedFolderName(handle.name);
+            setImportSourceLabel(handle.name);
+            const files = await collectDirectoryAudioFiles(handle);
+            await processImportCandidates(files);
+        } catch {
+            // User cancelled or browser denied access.
+        }
+    }, [collectDirectoryAudioFiles, processImportCandidates, setSelectedFolderName]);
+
+    const resyncSelectedFolder = useCallback(async () => {
+        if (!selectedFolderHandleRef.current) return;
+
+        setImportSourceLabel(selectedFolderHandleRef.current.name);
+        const files = await collectDirectoryAudioFiles(selectedFolderHandleRef.current);
+        await processImportCandidates(files);
+    }, [collectDirectoryAudioFiles, processImportCandidates]);
 
     // ── Phase 2: metadata editing ────────────────────────────────────────────
 
@@ -293,6 +371,20 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
     const onInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.length) processFiles(e.target.files);
     }, [processFiles]);
+
+    const onDirectoryInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+
+        const files = Array.from(e.target.files).map((file) => ({
+            file,
+            relativePath: file.webkitRelativePath || file.name,
+        }));
+
+        const folderLabel = e.target.files[0]?.webkitRelativePath?.split("/")[0] || "Selected Folder";
+        setSelectedFolderName(folderLabel);
+        setImportSourceLabel(folderLabel);
+        processImportCandidates(files);
+    }, [processImportCandidates, setSelectedFolderName]);
 
     // ── Phase 3: success screen ───────────────────────────────────────────────
 
@@ -394,6 +486,68 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
                 onChange={onInputChange}
                 style={{ display: "none" }}
             />
+            <input
+                ref={directoryInputRef}
+                type="file"
+                multiple
+                onChange={onDirectoryInputChange}
+                style={{ display: "none" }}
+            />
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+                <button
+                    onClick={() => inputRef.current?.click()}
+                    style={{
+                        padding: "10px 12px",
+                        borderRadius: THEME.radius.md,
+                        border: `1px solid ${THEME.colors.border}`,
+                        backgroundColor: THEME.colors.surface,
+                        color: THEME.colors.text.primary,
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 600,
+                    }}
+                >
+                    Select Files
+                </button>
+                <button
+                    onClick={openFolderPicker}
+                    style={{
+                        padding: "10px 12px",
+                        borderRadius: THEME.radius.md,
+                        border: `1px solid ${THEME.colors.brand.cyan}40`,
+                        backgroundColor: `${THEME.colors.brand.cyan}10`,
+                        color: THEME.colors.brand.cyan,
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 700,
+                    }}
+                >
+                    Select Folder
+                </button>
+                {selectedFolderHandleRef.current && (
+                    <button
+                        onClick={resyncSelectedFolder}
+                        style={{
+                            padding: "10px 12px",
+                            borderRadius: THEME.radius.md,
+                            border: `1px solid ${THEME.colors.brand.violet}40`,
+                            backgroundColor: `${THEME.colors.brand.violet}10`,
+                            color: THEME.colors.brand.violet,
+                            cursor: "pointer",
+                            fontSize: 12,
+                            fontWeight: 700,
+                        }}
+                    >
+                        Resync Folder
+                    </button>
+                )}
+                {selectedFolderName && (
+                    <div style={{ fontSize: 11, color: THEME.colors.text.muted, display: "flex", alignItems: "center" }}>
+                        Current folder: <span style={{ marginLeft: 6, color: THEME.colors.text.primary, fontWeight: 600 }}>{selectedFolderName}</span>
+                    </div>
+                )}
+            </div>
 
             <div
                 onDragOver={e => { e.preventDefault(); setDragging(true); }}
@@ -448,6 +602,12 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
                                 Arrastra aquí · o haz click para seleccionar
                                 <br />
                                 <span style={{ opacity: 0.7 }}>MP3 · WAV · OGG · AAC · M4A · FLAC</span>
+                                {importSourceLabel ? (
+                                    <>
+                                        <br />
+                                        <span style={{ opacity: 0.7 }}>Source: {importSourceLabel}</span>
+                                    </>
+                                ) : null}
                             </div>
                         </div>
 
