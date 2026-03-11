@@ -261,7 +261,8 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
 
             try {
                 const arrayBuffer = await file.arrayBuffer();
-                const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+                const audioCtx = new AudioContextClass();
                 const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
                 const analysis = await analyzeAudio(audioBuffer);
                 autoBpm = analysis.bpm;

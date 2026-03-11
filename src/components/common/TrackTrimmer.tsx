@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Track } from "../../types.ts";
 import { THEME } from "../../data/theme.ts";
+import { getTransposePlaybackRate } from "../../features/library/lib/transpose";
 import { getWaveformData } from "../../services/waveformService.ts";
 import { Wave } from "./Wave.tsx";
 import { fmt } from "../../services/uiUtils.ts";
@@ -30,6 +31,7 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
         // Setup preview audio
         const audio = new Audio(url);
         audio.volume = 0.5;
+        audio.playbackRate = getTransposePlaybackRate(track.transposeSemitones ?? 0);
         previewAudioRef.current = audio;
 
         const handleEnded = () => setIsPreviewing(false);

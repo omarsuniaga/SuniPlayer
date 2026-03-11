@@ -12,11 +12,12 @@
 import { useEffect, useRef } from "react";
 import { usePlayerStore } from "../store/usePlayerStore.ts";
 import { useSettingsStore } from "../store/useSettingsStore.ts";
+import { useLibraryStore } from "../store/useLibraryStore.ts";
 import { probeOne } from "./audioProbe.ts";
 import { TRACKS } from "../data/constants.ts";
+import { getTransposePlaybackRate } from "../features/library/lib/transpose";
 
 const AUDIO_BASE = "/audio/";
-const CROSSFADE_MS = 2000;   // crossfade duration
 const TICK_MS = 250;    // position poll interval
 
 export function useAudio() {
@@ -59,6 +60,9 @@ export function useAudio() {
     volRef.current = vol;
     // Removed fadeEnabledRef, fadeInMsRef, fadeOutMsRef
     const isPausingRef = useRef(false); // flag to prevent immediate pause during fade-out
+    const sessionTrackTimeRef = useRef(0);
+    const hasIncrementedCountRef = useRef(false);
+    const activeTrackIdRef = useRef<string | null>(null);
 
     const ct = pQueue[ci];
     const nextTrack = pQueue[ci + 1] ?? null;
@@ -92,6 +96,9 @@ export function useAudio() {
         hasAdvanced.current = false;
         isReal.current = false;
         posRef.current = 0;
+        sessionTrackTimeRef.current = 0;
+        hasIncrementedCountRef.current = false;
+        activeTrackIdRef.current = ct.id;
         
         // Reset volume for fade-in if enabled
         if (fadeEnabled && audio) { // Changed to use reactive fadeEnabled
@@ -118,6 +125,7 @@ export function useAudio() {
         // blob_url for user-imported files, file_path for built-in catalog
         audio.src = ct.blob_url ?? (AUDIO_BASE + encodeURIComponent(ct.file_path));
         audio.volume = volRef.current;
+        audio.playbackRate = getTransposePlaybackRate(ct.transposeSemitones ?? 0);
         const startOffset = (ct.startTime || 0);
         audio.currentTime = startOffset / 1000;
         posRef.current = startOffset;
@@ -140,6 +148,7 @@ export function useAudio() {
         if (!next || !nextTrack) return;
         next.src = nextTrack.blob_url ?? (AUDIO_BASE + encodeURIComponent(nextTrack.file_path));
         next.volume = 0;
+        next.playbackRate = getTransposePlaybackRate(nextTrack.transposeSemitones ?? 0);
         next.load();
     }, [nextTrack]);
 
@@ -240,8 +249,9 @@ export function useAudio() {
 
             const curr = audioRef.current;
             const next = nextAudioRef.current;
+            const cfMs = useSettingsStore.getState().crossfadeMs;
             const steps = 20;
-            const delay = CROSSFADE_MS / steps;
+            const delay = cfMs / steps;
             let step = 0;
 
             const tick = setInterval(() => {
@@ -306,7 +316,8 @@ export function useAudio() {
                 }
 
                 if (autoNextRef.current) {
-                    if (crossfade && remMs <= CROSSFADE_MS && ciRef.current < pQueueLenRef.current - 1) {
+                    const cfMs = useSettingsStore.getState().crossfadeMs;
+                    if (crossfade && remMs <= cfMs && ciRef.current < pQueueLenRef.current - 1) {
                         startCrossfade();
                     } else if (audio.ended || remMs <= TICK_MS) {
                         advance();
@@ -323,7 +334,8 @@ export function useAudio() {
                 setPos(posMs);
 
                 if (autoNextRef.current) {
-                    if (crossfade && remMs <= CROSSFADE_MS && ciRef.current < pQueueLenRef.current - 1) {
+                    const cfMs = useSettingsStore.getState().crossfadeMs;
+                    if (crossfade && remMs <= cfMs && ciRef.current < pQueueLenRef.current - 1) {
                         startCrossfade();
                     } else if (remMs <= 0) {
                         advance();
@@ -334,6 +346,19 @@ export function useAudio() {
                     setPlaying(false);
                     clearInterval(simRef.current ?? undefined);
                 }
+            }
+
+            // ── Metrics Tracking ──
+            if (activeTrackIdRef.current) {
+                sessionTrackTimeRef.current += TICK_MS;
+                const playThresholdMs = Math.min(ct.duration_ms * 0.5, 20000); // 20s or 50%
+                
+                const shouldIncrement = !hasIncrementedCountRef.current && sessionTrackTimeRef.current >= playThresholdMs;
+                if (shouldIncrement) {
+                    hasIncrementedCountRef.current = true;
+                }
+                
+                useLibraryStore.getState().recordMetric(activeTrackIdRef.current, TICK_MS, shouldIncrement);
             }
         }, TICK_MS);
 
@@ -346,7 +371,7 @@ export function useAudio() {
             clearInterval(simRef.current ?? undefined);
             clearInterval(elapsedRef.current ?? undefined);
         };
-    }, [playing, ci, ct, pQueue.length, crossfade, setCi, setElapsed, setIsSimulating, setPlaying, setPos]);
+    }, [playing, ci, ct, pQueue.length, crossfade, fadeEnabled, fadeInMs, fadeOutMs, setCi, setElapsed, setIsSimulating, setPlaying, setPos]);
     // Note: autoNext intentionally NOT in deps — read via ref in the tick
 
     return { isReal: isReal.current };

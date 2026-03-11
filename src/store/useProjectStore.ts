@@ -80,6 +80,10 @@ export interface ProjectState {
     setAutoNext: (v: boolean) => void;
     crossfade: boolean;
     setCrossfade: (v: boolean) => void;
+    crossfadeMs: number;
+    setCrossfadeMs: (v: number) => void;
+    crossExpanded: boolean;
+    setCrossExpanded: (v: boolean) => void;
     showSettings: boolean;
     setShowSettings: (v: boolean) => void;
     bpmMin: number;
@@ -94,6 +98,8 @@ export interface ProjectState {
     setFadeInMs: (v: number) => void;
     fadeOutMs: number;
     setFadeOutMs: (v: number) => void;
+    fadeExpanded: boolean;
+    setFadeExpanded: (v: boolean) => void;
     splMeterEnabled: boolean;
     setSplMeterEnabled: (v: boolean) => void;
     splMeterTarget: "studio" | "small" | "hall" | "open";
@@ -318,6 +324,10 @@ export function useProjectStore<T = ProjectState>(
         setAutoNext: settings.setAutoNext,
         crossfade: settings.crossfade,
         setCrossfade: settings.setCrossfade,
+        crossfadeMs: settings.crossfadeMs,
+        setCrossfadeMs: settings.setCrossfadeMs,
+        crossExpanded: settings.crossExpanded,
+        setCrossExpanded: settings.setCrossExpanded,
         showSettings: settings.showSettings,
         setShowSettings: settings.setShowSettings,
         bpmMin: settings.bpmMin,
@@ -333,6 +343,8 @@ export function useProjectStore<T = ProjectState>(
         setFadeInMs: settings.setFadeInMs,
         fadeOutMs: settings.fadeOutMs,
         setFadeOutMs: settings.setFadeOutMs,
+        fadeExpanded: settings.fadeExpanded,
+        setFadeExpanded: settings.setFadeExpanded,
         splMeterEnabled: settings.splMeterEnabled,
         setSplMeterEnabled: settings.setSplMeterEnabled,
         splMeterTarget: settings.splMeterTarget,

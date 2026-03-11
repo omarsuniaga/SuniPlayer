@@ -94,6 +94,7 @@ export const SheetMusicViewer: React.FC<SheetMusicViewerProps> = ({ items, onClo
         if (!currentItem) return;
         
         let active = true;
+        const currentUrl = url;
         getAsset(currentItem.id).then(blob => {
             if (active && blob) {
                 const objectUrl = URL.createObjectURL(blob);
@@ -103,8 +104,9 @@ export const SheetMusicViewer: React.FC<SheetMusicViewerProps> = ({ items, onClo
 
         return () => {
             active = false;
-            if (url) URL.revokeObjectURL(url);
+            if (currentUrl) URL.revokeObjectURL(currentUrl);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex, currentItem?.id]);
 
     // Input handlers (Combined Mouse & Touch)

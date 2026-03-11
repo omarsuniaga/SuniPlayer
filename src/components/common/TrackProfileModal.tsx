@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Track } from "../../types.ts";
 import { THEME } from "../../data/theme.ts";
-import { fmt } from "../../services/uiUtils.ts";
+import { fmt, fmtFull } from "../../services/uiUtils.ts";
 import { TrackTrimmer } from "./TrackTrimmer.tsx";
 import { useLibraryStore } from "../../store/useLibraryStore.ts";
 import { analyzeAudio } from "../../services/analysisService.ts";
 import { saveAsset, deleteAsset } from "../../services/assetStorage.ts";
+import { KEY_OPTIONS, buildTargetKey, describeTranspose, getTransposeSemitones, parseMusicalKey } from "../../features/library/lib/transpose";
 
 interface TrackProfileModalProps {
     track: Track;
@@ -22,8 +23,17 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     const [activeTab, setActiveTab] = useState<"info" | "notes" | "audio" | "sheet">("info");
     const [isUploadingSheet, setIsUploadingSheet] = useState(false);
 
+    const sourceKey = edit.key || track.key || "";
+    const targetKey = edit.targetKey || sourceKey;
+    const parsedSourceKey = parseMusicalKey(sourceKey);
+    const transposeSemitones = getTransposeSemitones(sourceKey, targetKey);
+
     const handleSave = () => {
-        onSave(edit);
+        onSave({
+            ...edit,
+            targetKey,
+            transposeSemitones,
+        });
     };
 
     const toggleTag = (tag: string) => {
@@ -57,7 +67,8 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
             if (!response.ok) throw new Error("Fetch failed");
             
             const arrayBuffer = await response.arrayBuffer();
-            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+            const audioCtx = new AudioContextClass();
             const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
             
             const results = await analyzeAudio(audioBuffer);
@@ -66,6 +77,8 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                 ...prev,
                 bpm: results.bpm,
                 key: results.key,
+                targetKey: prev.targetKey || results.key,
+                transposeSemitones: getTransposeSemitones(results.key, prev.targetKey || results.key),
                 energy: results.energy,
                 mood: results.energy > 0.7 ? "energetic" : results.energy > 0.4 ? "happy" : "calm",
                 analysis_cached: true
@@ -215,6 +228,78 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                 </div>
                             </div>
 
+                            <div style={{ padding: "16px 20px", borderRadius: THEME.radius.lg, background: "rgba(255,255,255,0.02)", border: `1px solid ${THEME.colors.border}` }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 14 }}>
+                                    <div>
+                                        <label style={{ ...labelStyle, marginBottom: 4 }}>Transposición</label>
+                                        <div style={{ fontSize: 12, color: THEME.colors.text.muted, lineHeight: 1.5 }}>
+                                            Guarda el tono objetivo que quieres tocar. SuniPlayer conservará el tono original y el desplazamiento en semitonos.
+                                        </div>
+                                    </div>
+                                    <div style={{ padding: "8px 12px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.brand.cyan}12`, color: THEME.colors.brand.cyan, fontSize: 12, fontWeight: 700 }}>
+                                        {describeTranspose(transposeSemitones)}
+                                    </div>
+                                </div>
+
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                                    <div>
+                                        <label style={labelStyle}>Tono detectado/base</label>
+                                        <input
+                                            value={sourceKey}
+                                            onChange={e => setEdit({ ...edit, key: e.target.value })}
+                                            style={inputStyle}
+                                            placeholder="Ej. C# Major"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={labelStyle}>Tono objetivo</label>
+                                        <select
+                                            value={targetKey}
+                                            onChange={e => setEdit({ ...edit, targetKey: e.target.value })}
+                                            style={{ ...inputStyle, appearance: "none" }}
+                                        >
+                                            {KEY_OPTIONS.map(option => (
+                                                <option key={option} value={option}>{option}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
+                                    {[-3, -2, -1, 0, 1, 2, 3].map(step => (
+                                        <button
+                                            key={step}
+                                            onClick={() => {
+                                                const nextTargetKey = buildTargetKey(sourceKey, step);
+                                                if (nextTargetKey) {
+                                                    setEdit({ ...edit, targetKey: nextTargetKey, transposeSemitones: step });
+                                                }
+                                            }}
+                                            disabled={!parsedSourceKey}
+                                            style={{
+                                                padding: "6px 10px",
+                                                borderRadius: THEME.radius.sm,
+                                                border: `1px solid ${transposeSemitones === step ? THEME.colors.brand.violet : THEME.colors.border}`,
+                                                backgroundColor: transposeSemitones === step ? `${THEME.colors.brand.violet}15` : "transparent",
+                                                color: transposeSemitones === step ? THEME.colors.brand.violet : THEME.colors.text.secondary,
+                                                cursor: parsedSourceKey ? "pointer" : "not-allowed",
+                                                opacity: parsedSourceKey ? 1 : 0.45,
+                                                fontSize: 12,
+                                                fontWeight: 700,
+                                            }}
+                                        >
+                                            {step > 0 ? `+${step}` : step}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div style={{ marginTop: 12, fontSize: 12, color: THEME.colors.text.muted }}>
+                                    {parsedSourceKey
+                                        ? <>Original: <strong style={{ color: "white" }}>{sourceKey}</strong> · Objetivo: <strong style={{ color: "white" }}>{targetKey}</strong></>
+                                        : <>Escribe un tono valido como `C# Major` o `A Minor` para calcular semitonos.</>}
+                                </div>
+                            </div>
+
                             <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                                     <label style={{ ...labelStyle, marginBottom: 0 }}>Categorías / Tags</label>
@@ -246,6 +331,32 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                             </button>
                                         );
                                     })}
+                                </div>
+                            </div>
+
+                            {/* Analytics Section */}
+                            <div style={{ 
+                                padding: "16px 20px", borderRadius: THEME.radius.lg, 
+                                background: "rgba(255,255,255,0.02)", 
+                                border: `1px solid ${THEME.colors.border}`,
+                                marginTop: 8
+                            }}>
+                                <label style={{ ...labelStyle, color: THEME.colors.brand.cyan, marginBottom: 12 }}>Estadísticas de Rendimiento</label>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.2fr", gap: 16 }}>
+                                    <div>
+                                        <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", fontWeight: 700 }}>Veces Tocado</div>
+                                        <div style={{ fontSize: 20, fontWeight: 900, color: "white", marginTop: 4 }}>{edit.playCount || 0}</div>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", fontWeight: 700 }}>Inversión Total</div>
+                                        <div style={{ fontSize: 20, fontWeight: 900, color: "white", marginTop: 4 }}>{fmtFull(edit.totalPlayTimeMs || 0)}</div>
+                                    </div>
+                                    <div style={{ textAlign: "right" }}>
+                                        <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", fontWeight: 700 }}>Última Sesión</div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: THEME.colors.text.secondary, marginTop: 4 }}>
+                                            {edit.lastPlayedAt ? new Date(edit.lastPlayedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : "—"}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

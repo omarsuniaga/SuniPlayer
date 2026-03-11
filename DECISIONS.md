@@ -37,5 +37,16 @@ Este log registra las decisiones críticas tomadas por los agentes para evitar r
 - `SQLite` permanece fuera de la etapa web actual y solo debe reconsiderarse despues de una decision formal de plataforma.
 - La implementacion de `T-011` debe comenzar por contratos y limites de persistencia en web antes de cualquier migracion de tecnologia.
 
+## [2026-03-11] ADR 005: Transposicion tonal por perfil de cancion
+**Agente:** Audio Systems Architect / State & Data Engineer
+**Contexto:** El producto necesita guardar la intencion musical de tocar una cancion en otro tono sin perder el tono original detectado o configurado.
+**Decisión:**
+- Cada track puede guardar `key`, `targetKey` y `transposeSemitones`.
+- `key` representa el tono base/original conocido de la cancion.
+- `targetKey` representa el tono deseado para performance.
+- `transposeSemitones` se calcula automaticamente desde esos dos valores y se persiste como parte del perfil del track.
+- En la etapa web actual, la reproduccion aplica esta transposicion mediante `playbackRate`, aceptando que pitch y tempo cambian juntos.
+- Una futura etapa de audio avanzado podra reemplazar este comportamiento por pitch shifting con preservacion de tempo.
+
 ---
 *Fin del registro inicial.*

@@ -1,6 +1,6 @@
 import React from "react";
 import { Track } from "../../types";
-import { fmt, mc, ec, getEffectiveDuration } from "../../services/uiUtils.ts";
+import { fmt, fmtFull, mc, ec, getEffectiveDuration } from "../../services/uiUtils.ts";
 import { THEME } from "../../data/theme.ts";
 
 interface TrackRowProps {
@@ -105,25 +105,47 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                 <div style={{ fontSize: 11, color: THEME.colors.text.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {track.artist}
                 </div>
+                {(track.playCount || 0) > 0 && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                        <span style={{ 
+                            fontSize: 9, padding: "1px 5px", borderRadius: 3, 
+                            backgroundColor: "rgba(255,255,255,0.06)", 
+                            color: active ? "white" : THEME.colors.text.muted, 
+                            fontWeight: 800,
+                            letterSpacing: "0.02em"
+                        }}>
+                            {track.playCount} {track.playCount === 1 ? 'PLAY' : 'PLAYS'}
+                        </span>
+                        <span style={{ fontSize: 9, color: active ? "white" : THEME.colors.text.muted, opacity: active ? 0.9 : 0.6, fontWeight: 600 }}>
+                            {fmtFull(track.totalPlayTimeMs || 0)} tocados
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="track-meta">
-                <span
-                    className="meta-key"
-                    style={{
-                        fontSize: 10,
-                        padding: "2px 6px",
-                        borderRadius: THEME.radius.sm,
-                        backgroundColor: mc(track.mood) + "12",
-                        color: mc(track.mood),
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.02em",
-                        flexShrink: 0,
-                    }}
-                 >
-                    {track.key}
-                </span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
+                    <span
+                        className="meta-key"
+                        style={{
+                            fontSize: 10,
+                            padding: "2px 6px",
+                            borderRadius: THEME.radius.sm,
+                            backgroundColor: mc(track.mood) + "12",
+                            color: mc(track.mood),
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.02em",
+                        }}
+                    >
+                        {track.targetKey || track.key}
+                    </span>
+                    {track.transposeSemitones ? (
+                        <span style={{ fontSize: 9, color: THEME.colors.brand.cyan, fontFamily: THEME.fonts.mono }}>
+                            {track.transposeSemitones > 0 ? `+${track.transposeSemitones}` : track.transposeSemitones} st
+                        </span>
+                    ) : null}
+                </div>
 
                 <div
                     className="meta-energy"

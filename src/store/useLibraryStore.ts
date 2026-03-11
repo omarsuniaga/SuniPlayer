@@ -19,6 +19,7 @@ interface LibraryState {
     addTag: (tag: string) => void;
     setSelectedFolderName: (folderName: string | null) => void;
     setDirectoryHandle: (handle: unknown | null) => void;
+    recordMetric: (id: string, playTimeMs: number, incrementCount?: boolean) => void;
 }
 
 export const useLibraryStore = create<LibraryState>()(
@@ -51,6 +52,26 @@ export const useLibraryStore = create<LibraryState>()(
             })),
             setSelectedFolderName: (selectedFolderName) => set({ selectedFolderName }),
             setDirectoryHandle: (directoryHandle) => set({ directoryHandle }),
+            recordMetric: (id, playTimeMs, incrementCount = false) =>
+                set((state) => {
+                    const current = state.trackOverrides[id] || {};
+                    const newPlayTime = (current.totalPlayTimeMs || 0) + playTimeMs;
+                    const newPlayCount = (current.playCount || 0) + (incrementCount ? 1 : 0);
+                    
+                    const updates: Partial<Track> = {
+                        totalPlayTimeMs: newPlayTime,
+                        playCount: newPlayCount,
+                        lastPlayedAt: new Date().toISOString(),
+                    };
+                    
+                    return {
+                        customTracks: state.customTracks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+                        trackOverrides: { 
+                            ...state.trackOverrides, 
+                            [id]: { ...current, ...updates } 
+                        }
+                    };
+                }),
         }),
         {
             name: "suniplayer-library",

@@ -92,6 +92,8 @@ export const SettingsPanel: React.FC = () => {
     const setAutoNext = useProjectStore(s => s.setAutoNext);
     const crossfade = useProjectStore(s => s.crossfade);
     const setCrossfade = useProjectStore(s => s.setCrossfade);
+    const crossfadeMs = useProjectStore(s => s.crossfadeMs);
+    const setCrossfadeMs = useProjectStore(s => s.setCrossfadeMs);
     const bpmMin = useProjectStore(s => s.bpmMin);
     const setBpmMin = useProjectStore(s => s.setBpmMin);
     const bpmMax = useProjectStore(s => s.bpmMax);
@@ -201,10 +203,21 @@ export const SettingsPanel: React.FC = () => {
 
                     <Toggle
                         label="Crossfade"
-                        description="Transición suave de 2 segundos entre canciones"
+                        description={`Transición suave entre canciones`}
                         checked={crossfade}
                         onChange={v => { setCrossfade(v); if (v) setAutoNext(true); }}
                     />
+
+                    {crossfade && (
+                        <div style={{ paddingLeft: 12, borderLeft: `2px solid ${THEME.colors.brand.cyan}30`, marginBottom: 10 }}>
+                            <SliderRow
+                                label="Duración Crossfade"
+                                value={crossfadeMs}
+                                min={500} max={10000} step={500} unit=" ms"
+                                onChange={setCrossfadeMs}
+                            />
+                        </div>
+                    )}
 
                     <SliderRow
                         label="Volumen por defecto"
@@ -358,9 +371,9 @@ export const SettingsPanel: React.FC = () => {
 
                     <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 6 }}>
                         {[
-                            ["Versión", "2.0.0"],
+                            ["Versión", "2.1.0"],
                             ["Motor de sets", "Monte Carlo (600 iter)"],
-                            ["Crossfade", "2 segundos (dual Audio API)"],
+                            ["Crossfade", `${(crossfadeMs / 1000).toFixed(1)} segundos`],
                             ["Persistencia", "LocalStorage"],
                         ].map(([k, v]) => (
                             <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>

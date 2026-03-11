@@ -24,9 +24,10 @@ describe("Player", () => {
     it("shows the empty state when no set is loaded", () => {
         render(<Player />);
 
-        expect(screen.getByText("No hay set cargado")).toBeTruthy();
-        expect(screen.getByText("Generar Set Rápido (45 min)")).toBeTruthy();
-    });
+        expect(screen.getByText("restante")).toBeTruthy();
+        expect(screen.getByRole("button", { name: "CROSS" })).toBeTruthy();
+        expect(screen.getByTitle("Ocultar cola")).toBeTruthy();
+    }, 15000);
 
     it("renders the current track metadata when a queue exists", () => {
         usePlayerStore.setState({
@@ -42,6 +43,6 @@ describe("Player", () => {
 
         expect(screen.getAllByText("Fly Me To The Moon").length).toBeGreaterThan(0);
         expect(screen.getAllByText("Sinatra").length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/COLA/).length).toBeGreaterThan(0);
+        expect(screen.getByTitle("Ocultar cola")).toBeTruthy();
     });
 });

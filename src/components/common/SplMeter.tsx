@@ -37,7 +37,7 @@ export const SplMeter: React.FC<SplMeterProps> = ({ target, expanded, onToggleEx
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 micStreamRef.current = stream;
                 
-                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
                 const ctx = new AudioContextClass();
                 audioContextRef.current = ctx;
                 

@@ -11,6 +11,10 @@ interface SettingsState {
     setAutoNext: (v: boolean) => void;
     crossfade: boolean;
     setCrossfade: (v: boolean) => void;
+    crossfadeMs: number;
+    setCrossfadeMs: (v: number) => void;
+    crossExpanded: boolean;
+    setCrossExpanded: (v: boolean) => void;
 
     // Volume
     defaultVol: number;
@@ -33,6 +37,8 @@ interface SettingsState {
     setFadeInMs: (v: number) => void;
     fadeOutMs: number;
     setFadeOutMs: (v: number) => void;
+    fadeExpanded: boolean;
+    setFadeExpanded: (v: boolean) => void;
 
     // SPL Meter
     splMeterEnabled: boolean;
@@ -51,6 +57,10 @@ export const useSettingsStore = create<SettingsState>()(
 
             crossfade: true,
             setCrossfade: (crossfade) => set({ crossfade }),
+            crossfadeMs: 2000,
+            setCrossfadeMs: (crossfadeMs) => set({ crossfadeMs }),
+            crossExpanded: true,
+            setCrossExpanded: (crossExpanded) => set({ crossExpanded }),
 
             defaultVol: 0.85,
             setDefaultVol: (defaultVol) => set({ defaultVol }),
@@ -69,6 +79,8 @@ export const useSettingsStore = create<SettingsState>()(
 
             fadeOutMs: 3000,
             setFadeOutMs: (fadeOutMs) => set({ fadeOutMs }),
+            fadeExpanded: true,
+            setFadeExpanded: (fadeExpanded) => set({ fadeExpanded }),
 
             splMeterEnabled: false,
             setSplMeterEnabled: (splMeterEnabled) => set({ splMeterEnabled }),
@@ -89,15 +101,18 @@ export const useSettingsStore = create<SettingsState>()(
             partialize: (state) => ({
                 autoNext: state.autoNext,
                 crossfade: state.crossfade,
+                crossExpanded: state.crossExpanded,
+                crossfadeMs: state.crossfadeMs,
                 defaultVol: state.defaultVol,
-                bpmMin: state.bpmMin,
-                bpmMax: state.bpmMax,
                 fadeEnabled: state.fadeEnabled,
+                fadeExpanded: state.fadeExpanded,
                 fadeInMs: state.fadeInMs,
                 fadeOutMs: state.fadeOutMs,
                 splMeterEnabled: state.splMeterEnabled,
                 splMeterTarget: state.splMeterTarget,
                 splMeterExpanded: state.splMeterExpanded,
+                bpmMin: state.bpmMin,
+                bpmMax: state.bpmMax,
             }),
         }
     )

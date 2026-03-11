@@ -12,6 +12,15 @@ export const fmtM = (ms: number) => {
     return r > 0 ? `${m}m ${r}s` : `${m}m`;
 };
 
+export const fmtFull = (ms: number) => {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}s`;
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+};
+
 export const mc = (m: string) => {
     const map: Record<string, string> = {
         happy: THEME.colors.status.warning,

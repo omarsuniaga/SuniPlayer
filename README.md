@@ -21,6 +21,7 @@ SuniPlayer esta hoy en una etapa de **alpha tecnica / prototipo funcional web**.
 - ajustar venue y curva de energia
 - explorar repertorio por busqueda y mood
 - importar audio local por archivos individuales o carpeta seleccionada
+- guardar perfil musical por cancion, incluyendo tono objetivo y transposicion en semitonos
 - enviar el set al player
 - simular reproduccion con cola y timer
 - guardar sets en historial local dentro del prototipo
@@ -42,6 +43,12 @@ SuniPlayer esta hoy en una etapa de **alpha tecnica / prototipo funcional web**.
 - `ImportZone` permite arrastrar archivos, seleccionar multiples archivos o elegir una carpeta local de audio.
 - En navegadores compatibles con File System Access API, tambien puede volver a sincronizar la carpeta elegida dentro de la misma sesion.
 - Los tracks importados por el usuario siguen siendo assets de sesion porque usan `blob_url` locales del navegador.
+
+## Perfil y transposicion
+
+- Cada cancion puede guardar un `key` base y un `targetKey` para performance.
+- SuniPlayer calcula y persiste `transposeSemitones` para recordar el cambio tonal deseado.
+- En la etapa web actual, la reproduccion aplica la transposicion via `playbackRate`, por lo que cambia pitch y tempo juntos.
 
 ## Direccion futura
 

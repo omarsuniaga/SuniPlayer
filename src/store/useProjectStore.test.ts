@@ -4,13 +4,15 @@ import { TRACKS } from "../data/constants";
 import { useBuilderStore } from "./useBuilderStore";
 import { usePlayerStore } from "./usePlayerStore";
 import { useHistoryStore } from "./useHistoryStore";
-import { toPlayer, saveSet, appendToQueue } from "./useProjectStore";
+import { useLibraryStore } from "./useLibraryStore";
+import { appendToQueue, saveSet, toPlayer, updateTrackMetadata } from "./useProjectStore";
 
 const resetStores = () => {
     localStorage.clear();
     useBuilderStore.setState(useBuilderStore.getInitialState(), true);
     usePlayerStore.setState(usePlayerStore.getInitialState(), true);
     useHistoryStore.setState(useHistoryStore.getInitialState(), true);
+    useLibraryStore.setState(useLibraryStore.getInitialState(), true);
 };
 
 describe("useProjectStore cross-domain actions", () => {
@@ -69,5 +71,22 @@ describe("useProjectStore cross-domain actions", () => {
         expect(state.playing).toBe(true);
         expect(state.ci).toBe(0);
         expect(state.tTarget).toBeGreaterThan(500);
+    });
+
+    it("persists target key metadata across queue, builder, and library overrides", () => {
+        const track = { ...TRACKS[0], isCustom: true };
+
+        useBuilderStore.setState({ genSet: [track] });
+        usePlayerStore.setState({ pQueue: [track], tTarget: 200 });
+        useLibraryStore.setState({ customTracks: [track] });
+
+        updateTrackMetadata(track.id, {
+            targetKey: "D Major",
+            transposeSemitones: 1,
+        });
+
+        expect(usePlayerStore.getState().pQueue[0].targetKey).toBe("D Major");
+        expect(useBuilderStore.getState().genSet[0].transposeSemitones).toBe(1);
+        expect(useLibraryStore.getState().trackOverrides[track.id]?.targetKey).toBe("D Major");
     });
 });

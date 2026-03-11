@@ -190,6 +190,7 @@ Cuando se incorpore el runner de tests, los primeros casos deberian concentrarse
 
 - entra en modo simulacion cuando falla `play()` del navegador
 - sale de simulacion cuando el track emite `canplay`
+- aplica `playbackRate` segun `transposeSemitones` cuando el track tiene transposicion guardada
 
 ### Player
 
@@ -201,6 +202,7 @@ Cuando se incorpore el runner de tests, los primeros casos deberian concentrarse
 - formato de tiempo consistente
 - conversion de duraciones consistente
 - deteccion de archivos de audio soportados y parsing de nombres
+- calculo de semitonos entre `key` y `targetKey`
 
 ---
 

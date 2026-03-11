@@ -14,9 +14,14 @@ export interface Track {
     blob_url?: string;   // Object URL for user-imported files (session-only)
     notes?: string;      // Performance notes (e.g. "intro larga", "pedir aplauso")
     isCustom?: boolean;  // true = imported by user, not from built-in catalog
+    targetKey?: string;  // desired performance key after transposition
+    transposeSemitones?: number; // saved semitone shift relative to key
     startTime?: number;  // ms - custom start offset
     endTime?: number;    // ms - custom end offset
     sheetMusic?: { id: string; type: "pdf" | "image"; name: string }[];
+    playCount?: number;
+    totalPlayTimeMs?: number;
+    lastPlayedAt?: string;
 }
 
 export interface Venue {

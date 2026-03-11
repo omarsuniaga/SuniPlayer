@@ -95,6 +95,14 @@
 - Estimacion: 3 dias
 - Aceptacion: los datos clave sobreviven al reinicio de la app
 
+### [DONE] T-016: Perfil tonal por cancion
+- Guardar tono base, tono objetivo y semitonos de transposicion en el perfil del track
+- Mostrar el tono objetivo en vistas relevantes
+- Aplicar transposicion en reproduccion web mediante `playbackRate`
+- Prioridad: MEDIA
+- Estimacion: 2 dias
+- Aceptacion: puedo configurar una cancion para tocarla en otro tono y el ajuste queda guardado
+
 ### [TODO] T-012: Biblioteca musical con datos reales
 - Reemplazar dependencia excesiva de mocks
 - Cargar metadata minima real o semirreal
