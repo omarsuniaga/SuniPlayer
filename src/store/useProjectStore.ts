@@ -72,6 +72,10 @@ export interface ProjectState {
     mode: "edit" | "live";
     setMode: (mode: "edit" | "live" | ((prev: "edit" | "live") => "edit" | "live")) => void;
 
+    /** IDs of tracks to play next in LIVE mode, in priority order */
+    stackOrder: string[];
+    setStackOrder: (ids: string[] | ((prev: string[]) => string[])) => void;
+
     isSimulating: boolean;
     setIsSimulating: (v: boolean) => void;
 
@@ -316,6 +320,8 @@ export function useProjectStore<T = ProjectState>(
         setTTarget: player.setTTarget,
         mode: player.mode,
         setMode: player.setMode,
+        stackOrder: player.stackOrder,
+        setStackOrder: player.setStackOrder,
         isSimulating: player.isSimulating,
         setIsSimulating: player.setIsSimulating,
 

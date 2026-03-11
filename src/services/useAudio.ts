@@ -1,13 +1,5 @@
 /**
- * useAudio — Audio Engine v2.1 (Reliable Auto-Next)
- *
- * Design principles:
- *  - ONE source of truth for position: posRef (mutable, sync)
- *  - advance() called at most once per track (hasAdvanced guard)
- *  - No side-effects inside React state updaters
- *  - Crossfade uses setTimeout, cleanly cancelled on unmount
- *
- * Performance: imports domain stores directly (no composite hook overhead)
+ * useAudio — Audio Engine v2.2 (Stack Order Support)
  */
 import { useEffect, useRef } from "react";
 import { usePlayerStore } from "../store/usePlayerStore.ts";
@@ -32,6 +24,8 @@ export function useAudio() {
     const setPlaying = usePlayerStore(s => s.setPlaying);
     const setElapsed = usePlayerStore(s => s.setElapsed);
     const setIsSimulating = usePlayerStore(s => s.setIsSimulating);
+    const stackOrder = usePlayerStore(s => s.stackOrder);
+    const setStackOrder = usePlayerStore(s => s.setStackOrder);
 
     const autoNext = useSettingsStore(s => s.autoNext);
     const crossfade = useSettingsStore(s => s.crossfade);
@@ -54,26 +48,35 @@ export function useAudio() {
     const pQueueLenRef = useRef(pQueue.length);
     const autoNextRef = useRef(autoNext);
     const volRef = useRef(vol);
+    const stackOrderRef = useRef(stackOrder);
+    const pQueueRef = useRef(pQueue);
+
     ciRef.current = ci;
     pQueueLenRef.current = pQueue.length;
     autoNextRef.current = autoNext;
     volRef.current = vol;
-    // Removed fadeEnabledRef, fadeInMsRef, fadeOutMsRef
+    stackOrderRef.current = stackOrder;
+    pQueueRef.current = pQueue;
+
     const isPausingRef = useRef(false); // flag to prevent immediate pause during fade-out
     const sessionTrackTimeRef = useRef(0);
     const hasIncrementedCountRef = useRef(false);
     const activeTrackIdRef = useRef<string | null>(null);
 
     const ct = pQueue[ci];
-    const nextTrack = pQueue[ci + 1] ?? null;
+    // In LIVE mode with stackOrder, nextTrack should be the first in stack
+    const nextTrackId = stackOrder[0];
+    const nextTrackIdx = nextTrackId ? pQueue.findIndex(t => t.id === nextTrackId) : -1;
+    const nextTrack = nextTrackIdx !== -1 ? pQueue[nextTrackIdx] : (pQueue[ci + 1] ?? null);
+
+    const nextTrackRef = useRef(nextTrack);
+    nextTrackRef.current = nextTrack;
 
     // ── Create audio elements ONCE ──────────────────────────────────────────
     useEffect(() => {
         audioRef.current = new Audio();
         nextAudioRef.current = new Audio();
 
-        // Global probe: check first catalog track as representative.
-        // Sets initial simulation state before the user presses Play.
         let mounted = true;
         probeOne(TRACKS[0].file_path).then(ok => {
             if (mounted) setIsSimulating(!ok);
@@ -86,13 +89,40 @@ export function useAudio() {
         };
     }, [setIsSimulating]);
 
-    // ── Load + reset when ci changes ─────────────────────────────────────────
+    const fadeEnabledRef = useRef(fadeEnabled);
+    const fadeInMsRef = useRef(fadeInMs);
+    const fadeOutMsRef = useRef(fadeOutMs);
+    const crossfadeRef = useRef(crossfade);
+
+    fadeEnabledRef.current = fadeEnabled;
+    fadeInMsRef.current = fadeInMs;
+    fadeOutMsRef.current = fadeOutMs;
+    crossfadeRef.current = crossfade;
+
+    // ── Create audio elements ONCE ──────────────────────────────────────────
+    useEffect(() => {
+        audioRef.current = new Audio();
+        nextAudioRef.current = new Audio();
+
+        let mounted = true;
+        probeOne(TRACKS[0].file_path).then(ok => {
+            if (mounted) setIsSimulating(!ok);
+        });
+
+        return () => {
+            mounted = false;
+            audioRef.current?.pause();
+            nextAudioRef.current?.pause();
+        };
+    }, [setIsSimulating]);
+
+    // ── Load + reset when track ID or index changes ──────────────────────────
+    const trackId = ct?.id;
     useEffect(() => {
         if (!ct) return;
         const audio = audioRef.current;
         if (!audio) return;
 
-        // Reset guards for new track
         hasAdvanced.current = false;
         isReal.current = false;
         posRef.current = 0;
@@ -100,19 +130,18 @@ export function useAudio() {
         hasIncrementedCountRef.current = false;
         activeTrackIdRef.current = ct.id;
         
-        // Reset volume for fade-in if enabled
-        if (fadeEnabled && audio) { // Changed to use reactive fadeEnabled
+        // Initial volume management
+        if (fadeEnabledRef.current && audio) {
             audio.volume = 0;
+        } else {
+            audio.volume = volRef.current;
         }
 
-        // Cancel any in-flight crossfade timer
         if (crossTimerRef.current) {
             clearTimeout(crossTimerRef.current);
             crossTimerRef.current = null;
         }
 
-        // Per-track probe: update simulation state for this specific track.
-        // blob_url tracks are always real (user-imported); skip probe.
         let probeActive = true;
         if (ct.blob_url) {
             setIsSimulating(false);
@@ -122,9 +151,7 @@ export function useAudio() {
             });
         }
 
-        // blob_url for user-imported files, file_path for built-in catalog
         audio.src = ct.blob_url ?? (AUDIO_BASE + encodeURIComponent(ct.file_path));
-        audio.volume = volRef.current;
         audio.playbackRate = getTransposePlaybackRate(ct.transposeSemitones ?? 0);
         const startOffset = (ct.startTime || 0);
         audio.currentTime = startOffset / 1000;
@@ -140,7 +167,7 @@ export function useAudio() {
             probeActive = false;
             audio.removeEventListener("canplay", onCanPlay);
         };
-    }, [ci, ct, setIsSimulating, setPos, fadeEnabled]); // Added fadeEnabled to deps
+    }, [ci, trackId, setIsSimulating, setPos]); 
 
     // ── Preload next track ───────────────────────────────────────────────────
     useEffect(() => {
@@ -157,15 +184,12 @@ export function useAudio() {
         if (audioRef.current) audioRef.current.volume = vol;
     }, [vol]);
 
-    // ── Seek sync (Listen to store changes for manual jumps) ─────────────────
+    // ── Seek sync ────────────────────────────────────────────────────────────
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio || !ct) return;
-
-        // If the store pos is significantly different from our local posRef,
-        // it means the user manually seeking (e.g. clicking the waveform).
         const diff = Math.abs(pos - posRef.current);
-        if (diff > 1500) { // >1.5s jump usually means manual seek
+        if (diff > 1500) {
             audio.currentTime = pos / 1000;
             posRef.current = pos;
         }
@@ -176,15 +200,13 @@ export function useAudio() {
         const audio = audioRef.current;
         if (!audio || !ct) return;
 
-        // Clear previous timers
         clearInterval(simRef.current ?? undefined);
         clearInterval(elapsedRef.current ?? undefined);
 
         if (!playing) {
-            // Fade-on-pause logic
-            if (fadeEnabled && isReal.current && audio && !audio.paused && !isPausingRef.current) { // Changed to use reactive fadeEnabled
+            if (fadeEnabledRef.current && isReal.current && audio && !audio.paused && !isPausingRef.current) {
                 isPausingRef.current = true;
-                const duration = fadeOutMs; // Changed to use reactive fadeOutMs
+                const duration = fadeOutMsRef.current;
                 const steps = 15;
                 const interval = duration / steps;
                 let step = 0;
@@ -209,43 +231,48 @@ export function useAudio() {
             return;
         }
 
-        // Cancel any pending pause fade if we resumed
         isPausingRef.current = false;
+        if (audio.paused) {
+            // Restore volume before playing to avoid starting at 0 if we paused during a fade-out
+            if (!fadeEnabledRef.current || !isReal.current) {
+                audio.volume = volRef.current;
+            }
+            audio.play().catch(() => {
+                isReal.current = false;
+                setIsSimulating(true);
+            });
+        }
 
-        // Try real playback (fire-and-forget; failure = simulation)
-        audio.play().catch(() => {
-            isReal.current = false;
-            setIsSimulating(true);
-        });
-
-        /**
-         * advance() — move to next track or stop.
-         * Uses refs to avoid stale closures.
-         * Guard: hasAdvanced ensures it fires at most once per track.
-         */
         const advance = () => {
             if (hasAdvanced.current) return;
             hasAdvanced.current = true;
 
             const currentCi = ciRef.current;
             const queueLen = pQueueLenRef.current;
+            const stack = stackOrderRef.current;
+            const queue = pQueueRef.current;
+
+            if (stack.length > 0) {
+                const nextId = stack[0];
+                const nextIdx = queue.findIndex(t => t.id === nextId);
+                if (nextIdx !== -1) {
+                    setCi(nextIdx);
+                    setStackOrder(stack.slice(1));
+                    return;
+                }
+            }
 
             if (currentCi < queueLen - 1) {
                 setCi(currentCi + 1);
             } else {
-                // End of queue
                 setPlaying(false);
                 setPos(0);
             }
         };
 
-        /**
-         * Crossfade: fade current down, fade next up over CROSSFADE_MS,
-         * then advance to next track in the store.
-         */
         const startCrossfade = () => {
             if (hasAdvanced.current) return;
-            hasAdvanced.current = true;        // block advance() from firing again
+            hasAdvanced.current = true;
 
             const curr = audioRef.current;
             const next = nextAudioRef.current;
@@ -270,9 +297,21 @@ export function useAudio() {
                 if (step >= steps) {
                     clearInterval(tick);
                     if (curr) { curr.pause(); curr.currentTime = 0; }
-                    // Now actually advance the store index
                     const currentCi = ciRef.current;
                     const queueLen = pQueueLenRef.current;
+                    const stack = stackOrderRef.current;
+                    const queue = pQueueRef.current;
+
+                    if (stack.length > 0) {
+                        const nextId = stack[0];
+                        const nextIdx = queue.findIndex(t => t.id === nextId);
+                        if (nextIdx !== -1) {
+                            setCi(nextIdx);
+                            setStackOrder(stack.slice(1));
+                            return;
+                        }
+                    }
+
                     if (currentCi < queueLen - 1) {
                         setCi(currentCi + 1);
                     } else {
@@ -282,42 +321,36 @@ export function useAudio() {
             }, delay);
         };
 
-        // ── Tick ─────────────────────────────────────────────────────────────
         simRef.current = setInterval(() => {
             const trackEnd = ct.endTime || ct.duration_ms;
             const trackStart = ct.startTime || 0;
 
             if (isReal.current && audio) {
-                // Real audio path
                 const posMs = Math.floor(audio.currentTime * 1000);
                 const remMs = trackEnd - posMs;
                 const elapsedInTrack = posMs - trackStart;
                 posRef.current = posMs;
                 setPos(posMs);
 
-                // Apply dynamic fading if enabled
-                if (fadeEnabled && !isPausingRef.current) { // Changed to use reactive fadeEnabled
+                if (fadeEnabledRef.current && !isPausingRef.current) {
                     const v = volRef.current;
-                    const fIn = fadeInMs; // Changed to use reactive fadeInMs
-                    const fOut = fadeOutMs; // Changed to use reactive fadeOutMs
+                    const fIn = fadeInMsRef.current;
+                    const fOut = fadeOutMsRef.current;
 
                     if (elapsedInTrack < fIn) {
-                        // Fade in logic
                         const factor = elapsedInTrack / fIn;
-                        audio.volume = v * Math.pow(factor, 2); // Logarithmic-ish fade in
+                        audio.volume = v * Math.pow(factor, 2);
                     } else if (remMs < fOut && !hasAdvanced.current) {
-                        // Fade out logic (only if not already crossfading)
                         const factor = remMs / fOut;
                         audio.volume = v * Math.pow(factor, 2);
                     } else if (!hasAdvanced.current) {
-                        // Normal playback volume
                         audio.volume = v;
                     }
                 }
 
                 if (autoNextRef.current) {
                     const cfMs = useSettingsStore.getState().crossfadeMs;
-                    if (crossfade && remMs <= cfMs && ciRef.current < pQueueLenRef.current - 1) {
+                    if (crossfadeRef.current && remMs <= cfMs && (nextTrackRef.current !== null)) {
                         startCrossfade();
                     } else if (audio.ended || remMs <= TICK_MS) {
                         advance();
@@ -327,7 +360,6 @@ export function useAudio() {
                 }
 
             } else {
-                // Simulation (no real audio files)
                 posRef.current = Math.min(posRef.current + TICK_MS, trackEnd);
                 const posMs = posRef.current;
                 const remMs = trackEnd - posMs;
@@ -335,34 +367,29 @@ export function useAudio() {
 
                 if (autoNextRef.current) {
                     const cfMs = useSettingsStore.getState().crossfadeMs;
-                    if (crossfade && remMs <= cfMs && ciRef.current < pQueueLenRef.current - 1) {
+                    if (crossfadeRef.current && remMs <= cfMs && (nextTrackRef.current !== null)) {
                         startCrossfade();
                     } else if (remMs <= 0) {
                         advance();
                     }
                 } else if (remMs <= 0) {
-                    // Stop at end of queue, no auto-next
                     setPos(trackEnd);
                     setPlaying(false);
                     clearInterval(simRef.current ?? undefined);
                 }
             }
 
-            // ── Metrics Tracking ──
             if (activeTrackIdRef.current) {
                 sessionTrackTimeRef.current += TICK_MS;
-                const playThresholdMs = Math.min(ct.duration_ms * 0.5, 20000); // 20s or 50%
-                
+                const playThresholdMs = Math.min(ct.duration_ms * 0.5, 20000);
                 const shouldIncrement = !hasIncrementedCountRef.current && sessionTrackTimeRef.current >= playThresholdMs;
                 if (shouldIncrement) {
                     hasIncrementedCountRef.current = true;
                 }
-                
                 useLibraryStore.getState().recordMetric(activeTrackIdRef.current, TICK_MS, shouldIncrement);
             }
         }, TICK_MS);
 
-        // Elapsed session timer (wall-clock seconds)
         elapsedRef.current = setInterval(() => {
             setElapsed((p: number) => p + 1);
         }, 1000);
@@ -371,9 +398,7 @@ export function useAudio() {
             clearInterval(simRef.current ?? undefined);
             clearInterval(elapsedRef.current ?? undefined);
         };
-    }, [playing, ci, ct, pQueue.length, crossfade, fadeEnabled, fadeInMs, fadeOutMs, setCi, setElapsed, setIsSimulating, setPlaying, setPos]);
-    // Note: autoNext intentionally NOT in deps — read via ref in the tick
+    }, [playing, ci, trackId, setCi, setElapsed, setIsSimulating, setPlaying, setPos, setStackOrder]);
 
     return { isReal: isReal.current };
-    // Note: use usePlayerStore(s => s.isSimulating) for reactive UI updates
 }

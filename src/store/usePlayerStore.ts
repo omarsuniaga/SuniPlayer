@@ -34,6 +34,10 @@ interface PlayerState {
     /** true when no real audio file loaded — audio engine running in simulation */
     isSimulating: boolean;
     setIsSimulating: (v: boolean) => void;
+
+    /** IDs of tracks to play next in LIVE mode, in priority order */
+    stackOrder: string[];
+    setStackOrder: (ids: string[] | ((prev: string[]) => string[])) => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -77,6 +81,12 @@ export const usePlayerStore = create<PlayerState>()(
 
             isSimulating: false,
             setIsSimulating: (isSimulating) => set({ isSimulating }),
+
+            stackOrder: [],
+            setStackOrder: (update) =>
+                set((state) => ({
+                    stackOrder: typeof update === "function" ? update(state.stackOrder) : update,
+                })),
         }),
         {
             name: "suniplayer-player",
@@ -88,6 +98,7 @@ export const usePlayerStore = create<PlayerState>()(
                 vol: state.vol,
                 tTarget: state.tTarget,
                 mode: state.mode,
+                stackOrder: state.stackOrder,
             }),
             merge: (persistedState, currentState) => {
                 const persisted = persistedState as Partial<PlayerState>;
