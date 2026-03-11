@@ -63,6 +63,9 @@ describe("useAudio", () => {
         MockAudio.instances = [];
         MockAudio.shouldRejectPlay = false;
         vi.stubGlobal("Audio", MockAudio);
+        // Stub fetch so probeOne calls don't throw in jsdom.
+        // Individual tests override this as needed.
+        vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
         resetStores();
     });
 
@@ -74,6 +77,7 @@ describe("useAudio", () => {
 
     it("marks the player as simulating when browser playback fails", async () => {
         MockAudio.shouldRejectPlay = true;
+        // Probe returns false (404) → setIsSimulating(true), consistent with play failure.
 
         usePlayerStore.setState({
             pQueue: [
@@ -103,6 +107,9 @@ describe("useAudio", () => {
     });
 
     it("clears simulating mode when audio becomes playable", async () => {
+        // Probe returns true (200) → setIsSimulating(false), consistent with canplay.
+        vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 200 }));
+
         usePlayerStore.setState({
             pQueue: [
                 {

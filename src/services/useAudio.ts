@@ -12,6 +12,8 @@
 import { useEffect, useRef } from "react";
 import { usePlayerStore } from "../store/usePlayerStore.ts";
 import { useSettingsStore } from "../store/useSettingsStore.ts";
+import { probeOne } from "./audioProbe";
+import { TRACKS } from "../data/constants";
 
 const AUDIO_BASE = "/audio/";
 const CROSSFADE_MS = 2000;   // crossfade duration
@@ -59,6 +61,11 @@ export function useAudio() {
     useEffect(() => {
         audioRef.current = new Audio();
         nextAudioRef.current = new Audio();
+
+        // Global probe: check first catalog track as representative.
+        // Sets initial simulation state before the user presses Play.
+        probeOne(TRACKS[0].file_path).then(ok => setIsSimulating(!ok));
+
         return () => {
             audioRef.current?.pause();
             nextAudioRef.current?.pause();
@@ -80,6 +87,14 @@ export function useAudio() {
         if (crossTimerRef.current) {
             clearTimeout(crossTimerRef.current);
             crossTimerRef.current = null;
+        }
+
+        // Per-track probe: update simulation state for this specific track.
+        // blob_url tracks are always real (user-imported); skip probe.
+        if (ct.blob_url) {
+            setIsSimulating(false);
+        } else {
+            probeOne(ct.file_path).then(ok => setIsSimulating(!ok));
         }
 
         // blob_url for user-imported files, file_path for built-in catalog
