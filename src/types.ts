@@ -16,6 +16,7 @@ export interface Track {
     isCustom?: boolean;  // true = imported by user, not from built-in catalog
     targetKey?: string;  // desired performance key after transposition
     transposeSemitones?: number; // saved semitone shift relative to key
+    playbackTempo?: number;      // saved tempo factor (1.0 = normal)
     startTime?: number;  // ms - custom start offset
     endTime?: number;    // ms - custom end offset
     sheetMusic?: { id: string; type: "pdf" | "image"; name: string }[];

@@ -36,7 +36,7 @@ SuniPlayer esta hoy en una etapa de **alpha tecnica / prototipo funcional web**.
 | Estado | Zustand |
 | Estilos | estilos inline + theme tokens |
 | Audio | simulacion de reproduccion en UI / prototipo |
-| Persistencia | `localStorage` para configuracion, historial y contexto ligero del player |
+| Persistencia | `localStorage` + snapshots de show en `IndexedDB` |
 
 ## Importacion local de audio
 
@@ -49,6 +49,13 @@ SuniPlayer esta hoy en una etapa de **alpha tecnica / prototipo funcional web**.
 - Cada cancion puede guardar un `key` base y un `targetKey` para performance.
 - SuniPlayer calcula y persiste `transposeSemitones` para recordar el cambio tonal deseado.
 - En la etapa web actual, la reproduccion aplica la transposicion via `playbackRate`, por lo que cambia pitch y tempo juntos.
+
+## Confiabilidad de show en PWA
+
+- La app guarda snapshots de sesion en `IndexedDB` para recuperar cola, configuracion y contexto de show despues de una recarga inesperada.
+- Al reabrir la PWA, SuniPlayer ofrece `Restore last session` si encuentra una sesion recuperable.
+- La restauracion vuelve siempre en pausa; nunca reanuda playback automaticamente.
+- En iPad, los tracks importados localmente pueden requerir reconexion tras una recarga porque Safari no garantiza persistencia de `blob_url` de sesion.
 
 ## Direccion futura
 

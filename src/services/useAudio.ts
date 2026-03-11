@@ -171,15 +171,17 @@ export function useAudio() {
 
         const audioUrl = ct.blob_url ?? (AUDIO_BASE + encodeURIComponent(ct.file_path));
         audio.src = audioUrl;
-        audio.playbackRate = 1.0; // Always 1.0 — pitch is handled by SoundTouch
+        audio.playbackRate = 1.0; // Always 1.0 — pitch/tempo is handled by SoundTouch
         const startOffset = (ct.startTime || 0);
         audio.currentTime = startOffset / 1000;
         posRef.current = startOffset;
         setPos(startOffset);
 
-        // If track has pitch transposition, set up SoundTouch
+        // If track has pitch transposition or custom tempo, set up SoundTouch
         const semitones = ct.transposeSemitones ?? 0;
-        if (semitones !== 0) {
+        const tempo = ct.playbackTempo ?? 1.0;
+
+        if (semitones !== 0 || tempo !== 1.0) {
             // Load audio buffer and create SoundTouch PitchShifter
             fetch(audioUrl)
                 .then(r => r.arrayBuffer())
@@ -199,7 +201,7 @@ export function useAudio() {
                     
                     const shifter = new PitchShifter(stCtxRef.current, buffer, ST_BUFFER_SIZE);
                     shifter.pitchSemitones = semitones;
-                    shifter.tempo = 1.0;
+                    shifter.tempo = tempo;
                     stShifterRef.current = shifter;
                     stActiveRef.current = true;
                     isReal.current = true;
@@ -210,7 +212,7 @@ export function useAudio() {
                         shifter.percentagePlayed = (startOffset / 1000) / buffer.duration;
                     }
 
-                    console.log(`[useAudio] SoundTouch active: ${semitones} semitones, buffer ${buffer.duration.toFixed(1)}s`);
+                    console.log(`[useAudio] SoundTouch active: ${semitones} semitones, ${tempo}x tempo, buffer ${buffer.duration.toFixed(1)}s`);
                 })
                 .catch(err => {
                     console.warn("[useAudio] SoundTouch setup failed, falling back to native:", err);
@@ -227,7 +229,19 @@ export function useAudio() {
             probeActive = false;
             audio.removeEventListener("canplay", onCanPlay);
         };
-    }, [ci, trackId, setIsSimulating, setPos]); 
+    }, [ci, ct, trackId, setIsSimulating, setPos]); 
+
+    // ── Reactive Pitch/Tempo updates ─────────────────────────────────────────
+    useEffect(() => {
+        if (!ct) return;
+        const semitones = ct.transposeSemitones ?? 0;
+        const tempo = ct.playbackTempo ?? 1.0;
+
+        if (stShifterRef.current) {
+            stShifterRef.current.pitchSemitones = semitones;
+            stShifterRef.current.tempo = tempo;
+        }
+    }, [ct]);
 
     // ── Preload next track ───────────────────────────────────────────────────
     useEffect(() => {
@@ -373,7 +387,15 @@ export function useAudio() {
                 const fadeIn = Math.sin(t * Math.PI / 2);
                 const v = volRef.current;
 
-                if (curr) curr.volume = Math.max(0, v * fadeOut);
+                if (curr) {
+                    if (stActiveRef.current && stGainRef.current) {
+                        stGainRef.current.gain.value = Math.max(0, v * fadeOut);
+                        curr.volume = 0;
+                    } else {
+                        curr.volume = Math.max(0, v * fadeOut);
+                    }
+                }
+
                 if (next) {
                     if (next.paused) next.play().catch(() => { });
                     next.volume = Math.min(v, v * fadeIn);
@@ -381,7 +403,17 @@ export function useAudio() {
 
                 if (step >= steps) {
                     clearInterval(tick);
-                    if (curr) { curr.pause(); curr.currentTime = 0; }
+                    if (curr) { 
+                        curr.pause(); 
+                        curr.currentTime = 0; 
+                    }
+                    
+                    // Cleanup SoundTouch after crossfade
+                    if (stActiveRef.current && stShifterRef.current) {
+                        try { stShifterRef.current.disconnect(); } catch { /* noop */ }
+                        stActiveRef.current = false;
+                    }
+
                     const currentCi = ciRef.current;
                     const queueLen = pQueueLenRef.current;
                     const stack = stackOrderRef.current;
@@ -421,15 +453,21 @@ export function useAudio() {
                     const v = volRef.current;
                     const fIn = fadeInMsRef.current;
                     const fOut = fadeOutMsRef.current;
+                    let targetVol = v;
 
                     if (elapsedInTrack < fIn) {
                         const factor = elapsedInTrack / fIn;
-                        audio.volume = v * Math.pow(factor, 2);
+                        targetVol = v * Math.pow(factor, 2);
                     } else if (remMs < fOut && !hasAdvanced.current) {
                         const factor = remMs / fOut;
-                        audio.volume = v * Math.pow(factor, 2);
-                    } else if (!hasAdvanced.current) {
-                        audio.volume = v;
+                        targetVol = v * Math.pow(factor, 2);
+                    }
+
+                    if (stActiveRef.current && stGainRef.current) {
+                        stGainRef.current.gain.value = targetVol;
+                        audio.volume = 0; // Keep native muted
+                    } else {
+                        audio.volume = targetVol;
                     }
                 }
 
@@ -483,7 +521,7 @@ export function useAudio() {
             clearInterval(simRef.current ?? undefined);
             clearInterval(elapsedRef.current ?? undefined);
         };
-    }, [playing, ci, trackId, setCi, setElapsed, setIsSimulating, setPlaying, setPos, setStackOrder]);
+    }, [playing, ci, ct, trackId, setCi, setElapsed, setIsSimulating, setPlaying, setPos, setStackOrder]);
 
     return { isReal: isReal.current };
 }

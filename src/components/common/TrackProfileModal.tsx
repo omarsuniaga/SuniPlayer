@@ -231,13 +231,18 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                             <div style={{ padding: "16px 20px", borderRadius: THEME.radius.lg, background: "rgba(255,255,255,0.02)", border: `1px solid ${THEME.colors.border}` }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 14 }}>
                                     <div>
-                                        <label style={{ ...labelStyle, marginBottom: 4 }}>Transposición</label>
+                                        <label style={{ ...labelStyle, marginBottom: 4 }}>Transposición y Tempo HD</label>
                                         <div style={{ fontSize: 12, color: THEME.colors.text.muted, lineHeight: 1.5 }}>
-                                            Guarda el tono objetivo que quieres tocar. SuniPlayer conservará el tono original y el desplazamiento en semitonos.
+                                            Ajusta el tono y la velocidad de forma independiente sin pérdida de calidad (WSOLA).
                                         </div>
                                     </div>
-                                    <div style={{ padding: "8px 12px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.brand.cyan}12`, color: THEME.colors.brand.cyan, fontSize: 12, fontWeight: 700 }}>
-                                        {describeTranspose(transposeSemitones)}
+                                    <div style={{ display: "flex", gap: 8 }}>
+                                        <div style={{ padding: "8px 12px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.brand.cyan}12`, color: THEME.colors.brand.cyan, fontSize: 11, fontWeight: 700 }}>
+                                            {describeTranspose(transposeSemitones)}
+                                        </div>
+                                        <div style={{ padding: "8px 12px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.brand.violet}12`, color: THEME.colors.brand.violet, fontSize: 11, fontWeight: 700 }}>
+                                            {(edit.playbackTempo ?? 1.0).toFixed(2)}x
+                                        </div>
                                     </div>
                                 </div>
 
@@ -293,7 +298,26 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                     ))}
                                 </div>
 
-                                <div style={{ marginTop: 12, fontSize: 12, color: THEME.colors.text.muted }}>
+                                {/* Tempo Slider */}
+                                <div style={{ marginTop: 20 }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                                        <label style={{ ...labelStyle, marginBottom: 0 }}>Velocidad (Tempo)</label>
+                                        <span style={{ fontSize: 11, fontWeight: 800, color: THEME.colors.brand.cyan }}>{Math.round(((edit.playbackTempo || 1.0) - 1.0) * 100)}%</span>
+                                    </div>
+                                    <input 
+                                        type="range" min={0.8} max={1.2} step={0.01} 
+                                        value={edit.playbackTempo || 1.0} 
+                                        onChange={e => setEdit({ ...edit, playbackTempo: parseFloat(e.target.value) })}
+                                        style={{ width: "100%", accentColor: THEME.colors.brand.cyan }} 
+                                    />
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: THEME.colors.text.dim }}>
+                                        <span>-20% lento</span>
+                                        <span>Normal</span>
+                                        <span>+20% rápido</span>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: 16, fontSize: 12, color: THEME.colors.text.muted }}>
                                     {parsedSourceKey
                                         ? <>Original: <strong style={{ color: "white" }}>{sourceKey}</strong> · Objetivo: <strong style={{ color: "white" }}>{targetKey}</strong></>
                                         : <>Escribe un tono valido como `C# Major` o `A Minor` para calcular semitonos.</>}

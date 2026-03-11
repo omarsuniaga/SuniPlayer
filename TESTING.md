@@ -70,6 +70,7 @@ Antes de considerar aceptable un cambio importante, deberia comprobarse manualme
 - [ ] el timer avanza correctamente
 - [ ] historial guarda y muestra sets del prototipo
 - [ ] no se rompe el flujo al cambiar entre builder, player e historial
+- [ ] una recarga inesperada ofrece restaurar la ultima sesion de show
 
 ### 3.3 Areas mas sensibles hoy
 
@@ -130,6 +131,7 @@ Cubren:
 - reinicio de sesion
 - recuperacion de estado
 - importacion de archivos o carpeta local sin romper el builder
+- restauracion de snapshot de show despues de recarga o cierre inesperado
 
 ---
 
@@ -185,6 +187,7 @@ Cuando se incorpore el runner de tests, los primeros casos deberian concentrarse
 - guardar set agrega entrada al historial
 - cambiar track actual actualiza el estado esperado
 - persistir contexto ligero del player sin reanudar playback automaticamente
+- restaurar snapshots de show sin reanudar playback automaticamente
 
 ### Audio hook
 

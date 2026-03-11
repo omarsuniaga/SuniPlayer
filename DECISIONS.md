@@ -48,5 +48,15 @@ Este log registra las decisiones críticas tomadas por los agentes para evitar r
 - En la etapa web actual, la reproduccion aplica esta transposicion mediante `playbackRate`, aceptando que pitch y tempo cambian juntos.
 - Una futura etapa de audio avanzado podra reemplazar este comportamiento por pitch shifting con preservacion de tempo.
 
+## [2026-03-11] ADR 006: Recovery de sesion para shows en PWA
+**Agente:** QA / Scenario Tester / State & Data Engineer
+**Contexto:** Una recarga inesperada en iPad durante un show no puede borrar la cola ni el contexto critico de reproduccion.
+**Decisión:**
+- SuniPlayer guarda snapshots de show en `IndexedDB` ademas de la persistencia ligera existente.
+- El snapshot incluye builder, player, history, metadata de library y settings relevantes para restaurar una sesion de escenario.
+- La restauracion vuelve siempre en pausa para evitar playback sorpresivo.
+- Los tracks importados localmente se restauran como metadata de sesion y se consideran candidatos a reconexion porque `blob_url` no es confiable despues de una recarga en iPad.
+- La app intenta solicitar `navigator.storage.persist()`, pero esa solicitud no elimina las limitaciones de iPadOS.
+
 ---
 *Fin del registro inicial.*

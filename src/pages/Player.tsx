@@ -82,16 +82,25 @@ export const Player: React.FC = () => {
     const qTot = sumTrackDurationMs(pQueue);
 
     const [currentWave, setCurrentWave] = useState<number[]>([]);
-    const [isLoadingWave, setIsLoadingWave] = useState(false);
+    const isLoadingWave = Boolean(ct) && currentWave.length === 0;
 
     useEffect(() => {
         if (!ct) return;
+
+        let cancelled = false;
         const url = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
-        setIsLoadingWave(true);
         getWaveformData(url)
-            .then(setCurrentWave)
-            .finally(() => setIsLoadingWave(false));
-    }, [ct?.id]);
+            .then((waveform) => {
+                if (!cancelled) {
+                    setCurrentWave(waveform);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+            setCurrentWave([]);
+        };
+    }, [ct]);
 
     // ── Handlers ──
     const seek = (e: React.MouseEvent<HTMLDivElement>) => {

@@ -103,6 +103,14 @@
 - Estimacion: 2 dias
 - Aceptacion: puedo configurar una cancion para tocarla en otro tono y el ajuste queda guardado
 
+### [DONE] T-017: Recovery de sesion para shows en PWA
+- Guardar snapshots de show en `IndexedDB`
+- Restaurar cola, contexto y configuracion tras recarga inesperada
+- Advertir cuando el audio local requiera reconexion en iPad
+- Prioridad: ALTA
+- Estimacion: 2 dias
+- Aceptacion: una recarga inesperada no borra silenciosamente la lista ni el contexto de show
+
 ### [TODO] T-012: Biblioteca musical con datos reales
 - Reemplazar dependencia excesiva de mocks
 - Cargar metadata minima real o semirreal
