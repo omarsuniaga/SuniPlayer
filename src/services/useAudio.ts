@@ -12,8 +12,8 @@
 import { useEffect, useRef } from "react";
 import { usePlayerStore } from "../store/usePlayerStore.ts";
 import { useSettingsStore } from "../store/useSettingsStore.ts";
-import { probeOne } from "./audioProbe";
-import { TRACKS } from "../data/constants";
+import { probeOne } from "./audioProbe.ts";
+import { TRACKS } from "../data/constants.ts";
 
 const AUDIO_BASE = "/audio/";
 const CROSSFADE_MS = 2000;   // crossfade duration
@@ -64,9 +64,13 @@ export function useAudio() {
 
         // Global probe: check first catalog track as representative.
         // Sets initial simulation state before the user presses Play.
-        probeOne(TRACKS[0].file_path).then(ok => setIsSimulating(!ok));
+        let mounted = true;
+        probeOne(TRACKS[0].file_path).then(ok => {
+            if (mounted) setIsSimulating(!ok);
+        });
 
         return () => {
+            mounted = false;
             audioRef.current?.pause();
             nextAudioRef.current?.pause();
         };
@@ -91,10 +95,13 @@ export function useAudio() {
 
         // Per-track probe: update simulation state for this specific track.
         // blob_url tracks are always real (user-imported); skip probe.
+        let probeActive = true;
         if (ct.blob_url) {
             setIsSimulating(false);
         } else {
-            probeOne(ct.file_path).then(ok => setIsSimulating(!ok));
+            probeOne(ct.file_path).then(ok => {
+                if (probeActive) setIsSimulating(!ok);
+            });
         }
 
         // blob_url for user-imported files, file_path for built-in catalog
@@ -108,7 +115,10 @@ export function useAudio() {
             setIsSimulating(false);
         };
         audio.addEventListener("canplay", onCanPlay, { once: true });
-        return () => audio.removeEventListener("canplay", onCanPlay);
+        return () => {
+            probeActive = false;
+            audio.removeEventListener("canplay", onCanPlay);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ci, ct?.id]);
 
