@@ -235,13 +235,69 @@ export function useAudio() {
     useEffect(() => {
         if (!ct) return;
         const semitones = ct.transposeSemitones ?? 0;
-        const tempo = ct.playbackTempo ?? 1.0;
+        const tempo     = ct.playbackTempo ?? 1.0;
+        const needsST   = semitones !== 0 || tempo !== 1.0;
 
         if (stShifterRef.current) {
-            stShifterRef.current.pitchSemitones = semitones;
-            stShifterRef.current.tempo = tempo;
+            if (needsST) {
+                // SoundTouch exists: update properties in-place
+                stShifterRef.current.pitchSemitones = semitones;
+                stShifterRef.current.tempo = tempo;
+            } else {
+                // Reverted to 0 semitones + 1.0 tempo: tear down SoundTouch, resume native audio
+                stShifterRef.current.off();
+                try { stShifterRef.current.disconnect(); } catch { /* noop */ }
+                stShifterRef.current = null;
+                stActiveRef.current = false;
+                if (audioRef.current) audioRef.current.volume = volRef.current;
+                if (stGainRef.current) stGainRef.current.gain.value = 0;
+            }
+        } else if (needsST) {
+            // SoundTouch not yet created but now needed — initialize mid-playback
+            const audioUrl = ct.blob_url ?? (AUDIO_BASE + encodeURIComponent(ct.file_path));
+
+            // Mute native audio immediately to prevent double-playback
+            if (audioRef.current) audioRef.current.volume = 0;
+
+            (async () => {
+                try {
+                    if (!stCtxRef.current) {
+                        const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+                        stCtxRef.current = new AudioCtxClass();
+                        stGainRef.current = stCtxRef.current.createGain();
+                        stGainRef.current.connect(stCtxRef.current.destination);
+                    }
+                    const ctx = stCtxRef.current!;
+                    const r = await fetch(audioUrl);
+                    const ab = await r.arrayBuffer();
+                    const buffer = await ctx.decodeAudioData(ab);
+
+                    const shifter = new PitchShifter(ctx, buffer, ST_BUFFER_SIZE);
+                    shifter.pitchSemitones = semitones;
+                    shifter.tempo = tempo;
+                    stShifterRef.current = shifter;
+                    stActiveRef.current = true;
+
+                    // Seek to current playback position
+                    if (audioRef.current && buffer.duration > 0) {
+                        shifter.percentagePlayed = audioRef.current.currentTime / buffer.duration;
+                    }
+
+                    // If currently playing, connect SoundTouch to the audio graph
+                    if (audioRef.current && !audioRef.current.paused && stGainRef.current) {
+                        stGainRef.current.gain.value = volRef.current;
+                        shifter.connect(stGainRef.current);
+                    }
+
+                    console.log(`[useAudio] SoundTouch re-initialized (reactive): ${semitones}st, ${tempo}x`);
+                } catch (err) {
+                    console.warn("[useAudio] Reactive SoundTouch init failed, restoring native audio:", err);
+                    if (audioRef.current) audioRef.current.volume = volRef.current;
+                    stActiveRef.current = false;
+                }
+            })();
         }
-    }, [ct]);
+    }, [ct?.transposeSemitones, ct?.playbackTempo, ct?.id]);
 
     // ── Preload next track ───────────────────────────────────────────────────
     useEffect(() => {
