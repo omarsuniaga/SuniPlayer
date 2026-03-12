@@ -191,7 +191,9 @@ export const BuilderRepertoirePanel: React.FC<BuilderRepertoirePanelProps> = ({
                         <div style={{ fontSize: 10, color: THEME.colors.brand.violet, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", padding: "10px 10px 4px" }}>
                             Mis archivos importados
                         </div>
-                        {customTracks.map((track) => (
+                        {customTracks
+                            .filter(ct => !filteredTracks.some(ft => ft.file_path === ct.file_path))
+                            .map((track) => (
                             <div key={track.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <TrackRow track={track} small idx={0} onAdd={onAddTrack} onEdit={onEditTrack} />

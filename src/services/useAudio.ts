@@ -9,8 +9,8 @@ import { usePlayerStore } from "../store/usePlayerStore.ts";
 import { useSettingsStore } from "../store/useSettingsStore.ts";
 import { useLibraryStore } from "../store/useLibraryStore.ts";
 import { probeOne } from "./audioProbe.ts";
-import { TRACKS } from "../data/constants.ts";
 import { PitchShifter } from "soundtouchjs";
+import { Track } from "../types.ts";
 
 const AUDIO_BASE = "/audio/";
 const TICK_MS = 250;
@@ -36,6 +36,7 @@ export function useAudio() {
     const fadeEnabled = useSettingsStore(s => s.fadeEnabled);
     const fadeInMs = useSettingsStore(s => s.fadeInMs);
     const fadeOutMs = useSettingsStore(s => s.fadeOutMs);
+    const autoGain = useSettingsStore(s => s.autoGain);
 
     // ── Stable refs (values that must survive effect teardown) ───────────────
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -54,6 +55,8 @@ export function useAudio() {
     const volRef = useRef(vol);
     const stackOrderRef = useRef(stackOrder);
     const pQueueRef = useRef(pQueue);
+    const pauseFadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const playFadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     ciRef.current = ci;
     pQueueLenRef.current = pQueue.length;
@@ -63,6 +66,7 @@ export function useAudio() {
     pQueueRef.current = pQueue;
 
     const isPausingRef = useRef(false);
+    const isResumingRef = useRef(false);
     const sessionTrackTimeRef = useRef(0);
     const hasIncrementedCountRef = useRef(false);
     const activeTrackIdRef = useRef<string | null>(null);
@@ -82,23 +86,6 @@ export function useAudio() {
     const nextTrackRef = useRef(nextTrack);
     nextTrackRef.current = nextTrack;
 
-    // ── Create audio elements ONCE ──────────────────────────────────────────
-    useEffect(() => {
-        audioRef.current = new Audio();
-        nextAudioRef.current = new Audio();
-
-        let mounted = true;
-        probeOne(TRACKS[0].file_path).then(ok => {
-            if (mounted) setIsSimulating(!ok);
-        });
-
-        return () => {
-            mounted = false;
-            audioRef.current?.pause();
-            nextAudioRef.current?.pause();
-        };
-    }, [setIsSimulating]);
-
     const fadeEnabledRef = useRef(fadeEnabled);
     const fadeInMsRef = useRef(fadeInMs);
     const fadeOutMsRef = useRef(fadeOutMs);
@@ -109,22 +96,24 @@ export function useAudio() {
     fadeOutMsRef.current = fadeOutMs;
     crossfadeRef.current = crossfade;
 
+    const autoGainRef = useRef(autoGain);
+    autoGainRef.current = autoGain;
+
     // ── Create audio elements ONCE ──────────────────────────────────────────
     useEffect(() => {
         audioRef.current = new Audio();
         nextAudioRef.current = new Audio();
 
-        let mounted = true;
-        probeOne(TRACKS[0].file_path).then(ok => {
-            if (mounted) setIsSimulating(!ok);
-        });
-
         return () => {
-            mounted = false;
             audioRef.current?.pause();
             nextAudioRef.current?.pause();
         };
-    }, [setIsSimulating]);
+    }, []);
+
+    const getEffectiveVol = (baseVol: number, track: Track | null) => {
+        if (!track || !autoGainRef.current || !track.gainOffset) return baseVol;
+        return Math.min(1.0, baseVol * Math.min(2.0, track.gainOffset));
+    };
 
     // ── Load + reset when track ID or index changes ──────────────────────────
     const trackId = ct?.id;
@@ -144,7 +133,7 @@ export function useAudio() {
         if (fadeEnabledRef.current && audio) {
             audio.volume = 0;
         } else {
-            audio.volume = volRef.current;
+            audio.volume = getEffectiveVol(volRef.current, ct);
         }
 
         if (crossTimerRef.current) {
@@ -169,7 +158,7 @@ export function useAudio() {
             });
         }
 
-        const audioUrl = ct.blob_url ?? (AUDIO_BASE + encodeURIComponent(ct.file_path));
+        const audioUrl = ct.blob_url ?? (AUDIO_BASE + encodeURI(ct.file_path));
         audio.src = audioUrl;
         audio.playbackRate = 1.0; // Always 1.0 — pitch/tempo is handled by SoundTouch
         const startOffset = (ct.startTime || 0);
@@ -254,7 +243,7 @@ export function useAudio() {
             }
         } else if (needsST) {
             // SoundTouch not yet created but now needed — initialize mid-playback
-            const audioUrl = ct.blob_url ?? (AUDIO_BASE + encodeURIComponent(ct.file_path));
+            const audioUrl = ct.blob_url ?? (AUDIO_BASE + encodeURI(ct.file_path));
 
             // Mute native audio immediately to prevent double-playback
             if (audioRef.current) audioRef.current.volume = 0;
@@ -303,7 +292,7 @@ export function useAudio() {
     useEffect(() => {
         const next = nextAudioRef.current;
         if (!next || !nextTrack) return;
-        next.src = nextTrack.blob_url ?? (AUDIO_BASE + encodeURIComponent(nextTrack.file_path));
+        next.src = nextTrack.blob_url ?? (AUDIO_BASE + encodeURI(nextTrack.file_path));
         next.volume = 0;
         next.playbackRate = 1.0; // Always 1.0
         next.load();
@@ -311,14 +300,15 @@ export function useAudio() {
 
     // ── Volume sync ──────────────────────────────────────────────────────────
     useEffect(() => {
+        const effVol = getEffectiveVol(vol, ct);
         if (stActiveRef.current && stGainRef.current) {
-            stGainRef.current.gain.value = vol;
+            stGainRef.current.gain.value = effVol;
         }
         if (audioRef.current) {
             // Mute native audio when SoundTouch is active
-            audioRef.current.volume = stActiveRef.current ? 0 : vol;
+            audioRef.current.volume = stActiveRef.current ? 0 : effVol;
         }
-    }, [vol]);
+    }, [vol, ct, autoGain]); // ct and autoGain added to trigger re-calc
 
     // ── Seek sync ────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -340,59 +330,128 @@ export function useAudio() {
         clearInterval(elapsedRef.current ?? undefined);
 
         if (!playing) {
-            // Disconnect SoundTouch on pause
-            if (stActiveRef.current && stShifterRef.current) {
-                try { stShifterRef.current.disconnect(); } catch { /* noop */ }
-            }
+            if (fadeEnabledRef.current && isReal.current && audio && !audio.paused) {
+                if (!isPausingRef.current) {
+                    isPausingRef.current = true;
+                    const duration = fadeOutMsRef.current;
+                    const steps = 15;
+                    const interval = duration / steps;
+                    let step = 0;
+                    const vBase = stActiveRef.current && stGainRef.current ? stGainRef.current.gain.value : audio.volume;
 
-            if (fadeEnabledRef.current && isReal.current && audio && !audio.paused && !isPausingRef.current) {
-                isPausingRef.current = true;
-                const duration = fadeOutMsRef.current;
-                const steps = 15;
-                const interval = duration / steps;
-                let step = 0;
-                const vBase = stActiveRef.current && stGainRef.current ? stGainRef.current.gain.value : audio.volume;
+                    if (pauseFadeRef.current) clearInterval(pauseFadeRef.current);
+                    pauseFadeRef.current = setInterval(() => {
+                        step++;
+                        const factor = 1 - (step / steps);
+                        const fadeVol = Math.max(0, vBase * Math.pow(factor, 2));
 
-                const pauseFade = setInterval(() => {
-                    step++;
-                    const factor = 1 - (step / steps);
-                    const fadeVol = Math.max(0, vBase * Math.pow(factor, 2));
+                        if (stActiveRef.current && stGainRef.current) {
+                            stGainRef.current.gain.value = fadeVol;
+                        } else {
+                            audio.volume = fadeVol;
+                        }
 
-                    if (stActiveRef.current && stGainRef.current) {
-                        stGainRef.current.gain.value = fadeVol;
-                    } else {
-                        audio.volume = fadeVol;
-                    }
-
-                    if (step >= steps || !isPausingRef.current) {
-                        clearInterval(pauseFade);
-                        audio.pause();
-                        isPausingRef.current = false;
-                    }
-                }, interval);
-                return;
+                        if (step >= steps || !isPausingRef.current) {
+                            clearInterval(pauseFadeRef.current!);
+                            pauseFadeRef.current = null;
+                            if (isPausingRef.current) {
+                                audio.pause();
+                                // Disconnect SoundTouch AFTER fade out
+                                if (stActiveRef.current && stShifterRef.current) {
+                                    try { stShifterRef.current.disconnect(); } catch { /* noop */ }
+                                }
+                            }
+                            isPausingRef.current = false;
+                        }
+                    }, interval);
+                }
+                return; // Exit here if we should be fading (even if already started)
             }
             
             isPausingRef.current = false;
             audio.pause();
+            if (stActiveRef.current && stShifterRef.current) {
+                try { stShifterRef.current.disconnect(); } catch { /* noop */ }
+            }
             return;
         }
 
+        // --- PLAYING = TRUE ---
+        if (pauseFadeRef.current) {
+            clearInterval(pauseFadeRef.current);
+            pauseFadeRef.current = null;
+        }
         isPausingRef.current = false;
-        if (audio.paused) {
-            // When SoundTouch is active, mute native audio and connect ST
-            if (stActiveRef.current) {
-                audio.volume = 0; // Mute native — ST handles output
-                if (stShifterRef.current && stGainRef.current) {
-                    stGainRef.current.gain.value = volRef.current;
-                    stShifterRef.current.connect(stGainRef.current);
+
+        // Resume AudioContext for mobile/safari/chrome
+        if (stCtxRef.current && stCtxRef.current.state === "suspended") {
+            stCtxRef.current.resume();
+        }
+
+        const targetVol = getEffectiveVol(volRef.current, ct);
+
+        // Implementation of Fade-In on Resume
+        if (fadeEnabledRef.current && isReal.current) {
+            if (!isResumingRef.current) {
+                if (playFadeRef.current) clearInterval(playFadeRef.current);
+                isResumingRef.current = true;
+
+                // Get current volume to start fade-in from where we are
+                let currentVol = 0;
+                if (stActiveRef.current && stGainRef.current) {
+                    currentVol = stGainRef.current.gain.value;
+                } else {
+                    currentVol = audio.volume;
                 }
-            } else {
-                if (!fadeEnabledRef.current || !isReal.current) {
-                    audio.volume = volRef.current;
-                }
+
+                // If we are starting from a fully stopped state or very low vol, make sure it's 0
+                if (audio.paused) currentVol = 0;
+
+                const duration = fadeInMsRef.current;
+                const steps = 15;
+                const interval = duration / steps;
+                let step = 0;
+
+                playFadeRef.current = setInterval(() => {
+                    step++;
+                    const t = step / steps;
+                    // Linear + Cubic mixed for smoother perception
+                    const factor = 1 - Math.pow(1 - t, 2);
+                    const fadeVol = currentVol + (targetVol - currentVol) * factor;
+
+                    if (stActiveRef.current && stGainRef.current) {
+                        stGainRef.current.gain.value = fadeVol;
+                        audio.volume = 0;
+                    } else {
+                        audio.volume = fadeVol;
+                    }
+
+                    if (step >= steps || !isResumingRef.current) {
+                        clearInterval(playFadeRef.current!);
+                        playFadeRef.current = null;
+                        isResumingRef.current = false;
+                    }
+                }, interval);
             }
-            audio.play().catch(() => {
+        } else {
+            // No fade enabled, just set volume immediately
+            isResumingRef.current = false;
+            if (stActiveRef.current && stGainRef.current) {
+                stGainRef.current.gain.value = targetVol;
+                audio.volume = 0;
+            } else {
+                audio.volume = targetVol;
+            }
+        }
+
+        // Always ensure SoundTouch is connected if it should be active
+        if (stActiveRef.current && stShifterRef.current && stGainRef.current) {
+            stShifterRef.current.connect(stGainRef.current);
+        }
+
+        if (audio.paused) {
+            audio.play().catch(err => {
+                console.error("[useAudio] Play failed", err);
                 isReal.current = false;
                 setIsSimulating(true);
             });
@@ -505,7 +564,7 @@ export function useAudio() {
                 posRef.current = posMs;
                 setPos(posMs);
 
-                if (fadeEnabledRef.current && !isPausingRef.current) {
+                if (fadeEnabledRef.current && !isPausingRef.current && !isResumingRef.current) {
                     const v = volRef.current;
                     const fIn = fadeInMsRef.current;
                     const fOut = fadeOutMsRef.current;
@@ -520,10 +579,10 @@ export function useAudio() {
                     }
 
                     if (stActiveRef.current && stGainRef.current) {
-                        stGainRef.current.gain.value = targetVol;
+                        stGainRef.current.gain.value = getEffectiveVol(targetVol, ct);
                         audio.volume = 0; // Keep native muted
                     } else {
-                        audio.volume = targetVol;
+                        audio.volume = getEffectiveVol(targetVol, ct);
                     }
                 }
 
@@ -576,6 +635,8 @@ export function useAudio() {
         return () => {
             clearInterval(simRef.current ?? undefined);
             clearInterval(elapsedRef.current ?? undefined);
+            if (pauseFadeRef.current) clearInterval(pauseFadeRef.current);
+            if (playFadeRef.current) clearInterval(playFadeRef.current);
         };
     }, [playing, ci, ct, trackId, setCi, setElapsed, setIsSimulating, setPlaying, setPos, setStackOrder]);
 

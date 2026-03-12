@@ -5,6 +5,7 @@ import { BuilderRepertoirePanel } from "../features/set-builder/ui/BuilderRepert
 import { useProjectStore } from "../store/useProjectStore";
 import { THEME } from "../data/theme.ts";
 import { TRACKS } from "../data/constants.ts";
+import { useLibraryStore } from "../store/useLibraryStore";
 import { TrackProfileModal } from "../components/common/TrackProfileModal.tsx";
 import { updateTrackMetadata } from "../store/useProjectStore.ts";
 import { Track } from "../types.ts";
@@ -42,14 +43,22 @@ export const Builder: React.FC = () => {
     };
     const onGenDragEnd = () => { dragIdx.current = null; setDropTarget(null); };
 
+    const trackOverrides = useLibraryStore(st => st.trackOverrides || {});
+
     const filtered = useMemo(() => {
-        return TRACKS.filter((t) => {
+        // Hydrate TRACKS with overrides
+        const hydratedTracks = TRACKS.map(t => ({
+            ...t,
+            ...(trackOverrides[t.id] || {})
+        }));
+
+        return hydratedTracks.filter((t) => {
             if (s.search && !t.title.toLowerCase().includes(s.search.toLowerCase()) && !t.artist.toLowerCase().includes(s.search.toLowerCase())) return false;
             if (s.fMood && t.mood !== s.fMood) return false;
             if (s.genSet.find((gs) => gs.id === t.id)) return false;
             return true;
         });
-    }, [s.search, s.fMood, s.genSet]);
+    }, [s.search, s.fMood, s.genSet, trackOverrides]);
 
     const addTrackToGeneratedSet = (track: typeof filtered[number]) => {
         s.setGenSet((previous) => [...previous, track]);
@@ -143,7 +152,7 @@ export const Builder: React.FC = () => {
                         flexDirection: "column",
                         gap: 2,
                     }}
-                    aria-label="Browse repertoire"
+                    title="Abrir panel de canciones y repertorio" aria-label="Browse repertoire"
                 >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                         <line x1="8" y1="6" x2="21" y2="6" />

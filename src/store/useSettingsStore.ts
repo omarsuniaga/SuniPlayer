@@ -15,10 +15,14 @@ interface SettingsState {
     setCrossfadeMs: (v: number) => void;
     crossExpanded: boolean;
     setCrossExpanded: (v: boolean) => void;
+    performanceMode: boolean;
+    setPerformanceMode: (v: boolean) => void;
 
     // Volume
     defaultVol: number;
     setDefaultVol: (v: number) => void;
+    autoGain: boolean;
+    setAutoGain: (v: boolean) => void;
 
     // Set builder filters
     bpmMin: number;
@@ -61,9 +65,14 @@ export const useSettingsStore = create<SettingsState>()(
             setCrossfadeMs: (crossfadeMs) => set({ crossfadeMs }),
             crossExpanded: true,
             setCrossExpanded: (crossExpanded) => set({ crossExpanded }),
+            performanceMode: false,
+            setPerformanceMode: (performanceMode) => set({ performanceMode }),
 
             defaultVol: 0.85,
             setDefaultVol: (defaultVol) => set({ defaultVol }),
+
+            autoGain: true,
+            setAutoGain: (autoGain) => set({ autoGain }),
 
             bpmMin: 55,
             setBpmMin: (bpmMin) => set({ bpmMin }),
@@ -103,11 +112,13 @@ export const useSettingsStore = create<SettingsState>()(
                 crossfade: state.crossfade,
                 crossExpanded: state.crossExpanded,
                 crossfadeMs: state.crossfadeMs,
+                performanceMode: state.performanceMode,
                 defaultVol: state.defaultVol,
                 fadeEnabled: state.fadeEnabled,
                 fadeExpanded: state.fadeExpanded,
                 fadeInMs: state.fadeInMs,
                 fadeOutMs: state.fadeOutMs,
+                autoGain: state.autoGain,
                 splMeterEnabled: state.splMeterEnabled,
                 splMeterTarget: state.splMeterTarget,
                 splMeterExpanded: state.splMeterExpanded,

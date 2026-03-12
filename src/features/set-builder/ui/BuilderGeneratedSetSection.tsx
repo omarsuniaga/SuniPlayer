@@ -56,6 +56,7 @@ export const BuilderGeneratedSetSection: React.FC<BuilderGeneratedSetSectionProp
                 <div className="header-actions" style={{ display: "flex", gap: 8 }}>
                     <button
                         onClick={onSave}
+                        title="Guardar este set en tu historial personal"
                         style={{
                             padding: "6px 12px",
                             borderRadius: THEME.radius.sm,
@@ -71,6 +72,7 @@ export const BuilderGeneratedSetSection: React.FC<BuilderGeneratedSetSectionProp
                     </button>
                     <button
                         onClick={onSendToPlayer}
+                        title="Enviar todas estas canciones al Reproductor para tocarlas ahora"
                         style={{
                             padding: "6px 14px",
                             borderRadius: THEME.radius.sm,

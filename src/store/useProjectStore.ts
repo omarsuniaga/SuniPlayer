@@ -132,9 +132,25 @@ export interface ProjectState {
     toPlayer: () => void;
     appendToQueue: (tracks: Track[]) => void;
     saveSet: () => void;
+    resetApp: () => void;
 }
 
 // ── Cross-domain actions (module-level, use .getState() — no hooks needed) ─
+
+/** Reset all stores to defaults and clear local storage */
+export function resetApp() {
+    if (!confirm("¿Estás seguro de que deseas reiniciar la aplicación? Se borrarán todos los sets generados, el historial y las canciones importadas.")) return;
+    
+    // Clear persistences manually if needed, but setState handles the runtime
+    useBuilderStore.setState({ genSet: [], targetMin: 45, curve: "steady", venue: "lobby" });
+    usePlayerStore.setState({ pQueue: [], ci: 0, playing: false, elapsed: 0, stackOrder: [] });
+    useLibraryStore.setState({ customTracks: [], trackOverrides: {} });
+    useHistoryStore.setState({ history: [] });
+    
+    localStorage.clear();
+    // Force reload to ensure everything is fresh
+    window.location.reload();
+}
 
 /** Update notes on a track in both pQueue and genSet */
 export function setTrackNotes(trackId: string, notes: string) {
@@ -379,6 +395,7 @@ export function useProjectStore<T = ProjectState>(
         toPlayer,
         appendToQueue,
         saveSet,
+        resetApp,
     };
 
     return selector ? selector(combined) : combined;

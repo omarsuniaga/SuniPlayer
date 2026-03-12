@@ -11,14 +11,26 @@ export interface AnalysisResults {
     bpm: number;
     key: string;
     energy: number;
+    waveform: number[];
+    gainOffset: number; // New: Recommended gain multiplier for normalization
 }
 
+/**
+ * High-level analysis function
+ */
 export async function analyzeAudio(buffer: AudioBuffer): Promise<AnalysisResults> {
-    const energy = calculateAdvancedEnergy(buffer);
+    const rawRms = calculateRawRMS(buffer);
+    
+    // Target RMS for normalization is ~0.15 (standardized loudness)
+    const targetRms = 0.15;
+    const gainOffset = targetRms / Math.max(0.01, rawRms);
+
+    const energy = Math.min(1, Math.max(0.1, (rawRms - 0.05) / 0.2));
     const bpm = detectAdvancedBPM(buffer);
     const key = detectAdvancedKey(buffer);
+    const waveform = generateWaveform(buffer, 100);
 
-    return { bpm, key, energy };
+    return { bpm, key, energy, waveform, gainOffset };
 }
 
 /**
@@ -141,19 +153,39 @@ function detectAdvancedKey(buffer: AudioBuffer): string {
 }
 
 /**
- * Energy Calculation: Calibrated RMS
+ * Calculate RAW RMS for loudness calibration
  */
-function calculateAdvancedEnergy(buffer: AudioBuffer): number {
+function calculateRawRMS(buffer: AudioBuffer): number {
     const data = buffer.getChannelData(0);
     let sumSq = 0;
-    const step = 4; // High resolution sampling
+    const step = 8; // Faster sampling for long tracks
     for (let i = 0; i < data.length; i += step) {
         sumSq += data[i] * data[i];
     }
-    const rms = Math.sqrt(sumSq / (data.length / step));
+    return Math.sqrt(sumSq / (data.length / step));
+}
 
-    // Dynamic mapping from RMS to 0.1 - 1.0 range
-    // 0.05 is very quiet, 0.25 is loud mastering
-    const energy = (rms - 0.05) / 0.2;
-    return Math.min(1, Math.max(0.1, energy));
+/**
+ * Generate a simplified waveform (envelope)
+ * @param buffer The AudioBuffer to analyze
+ * @param points Number of points in the output array
+ */
+function generateWaveform(buffer: AudioBuffer, points: number): number[] {
+    const data = buffer.getChannelData(0);
+    const step = Math.floor(data.length / points);
+    const result: number[] = [];
+
+    for (let i = 0; i < points; i++) {
+        let max = 0;
+        const start = i * step;
+        const end = start + step;
+        for (let j = start; j < end; j++) {
+            const val = Math.abs(data[j]);
+            if (val > max) max = val;
+        }
+        // Normalize slightly and ensure it's not totally flat
+        result.push(Math.min(1, max * 1.2));
+    }
+
+    return result;
 }

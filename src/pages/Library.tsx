@@ -7,13 +7,31 @@ import { useProjectStore } from "../store/useProjectStore";
 import { TrackTrimmer } from "../components/common/TrackTrimmer";
 import { TrackProfileModal } from "../components/common/TrackProfileModal";
 import { Track } from "../types";
+import { TRACKS } from "../data/constants.ts";
+import { probeOne } from "../services/audioProbe.ts";
 
 export const Library: React.FC = () => {
-    const { customTracks, selectedFolderName, clearCustomTracks } = useLibraryStore();
+    const { customTracks, selectedFolderName, clearCustomTracks, trackOverrides } = useLibraryStore();
     const [importOpen, setImportOpen] = useState(customTracks.length === 0);
     const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const { appendToQueue, updateTrackMetadata, setTrackTrim } = useProjectStore();
+
+    // Auto-probe catalog tracks on mount
+    React.useEffect(() => {
+        TRACKS.forEach(t => {
+            const url = `/audio/${encodeURIComponent(t.file_path)}`;
+            probeOne(url).then(analysis => {
+                if (analysis) {
+                    // Update overrides in library store to show waveform/BPM in UI
+                    useLibraryStore.getState().updateTrack(t.id, {
+                        ...analysis,
+                        analysis_cached: true
+                    });
+                }
+            });
+        });
+    }, []);
 
     return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "32px", overflowY: "auto", gap: 24 }}>
@@ -30,6 +48,7 @@ export const Library: React.FC = () => {
                     {customTracks.length > 0 && (
                         <button
                             onClick={clearCustomTracks}
+                            title="Borrar todas las canciones importadas manualmente"
                             style={{
                                 padding: "10px 16px",
                                 borderRadius: THEME.radius.md,
@@ -46,6 +65,7 @@ export const Library: React.FC = () => {
                     )}
                     <button
                         onClick={() => setImportOpen(!importOpen)}
+                        title={importOpen ? "Ocultar panel de importación" : "Abrir panel para añadir archivos locales o carpetas"}
                         style={{
                             padding: "10px 20px",
                             borderRadius: THEME.radius.md,
@@ -78,52 +98,105 @@ export const Library: React.FC = () => {
 
             {/* Tracks List */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {/* Catalog Tracks (public/audio) */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 8px", marginTop: 12 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Catálogo Local (public/audio)</h2>
+                    <span style={{ fontSize: 12, color: THEME.colors.text.muted, fontFamily: THEME.fonts.mono }}>
+                        {TRACKS.length} pistas
+                    </span>
+                </div>
+
+                {TRACKS.length > 0 ? (
+                    <div style={{ 
+                        display: "grid", 
+                        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", 
+                        gap: 12 
+                    }}>
+                        {TRACKS.map((rawTrack) => {
+                            // Apply overrides from store (BPM, Key, Waveform, etc.)
+                            const override = trackOverrides[rawTrack.id] || {};
+                            const track = { ...rawTrack, ...override };
+                            
+                            // Use a unique key for the div to avoid React warnings during ID migrations
+                            const reactKey = `lib-row-${track.id}`;
+                            
+                            return (
+                                <div key={reactKey} style={{ 
+                                    backgroundColor: THEME.colors.panel, 
+                                    borderRadius: THEME.radius.lg,
+                                    border: `1px solid ${THEME.colors.border}`,
+                                    padding: 12,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 12,
+                                    transition: "all 0.2s",
+                                }}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.borderColor = THEME.colors.brand.cyan + "50";
+                                    e.currentTarget.style.transform = "translateY(-2px)";
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.borderColor = THEME.colors.border;
+                                    e.currentTarget.style.transform = "translateY(0)";
+                                }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <TrackRow 
+                                            track={track} 
+                                            small 
+                                            idx={0} 
+                                            onEdit={() => setProfileTrack(track)}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => appendToQueue([track])}
+                                        title="Añadir a la cola del reproductor (flecha morada: no interrumpe lo que suena)"
+                                        style={{
+                                            width: 36, height: 36,
+                                            borderRadius: THEME.radius.md,
+                                            border: "none",
+                                            backgroundColor: `${THEME.colors.brand.violet}15`,
+                                            color: THEME.colors.brand.violet,
+                                            cursor: "pointer",
+                                            display: "flex", alignItems: "center", justifyContent: "center"
+                                        }}
+                                    >
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M12 5v14M5 12l7 7 7-7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div style={{ padding: 20, textAlign: "center", color: THEME.colors.text.muted, fontSize: 14 }}>
+                        No se encontraron canciones en public/audio.
+                    </div>
+                )}
+
+                {/* Custom Tracks Separator */}
+                <div style={{ height: 1, backgroundColor: THEME.colors.border, margin: "12px 0" }} />
+
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 8px" }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Archivos Reconocidos ({customTracks.length})</h2>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Archivos Importados ({customTracks.length})</h2>
                     {customTracks.some(t => !t.blob_url) && (
                         <span style={{ fontSize: 12, color: THEME.colors.status.warning, fontWeight: 600 }}>
-                            ⚠️ Algunos archivos necesitan re-conexión
+                            ⚠️ Necesitan re-conexión
                         </span>
                     )}
                 </div>
 
                 {customTracks.length === 0 ? (
                     <div style={{ 
-                        padding: "80px 20px", 
+                        padding: "40px 20px", 
                         textAlign: "center", 
-                        backgroundColor: "rgba(255,255,255,0.02)", 
+                        backgroundColor: "rgba(255,255,255,0.01)", 
                         borderRadius: THEME.radius.xl,
                         border: `1px dashed ${THEME.colors.border}`
                     }}>
-                        <div style={{ 
-                            width: 64, height: 64, borderRadius: "50%", 
-                            backgroundColor: "rgba(255,255,255,0.03)", 
-                            margin: "0 auto 20px",
-                            display: "flex", alignItems: "center", justifyContent: "center"
-                        }}>
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.text.muted} strokeWidth="1.5">
-                                <path d="M9 18V5l12-2v13M9 10L21 8M6 15a3 3 0 100 6 3 3 0 000-6zm12-2a3 3 0 100 6 3 3 0 000-6z" />
-                            </svg>
-                        </div>
-                        <h3 style={{ margin: "0 0 8px", fontSize: 18 }}>Tu biblioteca está vacía</h3>
-                        <p style={{ color: THEME.colors.text.muted, fontSize: 14, maxWidth: 400, margin: "0 auto 24px", lineHeight: 1.6 }}>
-                            Escoge una carpeta de tu dispositivo para que SuniPlayer reconozca tus canciones automáticamente.
+                        <p style={{ color: THEME.colors.text.muted, fontSize: 13, margin: 0 }}>
+                            No hay archivos importados manualmente.
                         </p>
-                        <button
-                            onClick={() => setImportOpen(true)}
-                            style={{
-                                padding: "12px 24px",
-                                borderRadius: THEME.radius.md,
-                                border: `1px solid ${THEME.colors.brand.cyan}`,
-                                background: `${THEME.colors.brand.cyan}10`,
-                                color: THEME.colors.brand.cyan,
-                                cursor: "pointer",
-                                fontSize: 14,
-                                fontWeight: 700,
-                            }}
-                        >
-                            Seleccionar Carpeta del Dispositivo
-                        </button>
                     </div>
                 ) : (
                     <div style={{ 
@@ -140,7 +213,7 @@ export const Library: React.FC = () => {
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 12,
-                                transition: "transform 0.2s, border-color 0.2s",
+                                transition: "all 0.2s",
                             }}
                             onMouseEnter={e => {
                                 e.currentTarget.style.borderColor = THEME.colors.brand.violet + "50";
@@ -161,6 +234,7 @@ export const Library: React.FC = () => {
                                 </div>
                                 <button
                                     onClick={() => appendToQueue([track])}
+                                    title="Añadir a la cola del reproductor (flecha morada: no interrumpe lo que suena)"
                                     style={{
                                         width: 36, height: 36,
                                         borderRadius: THEME.radius.md,

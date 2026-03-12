@@ -16,6 +16,32 @@ interface TrackRowProps {
     small?: boolean;
 }
 
+const MiniWaveform: React.FC<{ waveform?: number[], color: string }> = ({ waveform, color }) => {
+    if (!waveform || waveform.length === 0) return (
+        <div style={{ width: 44, height: 16, backgroundColor: "rgba(255,255,255,0.03)", borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+             <div style={{ width: "60%", height: 1, backgroundColor: "rgba(255,255,255,0.1)" }}></div>
+        </div>
+    );
+    
+    // Show only 20 bars for the mini view
+    const step = Math.max(1, Math.floor(waveform.length / 20));
+    const bars = waveform.filter((_, i) => i % step === 0).slice(0, 20);
+
+    return (
+        <div style={{ display: "flex", alignItems: "center", gap: 1, height: 12, width: 44, flexShrink: 0 }}>
+            {bars.map((h, i) => (
+                <div key={i} style={{
+                    flex: 1,
+                    height: `${Math.max(20, h * 100)}%`,
+                    backgroundColor: color,
+                    opacity: 0.3 + (h * 0.7),
+                    borderRadius: 1
+                }} />
+            ))}
+        </div>
+    );
+};
+
 export const TrackRow: React.FC<TrackRowProps> = ({
     track,
     idx,
@@ -28,6 +54,45 @@ export const TrackRow: React.FC<TrackRowProps> = ({
     onEdit,
     small,
 }) => {
+    const [touchStartX, setTouchStartX] = React.useState<number | null>(null);
+    const [touchEndX, setTouchEndX] = React.useState<number | null>(null);
+    const [swipeOffset, setSwipeOffset] = React.useState(0);
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchStartX(e.targetTouches[0].clientX);
+        setTouchEndX(null);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        const currentX = e.targetTouches[0].clientX;
+        setTouchEndX(currentX);
+        if (touchStartX !== null) {
+            const offset = currentX - touchStartX;
+            // Dampen the offset to show visual feedback without moving too much
+            setSwipeOffset(offset / 2);
+        }
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStartX || !touchEndX) {
+            setSwipeOffset(0);
+            return;
+        }
+        
+        const distance = touchStartX - touchEndX;
+        const isLeftSwipe = distance > 70;
+        const isRightSwipe = distance < -70;
+
+        if (isRightSwipe && onAdd) {
+            onAdd(track);
+        } else if (isLeftSwipe && onEdit) {
+            onEdit(track);
+        }
+        
+        setSwipeOffset(0);
+        setTouchStartX(null);
+        setTouchEndX(null);
+    };
     return (
         <div
             onClick={onClick}
@@ -41,12 +106,17 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                 cursor: onClick ? "pointer" : "default",
                 backgroundColor: active ? `${THEME.colors.brand.cyan}15` : "transparent",
                 borderLeft: active ? `3px solid ${THEME.colors.brand.cyan}` : "3px solid transparent",
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: swipeOffset === 0 ? "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)" : "none",
+                transform: `translateX(${swipeOffset}px)`,
                 fontFamily: THEME.fonts.main,
                 position: "relative",
                 overflow: "hidden",
                 minWidth: 0,
+                touchAction: "pan-y", // Allow vertical scrolling, intercept horizontal
             }}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
             onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                 const target = e.currentTarget as HTMLDivElement;
                 if (!active) target.style.backgroundColor = THEME.colors.surfaceHover;
@@ -69,6 +139,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                     .track-actions { gap: 2px; margin-left: 4px; }
                     .action-btn { width: 24px !important; height: 24px !important; }
                     .action-btn svg { width: 12px !important; height: 12px !important; }
+                    .mini-waveform { display: none !important; }
                 }
             `}</style>
             
@@ -105,6 +176,24 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                 <div style={{ fontSize: 11, color: THEME.colors.text.muted, marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {track.artist}
                 </div>
+                {swipeOffset !== 0 && (
+                    <div style={{ 
+                        position: "absolute", 
+                        inset: 0, 
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: swipeOffset > 0 ? "flex-start" : "flex-end",
+                        padding: "0 20px",
+                        background: swipeOffset > 0 ? THEME.colors.brand.cyan + "40" : THEME.colors.brand.violet + "40",
+                        pointerEvents: "none",
+                        color: "white",
+                        fontSize: 10,
+                        fontWeight: 900,
+                        zIndex: 10
+                    }}>
+                        {swipeOffset > 0 ? "ADD TO QUEUE →" : "← VIEW PROFILE"}
+                    </div>
+                )}
                 {(track.playCount || 0) > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
                         <span style={{ 
@@ -166,6 +255,13 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                             backgroundColor: ec(track.energy),
                             borderRadius: 2,
                         }}
+                    />
+                </div>
+
+                <div className="mini-waveform">
+                    <MiniWaveform 
+                        waveform={track.waveform} 
+                        color={active ? "white" : THEME.colors.brand.cyan} 
                     />
                 </div>
 
@@ -257,13 +353,14 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                     </button>
                 )}
                 {onAdd && (
-                    <button
-                        className="action-btn"
-                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                            e.stopPropagation();
-                            onAdd(track);
-                        }}
-                        style={{
+                        <button
+                            className="action-btn"
+                            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                                e.stopPropagation();
+                                onAdd(track);
+                            }}
+                            title="Añadir al setlist"
+                            style={{
                             background: THEME.colors.surfaceHover,
                             border: `1px solid ${THEME.colors.border}`,
                             borderRadius: THEME.radius.sm,
@@ -327,4 +424,3 @@ export const TrackRow: React.FC<TrackRowProps> = ({
         </div>
     );
 };
-

@@ -1,6 +1,4 @@
-/**
- * waveformService — Analyze audio files to generate visual waveform data
- */
+import { audioCache } from "./db";
 
 const CACHE = new Map<string, number[]>();
 
@@ -12,7 +10,11 @@ interface AudioWindow extends Window {
  * Generates an array of normalized amplitude values (0-1) for an audio file.
  * USAGE: Call this when a track is loaded to get real frequency data.
  */
-export async function getWaveformData(url: string, samples = 100): Promise<number[]> {
+export async function getWaveformData(url: string, trackId?: string, samples = 100): Promise<number[]> {
+    if (trackId) {
+        const cached = await audioCache.getWaveform(trackId);
+        if (cached) return cached;
+    }
     if (CACHE.has(url)) return CACHE.get(url)!;
 
     let audioContext: AudioContext | null = null;
@@ -53,6 +55,9 @@ export async function getWaveformData(url: string, samples = 100): Promise<numbe
         const max = Math.max(...filteredData, 0.0001);
         const normalized = filteredData.map(v => (v / max) * 0.9 + 0.1); // min 0.1 height
 
+        if (trackId) {
+            await audioCache.saveWaveform(trackId, normalized);
+        }
         CACHE.set(url, normalized);
         return normalized;
     } catch (e) {

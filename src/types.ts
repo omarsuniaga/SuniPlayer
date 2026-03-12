@@ -23,6 +23,8 @@ export interface Track {
     playCount?: number;
     totalPlayTimeMs?: number;
     lastPlayedAt?: string;
+    waveform?: number[]; // simplified audio envelope for UI
+    gainOffset?: number; // normalization gain multiplier
 }
 
 export interface Venue {

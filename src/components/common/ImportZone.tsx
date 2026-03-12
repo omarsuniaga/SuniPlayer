@@ -61,6 +61,7 @@ interface PendingTrack {
     duration_ms: number;
     blobUrl: string;
     fileName: string;
+    waveform?: number[];
 }
 
 // ── Shared micro-styles ───────────────────────────────────────────────────────
@@ -250,40 +251,48 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
         setProcessing(true);
         const tracks: PendingTrack[] = [];
 
-        for (const { file, relativePath } of arr) {
-            const blobUrl = URL.createObjectURL(file);
-            const { title, artist } = parseTrackName(file.name);
-            const duration_ms = await readDuration(file);
-            
-            let autoBpm = 120;
-            let autoKey = "C";
-            let autoEnergy = 0.6;
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const audioCtx = new AudioContextClass();
 
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-                const audioCtx = new AudioContextClass();
-                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                const analysis = await analyzeAudio(audioBuffer);
-                autoBpm = analysis.bpm;
-                autoKey = analysis.key;
-                autoEnergy = analysis.energy;
-            } catch (e) {
-                console.error("Auto analysis failed for", file.name, e);
+        try {
+            for (const { file, relativePath } of arr) {
+                const blobUrl = URL.createObjectURL(file);
+                const { title, artist } = parseTrackName(file.name);
+                const duration_ms = await readDuration(file);
+                
+                let autoBpm = 120;
+                let autoKey = "C";
+                let autoEnergy = 0.6;
+                let waveform: number[] | undefined = undefined;
+
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                    const analysis = await analyzeAudio(audioBuffer);
+                    autoBpm = analysis.bpm;
+                    autoKey = analysis.key;
+                    autoEnergy = analysis.energy;
+                    waveform = analysis.waveform;
+                } catch (e) {
+                    console.error("Auto analysis failed for", file.name, e);
+                }
+
+                tracks.push({
+                    id: `custom_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+                    title,
+                    artist,
+                    bpm: autoBpm,
+                    energy: autoEnergy,
+                    mood: autoEnergy > 0.7 ? "energetic" : autoEnergy > 0.4 ? "happy" : "calm",
+                    key: autoKey,
+                    duration_ms,
+                    blobUrl,
+                    fileName: getRelativeAudioPath(file, relativePath),
+                    waveform,
+                });
             }
-
-            tracks.push({
-                id: `custom_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-                title,
-                artist,
-                bpm: autoBpm,
-                energy: autoEnergy,
-                mood: autoEnergy > 0.7 ? "energetic" : autoEnergy > 0.4 ? "happy" : "calm",
-                key: autoKey,
-                duration_ms,
-                blobUrl,
-                fileName: getRelativeAudioPath(file, relativePath),
-            });
+        } finally {
+            try { await audioCtx.close(); } catch (e) { console.error(e); }
         }
 
         setProcessing(false);
@@ -364,6 +373,7 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
             analysis_cached: true,
             blob_url:        p.blobUrl,
             isCustom:        true,
+            waveform:        p.waveform,
         }));
 
         newTracks.forEach(t => addCustomTrack(t));

@@ -23,7 +23,7 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
 
     useEffect(() => {
         const url = track.blob_url ?? `/audio/${encodeURIComponent(track.file_path)}`;
-        getWaveformData(url, 200).then(data => {
+        getWaveformData(url, track.id, 200).then(data => {
             setWaveData(data);
         });
 
@@ -290,10 +290,12 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
                 .trim-slider.start::-webkit-slider-thumb {
                     background: ${THEME.colors.brand.cyan};
                     border: 3px solid white;
+                    z-index: 10;
                 }
                 .trim-slider.end::-webkit-slider-thumb {
                     background: ${THEME.colors.brand.cyan};
                     border: 3px solid white;
+                    z-index: 10;
                 }
             `}</style>
         </div>

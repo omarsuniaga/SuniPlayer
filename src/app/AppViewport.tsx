@@ -19,6 +19,14 @@ export const AppViewport: React.FC = () => {
     const ActiveView = viewMap[view] ?? Builder;
 
     useAudio();
+    
+    // Background analysis check
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            import("../services/backgroundAnalysis").then(m => m.runBackgroundAnalysis());
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 }}>

@@ -96,23 +96,27 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     };
 
     const handleAutoAnalyze = async () => {
-        const url = track.blob_url ?? (track.file_path ? `/audio/${encodeURIComponent(track.file_path)}` : null);
+        let url = track.blob_url;
+        if (!url && track.file_path) {
+            url = `/audio/${encodeURI(track.file_path)}`;
+        }
         
         if (!url) {
             alert("No se puede analizar: El archivo no tiene una ruta válida.");
             return;
         }
 
+        let audioCtx: AudioContext | null = null;
         try {
             setIsAnalyzing(true);
             const response = await fetch(url);
-            if (!response.ok) throw new Error("Fetch failed");
+            if (!response.ok) throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
             
             const arrayBuffer = await response.arrayBuffer();
             const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-            const audioCtx = new AudioContextClass();
-            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            audioCtx = new AudioContextClass();
             
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
             const results = await analyzeAudio(audioBuffer);
             
             setEdit(prev => ({
@@ -123,14 +127,19 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                 transposeSemitones: getTransposeSemitones(results.key, prev.targetKey || results.key),
                 energy: results.energy,
                 mood: results.energy > 0.7 ? "energetic" : results.energy > 0.4 ? "happy" : "calm",
+                waveform: results.waveform, // Ensure waveform is also saved!
                 analysis_cached: true
             }));
+            
             console.log("Analysis results:", results);
         } catch (err) {
             console.error("Analysis failed:", err);
-            alert("Error al analizar el audio.");
+            alert(`Error al analizar el audio: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsAnalyzing(false);
+            if (audioCtx) {
+                try { await audioCtx.close(); } catch (e) { console.error(e); }
+            }
         }
     };
 

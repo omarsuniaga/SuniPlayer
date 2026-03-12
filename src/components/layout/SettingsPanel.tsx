@@ -114,6 +114,7 @@ export const SettingsPanel: React.FC = () => {
     const setSplMeterEnabled = useProjectStore(s => s.setSplMeterEnabled);
     const splMeterTarget = useProjectStore(s => s.splMeterTarget);
     const setSplMeterTarget = useProjectStore(s => s.setSplMeterTarget);
+    const resetApp = useProjectStore(s => s.resetApp);
 
     if (!showSettings) return null;
 
@@ -381,6 +382,45 @@ export const SettingsPanel: React.FC = () => {
                                 <span style={{ fontSize: 13, fontFamily: THEME.fonts.mono, color: THEME.colors.text.secondary }}>{v}</span>
                             </div>
                         ))}
+                    </div>
+
+                    {/* ── System ── */}
+                    <Section title="Sistema" icon={
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                    } />
+
+                    <div style={{ padding: "8px 0" }}>
+                        <button
+                            onClick={resetApp}
+                            style={{
+                                width: "100%",
+                                padding: "12px",
+                                borderRadius: THEME.radius.md,
+                                border: `1px solid ${THEME.colors.status.error}60`,
+                                backgroundColor: `${THEME.colors.status.error}10`,
+                                color: THEME.colors.status.error,
+                                fontSize: 13,
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                transition: "all 0.2s",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 8,
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = `${THEME.colors.status.error}20`}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = `${THEME.colors.status.error}10`}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Reiniciar aplicación y limpiar caché
+                        </button>
+                        <p style={{ fontSize: 11, color: THEME.colors.text.muted, marginTop: 8, textAlign: "center", lineHeight: 1.4 }}>
+                            Borra datos locales (historial, sets, canciones importadas) y fuerza una recarga limpia.
+                        </p>
                     </div>
                 </div>
             </div>
