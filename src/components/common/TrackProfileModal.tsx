@@ -7,6 +7,7 @@ import { useLibraryStore } from "../../store/useLibraryStore.ts";
 import { analyzeAudio } from "../../services/analysisService.ts";
 import { saveAsset, deleteAsset } from "../../services/assetStorage.ts";
 import { KEY_OPTIONS, buildTargetKey, describeTranspose, getTransposeSemitones, parseMusicalKey } from "../../features/library/lib/transpose";
+import { getPitchEngine } from "../../services/pitchEngine";
 
 interface TrackProfileModalProps {
     track: Track;
@@ -22,18 +23,59 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     const [showTrimmer, setShowTrimmer] = useState(false);
     const [activeTab, setActiveTab] = useState<"info" | "notes" | "audio" | "sheet">("info");
     const [isUploadingSheet, setIsUploadingSheet] = useState(false);
+    const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+    const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
     const sourceKey = edit.key || track.key || "";
     const targetKey = edit.targetKey || sourceKey;
     const parsedSourceKey = parseMusicalKey(sourceKey);
     const transposeSemitones = getTransposeSemitones(sourceKey, targetKey);
+    const playbackTempo = edit.playbackTempo ?? 1.0;
 
     const handleSave = () => {
+        getPitchEngine().stop();
         onSave({
             ...edit,
             targetKey,
             transposeSemitones,
+            playbackTempo,
         });
+    };
+
+    const handlePreview = async () => {
+        if (isPreviewPlaying) return;
+        const engine = getPitchEngine();
+        setIsLoadingPreview(true);
+        try {
+            const ok = await engine.loadFromPath(track.file_path, track.blob_url ?? undefined);
+            if (!ok) throw new Error("Failed to load audio");
+            engine.pitchSemitones = transposeSemitones;
+            engine.tempo = playbackTempo;
+            engine.onTimeUpdate((currentTimeSec: number, _percent: number) => {
+                // Auto-stop after 30 seconds of preview
+                if (currentTimeSec >= 30) {
+                    engine.stop();
+                    setIsPreviewPlaying(false);
+                }
+            });
+            engine.play();
+            setIsPreviewPlaying(true);
+        } catch (err) {
+            console.warn("[TrackProfileModal] Preview failed:", err);
+        } finally {
+            setIsLoadingPreview(false);
+        }
+    };
+
+    const handleStopPreview = () => {
+        getPitchEngine().stop();
+        setIsPreviewPlaying(false);
+    };
+
+    const handleCancel = () => {
+        getPitchEngine().stop();
+        setIsPreviewPlaying(false);
+        onCancel();
     };
 
     const toggleTag = (tag: string) => {
@@ -170,7 +212,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                             <h3 style={{ margin: "4px 0 0", fontSize: 24, fontWeight: 800, color: "white", letterSpacing: "-0.02em" }}>{edit.title}</h3>
                             <p style={{ margin: "2px 0 0", fontSize: 14, color: THEME.colors.text.muted }}>{edit.artist}</p>
                         </div>
-                        <button onClick={onCancel} style={{ background: "none", border: "none", color: THEME.colors.text.dim, cursor: "pointer", padding: 4 }}>
+                        <button onClick={handleCancel} style={{ background: "none", border: "none", color: THEME.colors.text.dim, cursor: "pointer", padding: 4 }}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                         </button>
                     </div>
@@ -304,11 +346,12 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                         <label style={{ ...labelStyle, marginBottom: 0 }}>Velocidad (Tempo)</label>
                                         <span style={{ fontSize: 11, fontWeight: 800, color: THEME.colors.brand.cyan }}>{Math.round(((edit.playbackTempo || 1.0) - 1.0) * 100)}%</span>
                                     </div>
-                                    <input 
-                                        type="range" min={0.8} max={1.2} step={0.01} 
-                                        value={edit.playbackTempo || 1.0} 
+                                    <input
+                                        type="range" min={0.8} max={1.2} step={0.01}
+                                        aria-label="Velocidad (Tempo)"
+                                        value={edit.playbackTempo || 1.0}
                                         onChange={e => setEdit({ ...edit, playbackTempo: parseFloat(e.target.value) })}
-                                        style={{ width: "100%", accentColor: THEME.colors.brand.cyan }} 
+                                        style={{ width: "100%", accentColor: THEME.colors.brand.cyan }}
                                     />
                                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: THEME.colors.text.dim }}>
                                         <span>-20% lento</span>
@@ -321,6 +364,80 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                     {parsedSourceKey
                                         ? <>Original: <strong style={{ color: "white" }}>{sourceKey}</strong> · Objetivo: <strong style={{ color: "white" }}>{targetKey}</strong></>
                                         : <>Escribe un tono valido como `C# Major` o `A Minor` para calcular semitonos.</>}
+                                </div>
+
+                                {/* ── Preview ────────────────────────────────────────────────────────────── */}
+                                <div style={{
+                                    marginTop: 16,
+                                    padding: "14px 16px",
+                                    borderRadius: THEME.radius.md,
+                                    background: "rgba(255,255,255,0.02)",
+                                    border: `1px solid ${THEME.colors.border}`,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 14,
+                                }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
+                                            Preview
+                                        </div>
+                                        <div style={{ fontSize: 12, color: THEME.colors.text.dim }}>
+                                            {transposeSemitones === 0 && playbackTempo === 1.0
+                                                ? "Sin cambios — tono y tempo originales"
+                                                : `${transposeSemitones > 0 ? "+" : ""}${transposeSemitones} st · ${playbackTempo.toFixed(2)}x · 30 seg`}
+                                        </div>
+                                    </div>
+
+                                    {isPreviewPlaying ? (
+                                        <button
+                                            onClick={handleStopPreview}
+                                            style={{
+                                                padding: "8px 16px",
+                                                borderRadius: THEME.radius.md,
+                                                border: `1px solid ${THEME.colors.status.error}40`,
+                                                background: `${THEME.colors.status.error}10`,
+                                                color: THEME.colors.status.error,
+                                                fontSize: 12,
+                                                fontWeight: 700,
+                                                cursor: "pointer",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 6,
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                                            Detener
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handlePreview}
+                                            disabled={isLoadingPreview || (!track.blob_url && !track.file_path)}
+                                            style={{
+                                                padding: "8px 16px",
+                                                borderRadius: THEME.radius.md,
+                                                border: `1px solid ${THEME.colors.brand.cyan}40`,
+                                                background: `${THEME.colors.brand.cyan}10`,
+                                                color: isLoadingPreview ? THEME.colors.text.dim : THEME.colors.brand.cyan,
+                                                fontSize: 12,
+                                                fontWeight: 700,
+                                                cursor: isLoadingPreview ? "default" : "pointer",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 6,
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
+                                            {isLoadingPreview ? (
+                                                "Cargando..."
+                                            ) : (
+                                                <>
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                                    Escuchar Preview
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -507,7 +624,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                     </button>
                     <div style={{ flex: 1 }} />
                     <button
-                        onClick={onCancel}
+                        onClick={handleCancel}
                         style={{
                             padding: "14px 24px", borderRadius: THEME.radius.md, border: `1px solid ${THEME.colors.border}`,
                             backgroundColor: "transparent", color: THEME.colors.text.muted, fontSize: 14, fontWeight: 600, cursor: "pointer"
