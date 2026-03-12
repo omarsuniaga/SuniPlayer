@@ -8,7 +8,7 @@ import { TrackTrimmer } from "../components/common/TrackTrimmer";
 import { TrackProfileModal } from "../components/common/TrackProfileModal";
 import { Track } from "../types";
 import { TRACKS } from "../data/constants.ts";
-import { probeOne } from "../services/audioProbe.ts";
+import { analyzeTrack } from "../services/audioProbe.ts";
 
 export const Library: React.FC = () => {
     const { customTracks, selectedFolderName, clearCustomTracks, trackOverrides } = useLibraryStore();
@@ -21,7 +21,7 @@ export const Library: React.FC = () => {
     React.useEffect(() => {
         TRACKS.forEach(t => {
             const url = `/audio/${encodeURIComponent(t.file_path)}`;
-            probeOne(url).then(analysis => {
+            analyzeTrack(url).then(analysis => {
                 if (analysis) {
                     // Update overrides in library store to show waveform/BPM in UI
                     useLibraryStore.getState().updateTrack(t.id, {

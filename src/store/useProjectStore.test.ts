@@ -67,7 +67,7 @@ describe("useProjectStore cross-domain actions", () => {
         appendToQueue(TRACKS.slice(2, 4));
 
         const state = usePlayerStore.getState();
-        expect(state.pQueue.map((track: typeof TRACKS[0]) => track.id)).toEqual(["1", "3", "4", "2"]);
+        expect(state.pQueue.map((track: typeof TRACKS[0]) => track.id)).toEqual([TRACKS[0].id, TRACKS[2].id, TRACKS[3].id, TRACKS[1].id]);
         expect(state.playing).toBe(true);
         expect(state.ci).toBe(0);
         expect(state.tTarget).toBeGreaterThan(500);

@@ -5,10 +5,11 @@ import { buildSet } from "./setBuilderService";
 
 describe("buildSet", () => {
     it("keeps total duration within the requested tolerance window", () => {
-        const targetSeconds = 45 * 60;
+        const targetSeconds = 30 * 60;
         const toleranceSeconds = 90;
 
         const result = buildSet(TRACKS, targetSeconds, { tol: toleranceSeconds, curve: "steady" });
+        // Note: total library is ~2458s — target must be achievable
         const totalSeconds = result.reduce((sum, track) => sum + track.duration_ms / 1000, 0);
 
         expect(totalSeconds).toBeGreaterThanOrEqual(targetSeconds - toleranceSeconds);

@@ -104,9 +104,22 @@ export function useAudio() {
         audioRef.current = new Audio();
         nextAudioRef.current = new Audio();
 
+        // Cross-browser interaction listener to "unlock" audio
+        const resumeAll = () => {
+            if (stCtxRef.current && stCtxRef.current.state === "suspended") {
+                stCtxRef.current.resume();
+            }
+        };
+        window.addEventListener("mousedown", resumeAll, { once: true });
+        window.addEventListener("touchstart", resumeAll, { once: true });
+        window.addEventListener("keydown", resumeAll, { once: true });
+
         return () => {
             audioRef.current?.pause();
             nextAudioRef.current?.pause();
+            window.removeEventListener("mousedown", resumeAll);
+            window.removeEventListener("touchstart", resumeAll);
+            window.removeEventListener("keydown", resumeAll);
         };
     }, []);
 
@@ -158,13 +171,14 @@ export function useAudio() {
             });
         }
 
-        const audioUrl = ct.blob_url ?? (AUDIO_BASE + encodeURI(ct.file_path));
+        const audioUrl = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
         audio.src = audioUrl;
         audio.playbackRate = 1.0; // Always 1.0 — pitch/tempo is handled by SoundTouch
         const startOffset = (ct.startTime || 0);
-        audio.currentTime = startOffset / 1000;
-        posRef.current = startOffset;
-        setPos(startOffset);
+        const resolvedStart = isNaN(startOffset) ? 0 : startOffset;
+        audio.currentTime = resolvedStart / 1000;
+        posRef.current = resolvedStart;
+        setPos(resolvedStart);
 
         // If track has pitch transposition or custom tempo, set up SoundTouch
         const semitones = ct.transposeSemitones ?? 0;
@@ -206,6 +220,8 @@ export function useAudio() {
                 .catch(err => {
                     console.warn("[useAudio] SoundTouch setup failed, falling back to native:", err);
                     stActiveRef.current = false;
+                    // Ensure we restore volume to native if SoundTouch failed
+                    if (audioRef.current) audioRef.current.volume = volRef.current;
                 });
         }
 
@@ -384,8 +400,14 @@ export function useAudio() {
         isPausingRef.current = false;
 
         // Resume AudioContext for mobile/safari/chrome
-        if (stCtxRef.current && stCtxRef.current.state === "suspended") {
-            stCtxRef.current.resume();
+        if (stCtxRef.current) {
+            if (stCtxRef.current.state === "suspended") {
+                stCtxRef.current.resume().then(() => {
+                    console.log("[useAudio] AudioContext resumed successfully");
+                }).catch(err => {
+                    console.warn("[useAudio] AudioContext resume failed:", err);
+                });
+            }
         }
 
         const targetVol = getEffectiveVol(volRef.current, ct);
@@ -450,10 +472,16 @@ export function useAudio() {
         }
 
         if (audio.paused) {
-            audio.play().catch(err => {
-                console.error("[useAudio] Play failed", err);
-                isReal.current = false;
-                setIsSimulating(true);
+            audio.play().then(() => {
+                setIsSimulating(false);
+            }).catch(err => {
+                if (err.name === "NotAllowedError") {
+                    console.warn("[useAudio] Autoplay blocked, waiting for user gesture");
+                } else {
+                    console.error("[useAudio] Play failed", err);
+                    isReal.current = false;
+                    setIsSimulating(true);
+                }
             });
         }
 

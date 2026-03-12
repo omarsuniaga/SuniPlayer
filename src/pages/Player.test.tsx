@@ -69,8 +69,8 @@ describe("Player", () => {
 
         render(<Player />);
 
-        expect(screen.getAllByText("Fly Me To The Moon").length).toBeGreaterThan(0);
-        expect(screen.getAllByText("Sinatra").length).toBeGreaterThan(0);
+        expect(screen.getAllByText(TRACKS[0].title).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(TRACKS[0].artist).length).toBeGreaterThan(0);
         expect(screen.getAllByRole("button").length).toBeGreaterThan(3);
     }, 30000);
 });
