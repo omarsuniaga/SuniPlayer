@@ -66,6 +66,7 @@ interface SettingsState {
     pedalBindings: PedalBindings;
     setPedalBinding: (action: PedalAction, binding: PedalBinding) => void;
     clearPedalBindings: () => void;
+    clearPedalBinding: (action: PedalAction) => void;
 
     // Learn mode (non-persisted UI state — which action is currently listening)
     learningAction: PedalAction | null;
@@ -125,6 +126,12 @@ export const useSettingsStore = create<SettingsState>()(
                     pedalBindings: { ...state.pedalBindings, [action]: binding },
                 })),
             clearPedalBindings: () => set({ pedalBindings: {} }),
+            clearPedalBinding: (action) =>
+                set((state) => {
+                    const next = { ...state.pedalBindings };
+                    delete next[action];
+                    return { pedalBindings: next };
+                }),
 
             learningAction: null,
             setLearningAction: (learningAction) => set({ learningAction }),

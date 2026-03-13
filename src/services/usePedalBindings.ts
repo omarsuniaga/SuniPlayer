@@ -73,7 +73,7 @@ export function usePedalBindings() {
             if (!matchedAction) return;
             event.preventDefault();
 
-            const { ci: currentCi, pQueue: currentQueue, playing: currentPlaying, vol: currentVol } =
+            const { ci: currentCi, pQueue: currentQueue, vol: currentVol } =
                 usePlayerStore.getState();
 
             switch (matchedAction) {

@@ -23,11 +23,17 @@ function findConflict(
     return null;
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function actionLabel(action: PedalAction): string {
+    return PEDAL_ACTIONS.find((a) => a.action === action)?.label ?? action;
+}
+
 // ── PedalConfig ───────────────────────────────────────────────────────────────
 export const PedalConfig: React.FC = () => {
     const pedalBindings = useSettingsStore((s) => s.pedalBindings);
     const setPedalBinding = useSettingsStore((s) => s.setPedalBinding);
     const clearPedalBindings = useSettingsStore((s) => s.clearPedalBindings);
+    const clearPedalBinding = useSettingsStore((s) => s.clearPedalBinding);
     const learningAction = useSettingsStore((s) => s.learningAction);
     const setLearningAction = useSettingsStore((s) => s.setLearningAction);
 
@@ -44,34 +50,35 @@ export const PedalConfig: React.FC = () => {
             const binding = pedalBindings[action];
             if (!binding) continue;
             const conflict = findConflict(pedalBindings, action, binding.key);
-            if (conflict && !pendingConflict) {
-                setPendingConflict({
-                    forAction: action,
-                    conflictsWith: conflict,
-                    binding,
-                });
+            if (conflict) {
+                setPendingConflict((prev) =>
+                    prev ? prev : { forAction: action, conflictsWith: conflict, binding }
+                );
                 return;
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // No conflicts found — clear any stale conflict state
+        setPendingConflict((prev) => (prev ? null : prev));
     }, [pedalBindings]);
 
     // Activity flash: briefly show a cyan dot when a bound key fires
     const [activityFlash, setActivityFlash] = React.useState(false);
+    const flashTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     React.useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
             const match = Object.values(pedalBindings).some((b) => b?.key === e.key);
             if (match) {
+                if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
                 setActivityFlash(true);
-                setTimeout(() => setActivityFlash(false), 300);
+                flashTimerRef.current = setTimeout(() => setActivityFlash(false), 300);
             }
         };
         window.addEventListener("keydown", handleKey);
-        return () => window.removeEventListener("keydown", handleKey);
+        return () => {
+            window.removeEventListener("keydown", handleKey);
+            if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+        };
     }, [pedalBindings]);
-
-    const actionLabel = (action: PedalAction): string =>
-        PEDAL_ACTIONS.find((a) => a.action === action)?.label ?? action;
 
     return (
         <div>
@@ -151,11 +158,7 @@ export const PedalConfig: React.FC = () => {
                         <button
                             onClick={() => {
                                 setPedalBinding(pendingConflict.forAction, pendingConflict.binding);
-                                // Remove the old binding for the conflicting action
-                                const current = useSettingsStore.getState().pedalBindings;
-                                const next = { ...current };
-                                delete next[pendingConflict.conflictsWith];
-                                useSettingsStore.setState({ pedalBindings: next });
+                                clearPedalBinding(pendingConflict.conflictsWith);
                                 setPendingConflict(null);
                             }}
                             style={{
