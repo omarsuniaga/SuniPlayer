@@ -1,6 +1,7 @@
 import React from "react";
 import { useProjectStore } from "../../store/useProjectStore";
 import { THEME } from "../../data/theme.ts";
+import { PedalConfig } from "../settings/PedalConfig";
 
 // ── Toggle Switch ────────────────────────────────────────────────────────────
 const Toggle: React.FC<{
@@ -327,6 +328,9 @@ export const SettingsPanel: React.FC = () => {
                         min={bpmMin + 5} max={220} unit=" bpm"
                         onChange={setBpmMax}
                     />
+
+                    {/* ── Pedalera Bluetooth ── */}
+                    <PedalConfig />
 
                     {/* ── Audio Files ── */}
                     <Section title="Archivos de Audio" icon={
