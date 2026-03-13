@@ -5,6 +5,16 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
+// ── Pedal Bindings ────────────────────────────────────────────────────────────
+export type PedalAction = 'next' | 'prev' | 'play_pause' | 'vol_up' | 'vol_down'
+
+export interface PedalBinding {
+    key: string    // event.key value: "ArrowRight", "Space", " ", "PageDown", etc.
+    label: string  // Human-readable: "→", "Espacio", "Pág↓"
+}
+
+export type PedalBindings = Partial<Record<PedalAction, PedalBinding>>
+
 interface SettingsState {
     // Playback settings
     autoNext: boolean;
@@ -51,6 +61,15 @@ interface SettingsState {
     setSplMeterTarget: (v: "studio" | "small" | "hall" | "open") => void;
     splMeterExpanded: boolean;
     setSplMeterExpanded: (v: boolean) => void;
+
+    // Pedal bindings
+    pedalBindings: PedalBindings;
+    setPedalBinding: (action: PedalAction, binding: PedalBinding) => void;
+    clearPedalBindings: () => void;
+
+    // Learn mode (non-persisted UI state — which action is currently listening)
+    learningAction: PedalAction | null;
+    setLearningAction: (action: PedalAction | null) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -100,6 +119,16 @@ export const useSettingsStore = create<SettingsState>()(
             splMeterExpanded: true,
             setSplMeterExpanded: (splMeterExpanded) => set({ splMeterExpanded }),
 
+            pedalBindings: {},
+            setPedalBinding: (action, binding) =>
+                set((state) => ({
+                    pedalBindings: { ...state.pedalBindings, [action]: binding },
+                })),
+            clearPedalBindings: () => set({ pedalBindings: {} }),
+
+            learningAction: null,
+            setLearningAction: (learningAction) => set({ learningAction }),
+
             // Not persisted — panel always closes on reload
             showSettings: false,
             setShowSettings: (showSettings) => set({ showSettings }),
@@ -124,6 +153,7 @@ export const useSettingsStore = create<SettingsState>()(
                 splMeterExpanded: state.splMeterExpanded,
                 bpmMin: state.bpmMin,
                 bpmMax: state.bpmMax,
+                pedalBindings: state.pedalBindings,
             }),
         }
     )
