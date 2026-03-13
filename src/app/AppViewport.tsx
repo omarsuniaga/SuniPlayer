@@ -6,6 +6,7 @@ import { Player } from "../pages/Player";
 import { Library } from "../pages/Library";
 import { useProjectStore } from "../store/useProjectStore";
 import { useAudio } from "../services/useAudio";
+import { usePedalBindings } from "../services/usePedalBindings";
 
 const viewMap = {
     builder: Builder,
@@ -19,7 +20,8 @@ export const AppViewport: React.FC = () => {
     const ActiveView = viewMap[view] ?? Builder;
 
     useAudio();
-    
+    usePedalBindings();
+
     // Background analysis check
     React.useEffect(() => {
         const interval = setInterval(() => {
