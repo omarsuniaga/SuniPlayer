@@ -10,3 +10,4 @@ ios/
 .DS_Store
 *.tsbuildinfo
 .worktrees/
+.worktrees/
