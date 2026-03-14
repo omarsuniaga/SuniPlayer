@@ -1,7 +1,11 @@
 // src/platform/interfaces/IFileAccess.ts
 
 export interface ImportedFile {
-    /** Playable URL (blob URL on web, file:// URI on iOS/Android) */
+    /**
+     * Playable URL (blob URL on web, file:// URI on iOS/Android).
+     * Blob URLs must be released via `IFileAccess.releaseURL` when no longer needed
+     * to avoid memory leaks.
+     */
     url: string;
     /** Original filename */
     name: string;
@@ -39,4 +43,11 @@ export interface IFileAccess {
 
     /** Let the user pick a file from the device. Returns null if cancelled. */
     importFile(source: FileSource): Promise<ImportedFile | null>;
+
+    /**
+     * Release a URL previously returned by `importFile`.
+     * For blob URLs this calls `URL.revokeObjectURL`; for other URLs this is a no-op.
+     * Always call this when the URL is no longer needed to prevent memory leaks.
+     */
+    releaseURL(url: string): void;
 }

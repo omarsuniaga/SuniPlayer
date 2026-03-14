@@ -11,6 +11,7 @@ import type { IAudioEngine, AudioLoadOptions } from '../interfaces/IAudioEngine'
  */
 export class BrowserAudioEngine implements IAudioEngine {
     private engine: PitchEngine;
+    private _onError: ((err: Error) => void) | null = null;
 
     constructor() {
         this.engine = new PitchEngine();
@@ -19,7 +20,9 @@ export class BrowserAudioEngine implements IAudioEngine {
     async load(url: string, options?: AudioLoadOptions): Promise<void> {
         const success = await this.engine.load(url);
         if (!success) {
-            throw new Error(`Failed to load audio from ${url}`);
+            const err = new Error(`PitchEngine failed to load: ${url}`);
+            this._onError?.(err);
+            throw err;
         }
         if (options?.initialPitch !== undefined) this.setPitch(options.initialPitch);
         if (options?.initialTempo !== undefined) this.setTempo(options.initialTempo);
@@ -58,11 +61,16 @@ export class BrowserAudioEngine implements IAudioEngine {
         this.engine.onEnd(cb);
     }
 
+    /**
+     * Register an error callback.
+     *
+     * NOTE (browser limitation): PitchEngine handles playback-phase errors
+     * internally via console.error and does not expose a hook for them.
+     * This callback is only invoked for load failures detected in `load()`.
+     * Playback errors are logged to the console by PitchEngine directly.
+     */
     onError(cb: (err: Error) => void): void {
-        // PitchEngine logs errors internally via console.error.
-        // To surface errors to the IAudioEngine consumer, attach a handler.
-        // This is a hook for future error propagation if needed.
-        (this.engine as any)._onError = cb;
+        this._onError = cb;
     }
 
     dispose(): void {

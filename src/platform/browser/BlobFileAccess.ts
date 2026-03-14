@@ -16,6 +16,8 @@ export class BlobFileAccess implements IFileAccess {
 
     resolveURL(filePath: string): string {
         if (filePath.startsWith('/') || filePath.startsWith('blob:')) return filePath;
+        // NOTE: encodeURIComponent will double-encode paths that already contain '%'.
+        // Current catalog filenames are clean (no pre-encoded characters), so this is safe.
         return `${AUDIO_PREFIX}${encodeURIComponent(filePath)}`;
     }
 
@@ -41,5 +43,11 @@ export class BlobFileAccess implements IFileAccess {
             input.oncancel = () => resolve(null);
             input.click();
         });
+    }
+
+    releaseURL(url: string): void {
+        if (url.startsWith('blob:')) {
+            URL.revokeObjectURL(url);
+        }
     }
 }

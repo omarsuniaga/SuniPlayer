@@ -9,20 +9,26 @@ const STORE_METRICS = 'analysis';
 
 export class IDBStorage implements IStorage {
     private db: IDBPDatabase | null = null;
+    private _opening: Promise<IDBPDatabase> | null = null;
 
     private async getDB(): Promise<IDBPDatabase> {
         if (this.db) return this.db;
-        this.db = await openDB(DB_NAME, DB_VERSION, {
-            upgrade(db) {
-                if (!db.objectStoreNames.contains(STORE_WAVEFORMS)) {
-                    db.createObjectStore(STORE_WAVEFORMS, { keyPath: 'id' });
-                }
-                if (!db.objectStoreNames.contains(STORE_METRICS)) {
-                    db.createObjectStore(STORE_METRICS, { keyPath: 'id' });
-                }
-            },
-        });
-        return this.db;
+        if (!this._opening) {
+            this._opening = openDB(DB_NAME, DB_VERSION, {
+                upgrade(db) {
+                    if (!db.objectStoreNames.contains(STORE_WAVEFORMS)) {
+                        db.createObjectStore(STORE_WAVEFORMS, { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains(STORE_METRICS)) {
+                        db.createObjectStore(STORE_METRICS, { keyPath: 'id' });
+                    }
+                },
+            }).then(db => {
+                this.db = db;
+                return db;
+            });
+        }
+        return this._opening;
     }
 
     async getAnalysis(trackId: string): Promise<AnalysisData | null> {
