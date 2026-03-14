@@ -26,6 +26,9 @@ export class IDBStorage implements IStorage {
             }).then(db => {
                 this.db = db;
                 return db;
+            }).catch(err => {
+                this._opening = null;  // allow retry on next call
+                throw err;
             });
         }
         return this._opening;

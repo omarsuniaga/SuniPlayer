@@ -62,7 +62,7 @@ export class BrowserAudioEngine implements IAudioEngine {
     }
 
     /**
-     * Register an error callback.
+     * Register an error callback. Calling this again replaces the previously registered callback.
      *
      * NOTE (browser limitation): PitchEngine handles playback-phase errors
      * internally via console.error and does not expose a hook for them.
