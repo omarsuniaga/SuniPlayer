@@ -45,18 +45,34 @@ export function getFileAccess(): InstanceType<typeof BlobFileAccess> {
 }
 
 // Convenience singleton references — accessed via getter to stay lazy.
+
+/**
+ * Convenience alias. TypeScript does not enforce the interface contract on property
+ * access through this Proxy (uses `as any` internally). Prefer `getAudioEngine()`
+ * when compile-time type safety is required.
+ */
 export const audioEngine = new Proxy({} as InstanceType<typeof BrowserAudioEngine>, {
     get(_target, prop) {
         return (getAudioEngine() as any)[prop];
     },
 });
 
+/**
+ * Convenience alias. TypeScript does not enforce the interface contract on property
+ * access through this Proxy (uses `as any` internally). Prefer `getStorage()`
+ * when compile-time type safety is required.
+ */
 export const storage = new Proxy({} as InstanceType<typeof IDBStorage>, {
     get(_target, prop) {
         return (getStorage() as any)[prop];
     },
 });
 
+/**
+ * Convenience alias. TypeScript does not enforce the interface contract on property
+ * access through this Proxy (uses `as any` internally). Prefer `getFileAccess()`
+ * when compile-time type safety is required.
+ */
 export const fileAccess = new Proxy({} as InstanceType<typeof BlobFileAccess>, {
     get(_target, prop) {
         return (getFileAccess() as any)[prop];
