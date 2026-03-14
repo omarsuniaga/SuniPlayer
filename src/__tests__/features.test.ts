@@ -235,7 +235,7 @@ describe("F2 — Generador de sets (Set Builder)", () => {
         for (const track of TRACKS.slice(0, 10)) {
             for (const field of required) {
                 expect(
-                    (track as Record<string, unknown>)[field],
+                    (track as unknown as Record<string, unknown>)[field],
                     `Track "${track.title}" le falta el campo "${field}"`
                 ).toBeDefined();
             }
@@ -613,14 +613,6 @@ describe("F8 — Pedalera Bluetooth", () => {
     });
 
     it("se pueden asignar las 5 acciones disponibles", () => {
-        const bindings: [Parameters<typeof useSettingsStore.getState>["setPedalBinding"][0], string][] = [
-            ["next", "PageDown"],
-            ["prev", "PageUp"],
-            ["play_pause", " "],
-            ["vol_up", "ArrowUp"],
-            ["vol_down", "ArrowDown"],
-        ] as unknown as never;
-
         // Assign directly
         useSettingsStore.getState().setPedalBinding("next", { key: "PageDown", label: "Pág↓" });
         useSettingsStore.getState().setPedalBinding("prev", { key: "PageUp", label: "Pág↑" });
