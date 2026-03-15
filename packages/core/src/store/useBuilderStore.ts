@@ -5,7 +5,7 @@
  */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { Track } from "../types.ts";
+import { Track } from "../types";
 import { getStorage } from './storage';
 
 type View = "builder" | "player" | "history" | "library";

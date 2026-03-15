@@ -12,17 +12,17 @@
  *   useHistoryStore  — history
  *   useLibraryStore  — customTracks
  */
-import { Track, SetHistoryItem } from "../types.ts";
-import { TRACKS, VENUES } from "../data/constants.ts";
-import { buildSet } from "../services/setBuilderService.ts";
-import { sumTrackDurationMs, sumTrackDurationSeconds } from "../utils/trackMetrics.ts";
-import { getEffectiveDuration } from "../services/uiUtils.ts";
+import { Track, SetHistoryItem } from "../types";
+import { TRACKS, VENUES } from "../data/constants";
+import { buildSet } from "../services/setBuilderService";
+import { sumTrackDurationMs, sumTrackDurationSeconds } from "../utils/trackMetrics";
+import { getEffectiveDuration } from "../services/uiUtils";
 
-import { useBuilderStore } from "./useBuilderStore.ts";
-import { usePlayerStore } from "./usePlayerStore.ts";
-import { useSettingsStore } from "./useSettingsStore.ts";
-import { useHistoryStore } from "./useHistoryStore.ts";
-import { useLibraryStore } from "./useLibraryStore.ts";
+import { useBuilderStore } from "./useBuilderStore";
+import { usePlayerStore } from "./usePlayerStore";
+import { useSettingsStore } from "./useSettingsStore";
+import { useHistoryStore } from "./useHistoryStore";
+import { useLibraryStore } from "./useLibraryStore";
 
 // Re-export domain stores for direct use where performance matters
 export {

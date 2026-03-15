@@ -4,7 +4,7 @@
  */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { SetHistoryItem } from "../types.ts";
+import { SetHistoryItem } from "../types";
 import { getStorage } from './storage';
 
 interface HistoryState {
