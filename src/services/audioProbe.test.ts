@@ -1,9 +1,43 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { probeOne } from "./audioProbe";
 
+// Mock platform singletons so IDBStorage is never opened in the test environment.
+// BlobFileAccess.checkExists() delegates to fetch, which we stub globally below.
+// vi.mock is hoisted, so the factory must be self-contained (no outer variable refs).
+vi.mock("../platform/index", () => ({
+    fileAccess: {
+        checkExists: vi.fn(),
+        resolveURL: vi.fn((p: string) => `/audio/${encodeURIComponent(p)}`),
+        importFile: vi.fn(),
+        releaseURL: vi.fn(),
+    },
+    storage: {
+        getAnalysis: vi.fn().mockResolvedValue(null),
+        saveAnalysis: vi.fn().mockResolvedValue(undefined),
+        getWaveform: vi.fn().mockResolvedValue(null),
+        saveWaveform: vi.fn().mockResolvedValue(undefined),
+    },
+}));
+
+// Import the mocked module after vi.mock so we can configure checkExists per-test.
+import { fileAccess as mockFileAccessModule } from "../platform/index";
+const mockFileAccess = mockFileAccessModule as unknown as {
+    checkExists: ReturnType<typeof vi.fn>;
+};
+
 describe("audioProbe", () => {
     beforeEach(() => {
         vi.stubGlobal("fetch", vi.fn());
+        // Wire mockFileAccess.checkExists through to the stubbed fetch
+        mockFileAccess.checkExists.mockImplementation(async (filePath: string) => {
+            const url = filePath.startsWith("/") ? filePath : `/audio/${encodeURIComponent(filePath)}`;
+            try {
+                const res = await fetch(url, { method: "HEAD" });
+                return res.ok;
+            } catch {
+                return false;
+            }
+        });
     });
 
     afterEach(() => {
