@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "SuniPlayer",
+    "slug": "suniplayer",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.suniplayer.app",
+      "requireFullScreen": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"],
+        "NSMicrophoneUsageDescription": "SuniPlayer does not use the microphone.",
+        "NSAppleMusicUsageDescription": "SuniPlayer accesses your audio files for playback."
+      }
+    },
+    "android": {
+      "package": "com.suniplayer.app",
+      "permissions": ["READ_EXTERNAL_STORAGE"]
+    },
+    "plugins": ["expo-router"],
+    "scheme": "suniplayer",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
