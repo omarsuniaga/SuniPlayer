@@ -13,7 +13,7 @@ interface WaveProps {
 
 export const Wave: React.FC<WaveProps> = ({ data, progress, color, fadeEnabled, fadeInMs = 0, fadeOutMs = 0, totalMs = 1 }) => {
     return (
-        <div style={{ display: "flex", alignItems: "center", height: 52, gap: 1, padding: "0 2px" }}>
+        <div style={{ display: "flex", alignItems: "center", height: "100%", gap: 1, padding: "0 2px" }}>
             {data.map((v, i) => {
                 let scale = 1;
                 if (fadeEnabled && totalMs > 0) {

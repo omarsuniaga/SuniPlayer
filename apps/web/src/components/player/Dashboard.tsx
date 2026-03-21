@@ -1,6 +1,13 @@
 import React from "react";
 import { THEME } from "../../data/theme.ts";
 import { SplMeter } from "../common/SplMeter";
+import { EnergyCurveChart } from "../common/EnergyCurveChart";
+import type { CurveType } from "../common/EnergyCurveChart";
+
+const CURVE_LABEL: Record<string, string> = {
+    steady: "Estable", ascending: "Ascendente",
+    descending: "Descendente", wave: "Ola",
+};
 
 interface DashboardProps {
     fadeEnabled: boolean;
@@ -21,6 +28,13 @@ interface DashboardProps {
     splMeterTarget: "studio" | "small" | "hall" | "open";
     splMeterExpanded: boolean;
     setSplMeterExpanded: (v: boolean) => void;
+
+    /** Energy curve of the current set (e.g. "steady", "ascending") */
+    curve?: string;
+    /** 0–1: how far through the set we are (for the playhead dot) */
+    curvePlayheadPct?: number;
+    curveExpanded: boolean;
+    setCurveExpanded: (v: boolean) => void;
 }
 
 // ── Reusable section container ────────────────────────────────────────────────
@@ -137,8 +151,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     fadeEnabled, fadeInMs, setFadeInMs, fadeOutMs, setFadeOutMs, fadeExpanded, setFadeExpanded,
     crossfade, crossfadeMs, setCrossfadeMs, crossExpanded, setCrossExpanded,
     splMeterEnabled, splMeterTarget, splMeterExpanded, setSplMeterExpanded,
+    curve, curvePlayheadPct, curveExpanded, setCurveExpanded,
 }) => {
-    if (!crossfade && !fadeEnabled && !splMeterEnabled) return null;
+    if (!crossfade && !fadeEnabled && !splMeterEnabled && !curve) return null;
 
     const fmtMs = (ms: number) => ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
 
@@ -294,6 +309,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             format={fmtMs}
                             color={THEME.colors.brand.cyan}
                         />
+                    </div>
+                </Section>
+            )}
+
+            {/* ── ENERGY CURVE ───────────────────────────────────────── */}
+            {curve && (
+                <Section
+                    accentColor={THEME.colors.brand.violet}
+                    icon={
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <path d="M3 17 Q7 5 12 12 Q17 19 21 7"/>
+                        </svg>
+                    }
+                    title="ENERGY CURVE"
+                    badge={CURVE_LABEL[curve] ?? curve}
+                    expanded={curveExpanded}
+                    onToggle={() => setCurveExpanded(!curveExpanded)}
+                >
+                    <div style={{ padding: "14px 14px 16px" }}>
+                        <EnergyCurveChart
+                            type={curve as CurveType}
+                            size="large"
+                            playheadPct={curvePlayheadPct}
+                            active
+                        />
+                        <p style={{ margin: "10px 0 0", fontSize: 10, color: THEME.colors.text.muted, lineHeight: 1.6 }}>
+                            El punto indica en qué parte de la curva de energía estás dentro del set completo.
+                        </p>
                     </div>
                 </Section>
             )}

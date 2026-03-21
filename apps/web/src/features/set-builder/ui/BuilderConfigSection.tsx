@@ -2,6 +2,8 @@ import React from "react";
 
 import { CURVES, VENUES } from "../../../data/constants";
 import { THEME } from "../../../data/theme";
+import { EnergyCurveChart } from "../../../components/common/EnergyCurveChart";
+import type { CurveType } from "../../../components/common/EnergyCurveChart";
 
 interface BuilderConfigSectionProps {
     targetMin: number;
@@ -81,25 +83,33 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
                     <div>
                         <label style={{ fontSize: 10, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Energy Curve</label>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8, marginTop: 8 }}>
-                            {CURVES.map((item) => (
+                            {CURVES.map((item) => {
+                                const isActive = curve === item.id;
+                                return (
                                 <button
                                     key={item.id}
                                     onClick={() => onCurveChange(item.id)}
                                     style={{
-                                        padding: "12px",
+                                        padding: "12px 12px 10px",
                                         borderRadius: THEME.radius.md,
                                         cursor: "pointer",
-                                        border: `1px solid ${curve === item.id ? THEME.colors.brand.violet + "80" : THEME.colors.border}`,
-                                        backgroundColor: curve === item.id ? THEME.colors.brand.violet + "10" : THEME.colors.surface,
-                                        color: curve === item.id ? THEME.colors.brand.violet : THEME.colors.text.secondary,
+                                        border: `1px solid ${isActive ? THEME.colors.brand.violet + "80" : THEME.colors.border}`,
+                                        backgroundColor: isActive ? THEME.colors.brand.violet + "10" : THEME.colors.surface,
+                                        color: isActive ? THEME.colors.brand.violet : THEME.colors.text.secondary,
                                         textAlign: "left",
                                         transition: "all 0.2s",
                                     }}
                                 >
-                                    <div style={{ fontSize: 13, fontWeight: 600 }}>{item.label}</div>
+                                    <EnergyCurveChart
+                                        type={item.id as CurveType}
+                                        size="mini"
+                                        active={isActive}
+                                    />
+                                    <div style={{ fontSize: 13, fontWeight: 600, marginTop: 8 }}>{item.label}</div>
                                     <div style={{ fontSize: 10, opacity: 0.5, marginTop: 2 }}>{item.desc}</div>
                                 </button>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

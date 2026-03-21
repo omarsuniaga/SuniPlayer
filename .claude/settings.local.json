@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm exec:*)",
+      "Bash(mkdir -p \"C:/Users/omare/.claude/projects/SuniPlayer/docs/superpowers/specs\")",
+      "Bash(mkdir -p \"C:/Users/omare/.claude/agents\")",
+      "Bash(mkdir -p \"C:/Users/omare/.claude/skills/autofix-loop\")",
+      "Bash(CLAUDE_PLUGIN_ROOT=\"C:/Users/omare/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.0\")",
+      "Bash(\"$CLAUDE_PLUGIN_ROOT/lib/brainstorm-server/start-server.sh\" --project-dir \"C:/Users/omare/.claude/projects/SuniPlayer\")",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(pnpm test:*)",
+      "Bash(ls -lh /c/Users/omare/.claude/projects/SuniPlayer/apps/web/src/components/common/markerUtils.*)",
+      "Bash(grep -l \"import React\" /c/Users/omare/.claude/projects/SuniPlayer/apps/web/src/**/*.test.tsx)",
+      "Bash(find /c/Users/omare/.claude/projects/SuniPlayer/apps/web/src -name *.test.*)",
+      "Bash(git stash:*)",
+      "Bash(ls /c/Users/omare/.claude/projects/SuniPlayer/apps/web/src/components/common/MarkerLayer*)",
+      "Bash(find /c/Users/omare/.claude/projects/SuniPlayer/apps/web -name setup* -o -name setupTests*)",
+      "Bash(node -e \"const r = require\\(''''/c/Users/omare/.claude/projects/SuniPlayer/node_modules/@testing-library/react''''\\); console.log\\(''''ok''''\\)\")",
+      "Bash(grep -v \"^$\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

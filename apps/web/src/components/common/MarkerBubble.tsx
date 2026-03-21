@@ -18,12 +18,12 @@ export const MarkerBubble: React.FC<MarkerBubbleProps> = ({
     const leftPct = durationMs > 0 ? (marker.posMs / durationMs) * 100 : 0;
     const distanceSec = Math.max(0, (marker.posMs - playheadMs) / 1000);
     const blinkSec = blinkDurationSec(distanceSec);
-    const opacity = state === "fading"
-        ? Math.max(0, 1 - Math.abs(marker.posMs - playheadMs) / 10000)
-        : 1;
+    // Fading state = 0-10s after playhead passes. Bubble stays fully visible
+    // during this window; disappears when getBubbleState returns "hidden".
+    const opacity = 1;
 
     // Horizontal offset for stacked bubbles (same posMs)
-    const BUBBLE_WIDTH = 200; // max px — actual width adjusts to text
+    const BUBBLE_WIDTH = 280; // max px — actual width adjusts to text
     const offsetX = stackIndex * (BUBBLE_WIDTH + 8);
 
     return (
@@ -36,7 +36,6 @@ export const MarkerBubble: React.FC<MarkerBubbleProps> = ({
                 zIndex: 20,
                 pointerEvents: "none",
                 opacity,
-                transition: state === "fading" ? "opacity 0.5s" : "opacity 0.3s",
             }}
         >
             <div

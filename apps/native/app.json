@@ -14,20 +14,36 @@
           "audio"
         ],
         "NSMicrophoneUsageDescription": "SuniPlayer does not use the microphone.",
-        "NSAppleMusicUsageDescription": "SuniPlayer accesses your audio files for playback."
+        "NSAppleMusicUsageDescription": "SuniPlayer accesses your audio files for playback.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.suniplayer.app",
       "permissions": [
         "READ_EXTERNAL_STORAGE"
-      ]
+      ],
+      "newArchEnabled": false
     },
     "plugins": [
       "expo-dev-client",
       "expo-router",
-      "./plugins/withGradleWrapper"
+      "./plugins/withGradleWrapper",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": false,
+            "bridgeless": false
+          },
+          "ios": {
+            "newArchEnabled": false,
+            "bridgeless": false
+          }
+        }
+      ]
     ],
+    "newArchEnabled": false,
     "scheme": "suniplayer",
     "experiments": {
       "typedRoutes": true

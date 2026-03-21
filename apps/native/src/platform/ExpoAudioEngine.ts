@@ -12,8 +12,9 @@ export class ExpoAudioEngine implements IAudioEngine {
     if (this._initialized) return;
     await TrackPlayer.setupPlayer({
       maxCacheSize: 1024 * 5,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       progressUpdateEventInterval: 0.25, // fire PlaybackProgressUpdated every 250 ms
-    });
+    } as any);
     this._initialized = true;
     this._attachListeners();
   }

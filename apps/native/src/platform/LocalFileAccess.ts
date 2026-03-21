@@ -90,4 +90,7 @@ export class LocalFileAccess implements IFileAccess {
     await FileSystem.copyAsync({ from: asset.uri, to: dest });
     return { url: dest, name: safeName, mimeType: asset.mimeType ?? undefined, sizeBytes: asset.size ?? undefined };
   }
+
+  // No-op on native — blob URLs only exist on web
+  releaseURL(_url: string): void {}
 }

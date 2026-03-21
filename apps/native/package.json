@@ -16,6 +16,7 @@
     "@react-native-community/slider": "5.1.2",
     "@suniplayer/core": "workspace:*",
     "expo": "~55.0.6",
+    "expo-build-properties": "^55.0.10",
     "expo-constants": "~55.0.7",
     "expo-crypto": "~55.0.9",
     "expo-dev-client": "~5.1.0",
@@ -43,7 +44,11 @@
   "private": true,
   "expo": {
     "autolinking": {
-      "exclude": ["expo-dev-client", "expo-dev-launcher", "expo-dev-menu"]
+      "exclude": [
+        "expo-dev-client",
+        "expo-dev-launcher",
+        "expo-dev-menu"
+      ]
     }
   }
 }
