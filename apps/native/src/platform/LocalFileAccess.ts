@@ -1,5 +1,5 @@
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import type { IFileAccess, ImportedFile, FileSource } from '@suniplayer/core';
 
 // Security: only audio MIME types accepted

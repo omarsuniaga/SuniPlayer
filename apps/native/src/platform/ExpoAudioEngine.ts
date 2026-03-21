@@ -10,7 +10,10 @@ export class ExpoAudioEngine implements IAudioEngine {
 
   private async _ensureInitialized(): Promise<void> {
     if (this._initialized) return;
-    await TrackPlayer.setupPlayer({ maxCacheSize: 1024 * 5 });
+    await TrackPlayer.setupPlayer({
+      maxCacheSize: 1024 * 5,
+      progressUpdateEventInterval: 0.25, // fire PlaybackProgressUpdated every 250 ms
+    });
     this._initialized = true;
     this._attachListeners();
   }
@@ -31,10 +34,17 @@ export class ExpoAudioEngine implements IAudioEngine {
 
   async load(url: string, options?: AudioLoadOptions): Promise<void> {
     await this._ensureInitialized();
+    // Reset queue before loading a new track so we don't accumulate phantom items.
+    await TrackPlayer.reset();
     await TrackPlayer.add({ url, title: '', artist: '' });
     if (options?.initialVolume !== undefined) await TrackPlayer.setVolume(options.initialVolume);
     if (options?.initialTempo !== undefined) await TrackPlayer.setRate(options.initialTempo);
     if (options?.startMs !== undefined) await TrackPlayer.seekTo(options.startMs / 1000);
+  }
+
+  /** Call once at app startup to boot the native service early. */
+  async init(): Promise<void> {
+    await this._ensureInitialized();
   }
 
   async play(): Promise<void> { await TrackPlayer.play(); }

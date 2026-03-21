@@ -6,16 +6,18 @@ const monorepoRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch all files in the monorepo (needed for workspace: packages)
-config.watchFolders = [monorepoRoot];
+// Only watch source packages — NOT node_modules (too large with shamefully-hoist,
+// causes Metro to hang scanning 1274 packages). node_modules is handled via
+// nodeModulesPaths for resolution; watching it is unnecessary.
+config.watchFolders = [
+  path.resolve(monorepoRoot, 'packages'),  // @suniplayer/core source
+];
 
-// Let Metro resolve packages from both the app and the monorepo root
+// Resolve packages from the monorepo root (shamefully-hoisted pnpm layout)
 config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, 'node_modules'),
   path.resolve(monorepoRoot, 'node_modules'),
 ];
 
-// Required for pnpm: disable symlink following issues
 config.resolver.unstable_enableSymlinks = true;
 
 module.exports = config;

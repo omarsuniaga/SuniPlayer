@@ -302,7 +302,7 @@ export function useAudio() {
                 }
             })();
         }
-    }, [ct?.transposeSemitones, ct?.playbackTempo, ct?.id]);
+    }, [ct]);
 
     // ── Preload next track ───────────────────────────────────────────────────
     useEffect(() => {

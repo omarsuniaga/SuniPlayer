@@ -3,13 +3,28 @@
   "private": true,
   "version": "0.0.1",
   "scripts": {
+    "dev": "pnpm dev:web",
     "dev:web": "pnpm --filter @suniplayer/web dev",
+    "dev:native": "pnpm --filter native start",
+    "android": "pnpm --filter native android",
+    "ios": "pnpm --filter native ios",
+    "lint:web": "pnpm --filter @suniplayer/web lint",
+    "lint": "pnpm lint:web",
+    "typecheck:web": "pnpm --filter @suniplayer/web typecheck",
+    "typecheck:native": "pnpm --filter native exec tsc --noEmit -p tsconfig.json",
     "test:web": "pnpm --filter @suniplayer/web test",
     "test:core": "pnpm --filter @suniplayer/core test",
+    "test:native": "pnpm --filter native test",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm typecheck:web && pnpm typecheck:native && pnpm --filter @suniplayer/core typecheck",
+    "build:web": "pnpm --filter @suniplayer/web build",
+    "build": "pnpm build:web && pnpm typecheck:native",
+    "validate": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
     "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@expo/cli": "55.0.16"
   }
 }

@@ -7,55 +7,58 @@
 
 ## Principio del roadmap
 
-El roadmap describe una evolucion realista desde el estado actual del repositorio hasta un MVP confiable para shows. No asume todavia una migracion completada a mobile ni una plataforma nativa.
+El roadmap describe una evolucion realista desde el monorepo actual hacia un MVP confiable para shows en web y mobile. Ya existe una base nativa en Expo, pero todavia no debe asumirse feature parity ni readiness completa en iOS/Android.
 
 ---
 
-## Fase 0 — Consolidacion del prototipo actual (Actual)
+## Fase 0 — Consolidacion del monorepo actual (Actual)
 
-**Enfoque:** alinear codigo, datos, arquitectura y documentacion del prototipo web.
+**Enfoque:** alinear codigo, datos, arquitectura y documentacion del nuevo workspace `apps/ + packages/`.
 
-- [x] Configuracion inicial del proyecto con `Vite + React + TypeScript`
+- [x] Configuracion inicial del proyecto web con `Vite + React + TypeScript`
+- [x] Configuracion inicial del proyecto nativo con `Expo + React Native`
+- [x] Creacion de `packages/core` como base compartida
 - [x] Sistema base de agentes definido en `AGENTS.md`
 - [x] Store global con Zustand
 - [x] Prototipo funcional de Builder, Player e Historial
 - [x] Algoritmo base de generacion de sets
-- [ ] Unificar contratos de datos (`duration_ms`, tipos y naming)
+- [x] Unificar contratos de datos (`duration_ms`, tipos y naming)
 - [x] Identificar y aislar codigo legacy vs codigo actual
-- [ ] Reorganizar la arquitectura para hacerla mas limpia y escalable
-- [x] Alinear documentacion con el estado real del repo
+- [ ] Terminar de converger la arquitectura del monorepo y reducir duplicacion residual
+- [ ] Alinear toda la documentacion principal con la realidad `web + native + core`
 
 ## Fase 1 — Base validable del MVP
 
-**Enfoque:** convertir el prototipo en una base tecnica confiable.
+**Enfoque:** convertir web y core en una base tecnica confiable, y endurecer el baseline nativo.
 
 - [x] Agregar `lint`
 - [x] Agregar `typecheck` como script dedicado
 - [x] Agregar test runner y primeros tests automatizados
 - [x] Agregar comando `validate`
-- [ ] Estabilizar el build
-- [ ] Definir estrategia minima de persistencia local
-- [ ] Implementar audio real inicial en web
+- [x] Estabilizar el build web
+- [x] Definir estrategia minima de persistencia local
+- [ ] Alinear scripts de validacion del workspace completo
+- [ ] Implementar audio real inicial en web y cerrar el gap hacia nativo
 
 ## Fase 2 — MVP funcional de escenario
 
-**Enfoque:** hacer usable la app en una sesion real de performance.
+**Enfoque:** hacer usable el producto en una sesion real de performance, con foco especial en iPad/iPhone y Android.
 
-- [ ] Implementacion de modo LIVE
+- [ ] Implementacion de modo LIVE endurecido en web y native
 - [ ] Timer de set con alertas claras
 - [ ] Cola mas robusta y segura para uso en vivo
-- [ ] Mejoras de legibilidad y reduccion de friccion UI
-- [ ] Guardado y recuperacion local de sets
+- [ ] Mejoras de legibilidad y reduccion de friccion UI en tablet y telefono
+- [ ] Guardado y recuperacion local de sets con recovery confiable
 - [ ] Primera prueba controlada de flujo completo tipo show
 
-## Fase 3 — Decision de plataforma
+## Fase 3 — Consolidacion multiplataforma
 
-**Enfoque:** decidir con evidencia si el producto sigue evolucionando sobre web o si conviene migrar a Expo / React Native.
+**Enfoque:** decidir con evidencia cual superficie lidera el uso real en escenario y como se reparte el trabajo entre PWA y native.
 
-- [ ] Evaluar limitaciones reales del audio web
-- [ ] Evaluar limitaciones de persistencia y uso movil
-- [ ] Comparar costo de seguir web vs migrar a Expo
-- [ ] Registrar decision formal en `DECISIONS.md`
+- [ ] Evaluar limitaciones reales del audio web en shows
+- [ ] Evaluar confiabilidad real de iPad/iPhone y Android con Expo
+- [ ] Definir feature parity minima entre `apps/web` y `apps/native`
+- [ ] Registrar en `DECISIONS.md` si la superficie principal de escenario pasa a ser native
 
 ## Fase 4 — Expansion del MVP
 
@@ -74,7 +77,7 @@ El roadmap describe una evolucion realista desde el estado actual del repositori
 - [ ] Crossfade basico
 - [ ] Waveform real derivada de audio
 - [ ] Persistencia mas robusta
-- [ ] Evaluacion de audio nativo si el caso lo exige
+- [ ] Evolucion del audio nativo segun necesidades reales de escenario
 - [ ] Analisis inteligente y recomendaciones futuras
 
 ---
@@ -88,6 +91,7 @@ El roadmap describe una evolucion realista desde el estado actual del repositori
 
 ## Notas importantes
 
-- El repositorio actual sigue siendo web.
-- Expo / React Native es una opcion futura, no el estado actual del proyecto.
-- Las prioridades inmediatas son coherencia, validacion y arquitectura limpia.
+- El repositorio ya es multiplataforma.
+- La implementacion web sigue siendo la mas madura hoy.
+- La implementacion native ya existe y debe tratarse como parte real de la arquitectura.
+- Las prioridades inmediatas son coherencia de monorepo, parity y confiabilidad de escenario.

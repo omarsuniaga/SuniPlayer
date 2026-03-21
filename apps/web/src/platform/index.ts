@@ -53,7 +53,7 @@ export function getFileAccess(): InstanceType<typeof BlobFileAccess> {
  */
 export const audioEngine = new Proxy({} as InstanceType<typeof BrowserAudioEngine>, {
     get(_target, prop) {
-        return (getAudioEngine() as any)[prop];
+        return Reflect.get(getAudioEngine(), prop);
     },
 });
 
@@ -64,7 +64,7 @@ export const audioEngine = new Proxy({} as InstanceType<typeof BrowserAudioEngin
  */
 export const storage = new Proxy({} as InstanceType<typeof IDBStorage>, {
     get(_target, prop) {
-        return (getStorage() as any)[prop];
+        return Reflect.get(getStorage(), prop);
     },
 });
 
@@ -75,6 +75,6 @@ export const storage = new Proxy({} as InstanceType<typeof IDBStorage>, {
  */
 export const fileAccess = new Proxy({} as InstanceType<typeof BlobFileAccess>, {
     get(_target, prop) {
-        return (getFileAccess() as any)[prop];
+        return Reflect.get(getFileAccess(), prop);
     },
 });

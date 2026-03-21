@@ -9,8 +9,8 @@
   },
   "sideEffects": false,
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "typecheck": "pnpm exec tsc --noEmit",
+    "test": "pnpm exec vitest run --passWithNoTests"
   },
   "dependencies": {
     "zustand": "^4.5.0"

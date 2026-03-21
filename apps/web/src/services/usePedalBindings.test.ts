@@ -3,6 +3,20 @@ import { renderHook, act } from "@testing-library/react";
 import { usePedalBindings } from "./usePedalBindings";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
+import type { Track } from "../types";
+
+const makeTrack = (id: string): Track => ({
+    id,
+    title: id,
+    artist: "Test Artist",
+    duration_ms: 180000,
+    bpm: 120,
+    key: "C",
+    energy: 0.5,
+    mood: "happy",
+    file_path: `${id}.mp3`,
+    analysis_cached: true,
+});
 
 const resetStores = () => {
     localStorage.clear();
@@ -25,7 +39,7 @@ describe("usePedalBindings", () => {
 
     it("'next' binding advances ci by 1", () => {
         useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
-        usePlayerStore.setState({ pQueue: [{ id: "t1" } as any, { id: "t2" } as any], ci: 0 });
+        usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
         renderHook(() => usePedalBindings());
 
@@ -36,7 +50,7 @@ describe("usePedalBindings", () => {
 
     it("'next' at last track does not advance (no wrap)", () => {
         useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
-        usePlayerStore.setState({ pQueue: [{ id: "t1" } as any], ci: 0 });
+        usePlayerStore.setState({ pQueue: [makeTrack("t1")], ci: 0 });
 
         renderHook(() => usePedalBindings());
 
@@ -47,7 +61,7 @@ describe("usePedalBindings", () => {
 
     it("'prev' at ci=0 stays at 0 (no-op)", () => {
         useSettingsStore.getState().setPedalBinding("prev", { key: "ArrowLeft", label: "←" });
-        usePlayerStore.setState({ pQueue: [{ id: "t1" } as any, { id: "t2" } as any], ci: 0 });
+        usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
         renderHook(() => usePedalBindings());
 
@@ -71,7 +85,7 @@ describe("usePedalBindings", () => {
 
     it("ignores keypresses when target is an INPUT element", () => {
         useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
-        usePlayerStore.setState({ pQueue: [{ id: "t1" } as any, { id: "t2" } as any], ci: 0 });
+        usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
         renderHook(() => usePedalBindings());
 

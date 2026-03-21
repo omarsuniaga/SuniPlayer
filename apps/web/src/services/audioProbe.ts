@@ -1,6 +1,10 @@
 import { analyzeAudio, AnalysisResults } from "./analysisService.ts";
 import { fileAccess, storage } from "../platform/index";
 
+interface AudioContextWindow extends Window {
+    webkitAudioContext?: typeof AudioContext;
+}
+
 /**
  * Simple HEAD check for file existence.
  * Accepts a bare file_path (e.g. "Song.mp3") or full URL.
@@ -37,7 +41,7 @@ export async function analyzeTrack(url: string): Promise<AnalysisResults | null>
         if (!response.ok) return null;
 
         const arrayBuffer = await response.arrayBuffer();
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const AudioContextClass = window.AudioContext || (window as AudioContextWindow).webkitAudioContext;
         const audioCtx = new AudioContextClass();
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 

@@ -22,6 +22,7 @@ export { buildSet } from './services/setBuilderService';
 // NOTE: setBuilderService uses an internal BuildOpts interface (not exported).
 // If a public BuildSetOptions type is needed, add it to setBuilderService.ts first.
 export { getEffectiveDuration } from './services/uiUtils';
+export { sumTrackDurationMs, sumTrackDurationSeconds } from './utils/trackMetrics';
 
 // Platform interfaces
 export type { IAudioEngine, AudioLoadOptions } from './platform/interfaces/IAudioEngine';

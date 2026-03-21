@@ -19,7 +19,7 @@ export interface Track {
     playbackTempo?: number;      // saved tempo factor (1.0 = normal)
     startTime?: number;  // ms - custom start offset
     endTime?: number;    // ms - custom end offset
-    sheetMusic?: { id: string; type: "pdf" | "image"; name: string }[];
+    sheetMusic?: { id: string; type: "pdf" | "image"; name: string; localUri?: string }[];
     playCount?: number;
     totalPlayTimeMs?: number;
     lastPlayedAt?: string;

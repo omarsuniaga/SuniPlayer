@@ -2,165 +2,72 @@
 
 **AI Performance Player for Live Musicians**
 
-SuniPlayer es un reproductor musical inteligente para musicos que actuan en vivo. Su objetivo es ayudar a preparar, ordenar y ejecutar sets sin aumentar la carga mental del musico en escenario.
+SuniPlayer es una app para musicos en vivo enfocada en preparar, ordenar y ejecutar sets con menos friccion y mas confianza en escenario.
 
 ---
 
 ## Estado actual del proyecto
 
-SuniPlayer esta hoy en una etapa de **alpha tecnica / prototipo funcional web**.
+SuniPlayer ya no es un repo web unico. Ahora es un **monorepo multiplataforma** con tres capas principales:
 
-- El repositorio actual corre con `React + TypeScript + Vite + Zustand`.
-- El flujo principal ya existe como prototipo: builder, player e historial.
-- La arquitectura todavia esta en transicion: el codigo activo ya es TypeScript, pero se conserva un prototipo legacy como referencia historica.
-- La documentacion de producto ya apunta a una evolucion futura mas ambiciosa, pero esa plataforma objetivo todavia no esta implementada en este repo.
+- `apps/web`: app web/PWA en `React + TypeScript + Vite`
+- `apps/native`: app mobile en `Expo + React Native` para iOS y Android
+- `packages/core`: dominio compartido, stores, tipos y servicios reutilizables
 
-## Que hace hoy el prototipo
+### Realidad actual
 
-- generar sets por duracion objetivo
-- ajustar venue y curva de energia
-- explorar repertorio por busqueda y mood
-- importar audio local por archivos individuales o carpeta seleccionada
-- guardar perfil musical por cancion, incluyendo tono objetivo y transposicion en semitonos
-- enviar el set al player
-- simular reproduccion con cola y timer
-- guardar sets en historial local dentro del prototipo
-
-## Stack actual
-
-| Capa | Tecnologia actual |
-|------|-------------------|
-| Frontend | React 18 |
-| Lenguaje | TypeScript + JSX legacy en transicion |
-| Bundler | Vite 5 |
-| Estado | Zustand |
-| Estilos | estilos inline + theme tokens |
-| Audio | simulacion de reproduccion en UI / prototipo |
-| Persistencia | `localStorage` + snapshots de show en `IndexedDB` |
-
-## Importacion local de audio
-
-- `ImportZone` permite arrastrar archivos, seleccionar multiples archivos o elegir una carpeta local de audio.
-- En navegadores compatibles con File System Access API, tambien puede volver a sincronizar la carpeta elegida dentro de la misma sesion.
-- Los tracks importados por el usuario siguen siendo assets de sesion porque usan `blob_url` locales del navegador.
-
-## Perfil y transposicion
-
-- Cada cancion puede guardar un `key` base y un `targetKey` para performance.
-- SuniPlayer calcula y persiste `transposeSemitones` para recordar el cambio tonal deseado.
-- En la etapa web actual, la reproduccion aplica la transposicion via `playbackRate`, por lo que cambia pitch y tempo juntos.
-
-## Confiabilidad de show en PWA
-
-- La app guarda snapshots de sesion en `IndexedDB` para recuperar cola, configuracion y contexto de show despues de una recarga inesperada.
-- Al reabrir la PWA, SuniPlayer ofrece `Restore last session` si encuentra una sesion recuperable.
-- La restauracion vuelve siempre en pausa; nunca reanuda playback automaticamente.
-- En iPad, los tracks importados localmente pueden requerir reconexion tras una recarga porque Safari no garantiza persistencia de `blob_url` de sesion.
-
-## Direccion futura
-
-La direccion de producto sigue contemplando una evolucion hacia una app mas robusta para uso real en shows. Eso puede incluir:
-
-- audio real en web como siguiente paso del prototipo
-- persistencia local mas solida
-- decision formal de plataforma entre continuar web o migrar a Expo / React Native
-- evolucion futura a capacidades nativas si el audio en vivo lo exige
-
-**Importante:** esa direccion futura no debe confundirse con el estado actual del repositorio.
+- la app web sigue siendo la implementacion mas madura y funcional
+- la app nativa ya existe y tiene infraestructura real de plataforma
+- el core compartido ya concentra contratos y estado comun, pero la migracion todavia no esta completamente cerrada
+- el directorio raiz `src/` ya no es la fuente principal de la app; la implementacion activa vive en `apps/`
 
 ---
 
-## Quick Start
-
-```bash
-# Instalar dependencias
-npm install
-
-# Iniciar en modo desarrollo
-npm run dev
-
-# Build de produccion
-npm run build
-```
-
-## Scripts disponibles hoy
-
-| Comando | Estado | Descripcion |
-|---------|--------|-------------|
-| `npm run dev` | Disponible | Inicia Vite en modo desarrollo |
-| `npm run build` | Disponible | Ejecuta TypeScript y build de Vite |
-| `npm run preview` | Disponible | Previsualiza el build |
-| `npm run lint` | Disponible | Ejecuta ESLint |
-| `npm run typecheck` | Disponible | Ejecuta `tsc --noEmit` |
-| `npm run test` | Disponible | Ejecuta tests unitarios con Vitest |
-| `npm run test:watch` | Disponible | Ejecuta Vitest en modo watch |
-| `npm run validate` | Disponible | Corre lint + typecheck + test + build |
-
-## Estado de validaciones
-
-- Validaciones automatizadas disponibles hoy: `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`, `npm run validate`
-- CI base disponible en `.github/workflows/validate.yml`
-- Gap pendiente para una base mas autonoma: ampliar la cobertura de tests y endurecer quality gates de producto
-
----
-
-## Estructura actual del repo
+## Estructura del monorepo
 
 ```text
 suniplayer/
-├── legacy/                    # Prototipos y referencias retiradas
-├── src/
-│   ├── App.tsx                # App principal actual
-│   ├── app/                   # Shell y composicion principal de la app
-│   ├── components/            # Componentes reutilizables
-│   ├── data/                  # Constantes, theme y mocks
-│   ├── features/              # Estructura por dominio en adopcion gradual
-│   ├── pages/                 # Vistas legacy/parciales
-│   ├── services/              # Logica de negocio
-│   ├── store/                 # Stores de Zustand
-│   ├── types.ts               # Tipos principales actuales
-│   └── utils/                 # Utilidades
-├── .agents/                   # Skills y workflows operativos
-├── AGENTS.md                  # Sistema multi-agente del proyecto
-├── MVP_SCOPE.md               # Fuente principal de verdad del alcance
-├── ROADMAP.md                 # Secuencia de evolucion del proyecto
-├── ARCHITECTURE.md            # Arquitectura tecnica actual / proxima
-├── DATA_MODEL.md              # Contratos de datos del dominio
-├── DECISIONS.md               # Registro de decisiones tecnicas
-├── TASKS.md                   # Backlog operativo
-├── TESTING.md                 # Estrategia de validacion
-└── package.json
+├── apps/
+│   ├── native/         # Expo / React Native (iOS + Android)
+│   └── web/            # React + Vite + PWA
+├── packages/
+│   └── core/           # Tipos, stores, contratos y logica compartida
+├── .agents/            # Runtime operativo de agentes
+├── docs/               # Documentacion de apoyo
+├── legacy/             # Referencias historicas y material retirado
+├── AGENTS.md
+├── ARCHITECTURE.md
+├── DATA_MODEL.md
+├── DECISIONS.md
+├── MVP_SCOPE.md
+├── ROADMAP.md
+├── TASKS.md
+└── TESTING.md
 ```
 
-## Estructura objetivo a medio plazo
+## Stack actual por capa
 
-La estructura esta migrando hacia una organizacion mas clara por dominios, con separacion entre:
+| Capa | Stack |
+|---|---|
+| Web | React 18, TypeScript, Vite, Zustand, PWA |
+| Native | Expo 55, React Native 0.83, Expo Router, Track Player, SQLite |
+| Core | TypeScript, Zustand, contratos y servicios compartidos |
 
-- `app/` bootstrap
-- `shared/` utilidades y contratos base
-- `entities/` modelos de dominio
-- `features/` funcionalidad por modulo, ya usada en `set-builder`
-- `pages/` pantallas
-- `legacy/` codigo retirado gradualmente
+## Que hace hoy el producto
+
+- generar sets por duracion objetivo
+- ajustar filtros de repertorio y curvas basicas
+- importar audio local
+- enviar sets al player
+- reproducir con cola y modo live/edit
+- guardar metadata, historial y snapshots de sesion
+- editar perfil de cancion, incluyendo transposicion tonal
 
 ---
 
-## Modelo de datos principal
+## Source Of Truth
 
-Las entidades oficiales estan definidas en `DATA_MODEL.md`, pero a nivel conceptual el MVP gira en torno a:
-
-```text
-Track        -> cancion con metadata musical
-SetPlan      -> set generado para una duracion objetivo
-SetHistory   -> set guardado o ejecutado previamente
-QueueItem    -> track dentro de la cola activa
-Session      -> sesion de performance futura
-Reaction     -> señal futura de respuesta del publico
-```
-
-## Fuente de verdad documental
-
-Orden recomendado de lectura para humanos y agentes:
+Orden recomendado de lectura:
 
 1. `MVP_SCOPE.md`
 2. `DECISIONS.md`
@@ -171,24 +78,63 @@ Orden recomendado de lectura para humanos y agentes:
 7. `TESTING.md`
 8. `README.md`
 
-## Principios del proyecto
+Si la documentacion y el codigo no coinciden, no se debe asumir nada en silencio: hay que registrar o corregir el conflicto.
 
-1. **Musician-first**: cada feature debe resolver una necesidad real en vivo.
-2. **MVP before sophistication**: primero utilidad real, despues complejidad.
-3. **Offline-first**: lo critico del flujo debe funcionar sin internet.
-4. **Stage-ready**: la UI debe resistir uso rapido y bajo presion.
-5. **Arquitectura clara**: evitar mezclar UI, audio, negocio y datos en el mismo bloque.
+---
+
+## Scripts de workspace
+
+Desde la raiz del repo:
+
+```bash
+pnpm install
+
+pnpm dev:web
+pnpm dev:native
+
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm validate
+```
+
+### Scripts utiles
+
+- `pnpm dev:web`: levanta la PWA/web
+- `pnpm dev:native`: inicia Expo dev client
+- `pnpm android`: corre la app Android nativa
+- `pnpm ios`: corre la app iOS nativa
+- `pnpm validate`: lint + typecheck + test + build soportado por el workspace
+
+## Estado de validacion
+
+- web: validacion fuerte disponible
+- core: typecheck y test basicos disponibles
+- native: tests y typecheck disponibles, pero el build distribuible depende del pipeline Expo/EAS
+
+---
+
+## Notas importantes de plataforma
+
+- la PWA sigue siendo util para iterar rapido y validar UX/flujo
+- iPad/iPhone tienen limites reales con archivos locales y sesiones del navegador
+- la app nativa existe precisamente para resolver mejor persistencia, audio local y confiabilidad movil
+
+## Estado de migracion
+
+- `apps/web` y `apps/native` son la direccion oficial
+- `packages/core` es la base oficial de dominio compartido
+- cualquier referencia a `src/` en documentos antiguos debe considerarse legado o transicional salvo que se indique lo contrario
 
 ---
 
 ## Documentacion relacionada
 
-- `MVP_SCOPE.md`
-- `ROADMAP.md`
 - `ARCHITECTURE.md`
-- `DATA_MODEL.md`
-- `DECISIONS.md`
+- `ROADMAP.md`
 - `TASKS.md`
+- `DECISIONS.md`
 - `TESTING.md`
 - `AGENTS.md`
 

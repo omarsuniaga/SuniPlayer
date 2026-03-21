@@ -1,8 +1,15 @@
 import { Track } from "../types";
 import generatedTracks from "./tracks.json";
 
-// Forcing casting to Track[] as the JSON root is an array
-export const TRACKS: Track[] = (generatedTracks as any).default || generatedTracks;
+interface MaybeDefaultTracks {
+    default?: Track[];
+}
+
+const trackSource = generatedTracks as Track[] | MaybeDefaultTracks;
+
+export const TRACKS: Track[] = Array.isArray(trackSource)
+    ? trackSource
+    : (trackSource.default ?? []);
 
 export const VENUES = [
     { id: "lobby", label: "Lobby", color: "#06B6D4" },

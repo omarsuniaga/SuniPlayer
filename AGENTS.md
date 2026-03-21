@@ -25,14 +25,15 @@ Agents must start from the actual state of the repository, not from future aspir
 
 ### Current reality
 
-- The active repo is a web prototype built with `React + TypeScript + Vite + Zustand`.
-- The main UI flow already exists: Builder, Player, History.
-- The codebase is still being stabilized and cleaned.
-- Platform migration to Expo / React Native is a future option, not a completed fact.
+- The active repo is a monorepo with `apps/web`, `apps/native`, and `packages/core`.
+- `apps/web` is a React + TypeScript + Vite PWA and remains the most mature surface today.
+- `apps/native` is an Expo + React Native app for iOS and Android and is now an active delivery target.
+- `packages/core` contains shared types, stores, contracts, and product logic.
+- The codebase is still being stabilized and documentation is still catching up with the new structure.
 
 ### Practical consequence
 
-Agents must not assume that Expo, SQLite, Jest, CI, native audio, or mobile navigation already exist unless the repository actually contains and uses them.
+Agents must not assume feature parity across web and native unless the repository actually contains and validates it.
 
 ---
 
@@ -93,7 +94,7 @@ Avoid mixing UI, audio, business logic, and persistence concerns in the same blo
 
 ### 5.5 Reality-based execution
 
-Agents must work from what exists today in the repo, while documenting and enabling the next step.
+Agents must work from what exists today in the repo, while documenting and enabling the next step across web, native, and shared core.
 
 ---
 
@@ -233,11 +234,11 @@ A task is only done when it satisfies the strongest validation the repository ca
 ### Current repo minimum
 
 - the affected flow is still aligned with `MVP_SCOPE.md`
-- `npm run lint` passes
+- `pnpm lint` passes
 - type contracts are not broken
-- `npm run typecheck` passes
-- `npm run test` passes
-- `npm run build` passes
+- `pnpm typecheck` passes
+- `pnpm test` passes
+- `pnpm build` passes
 - affected docs are updated when architecture, behavior, or source-of-truth contracts changed
 
 Agents must never claim that lint, test, or CI passed if those systems are missing or were not run.

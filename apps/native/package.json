@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "main": "./index.js",
   "scripts": {
-    "start": "expo start --dev-client",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "prebuild": "expo prebuild",
-    "web": "expo start --web",
-    "test": "jest"
+    "start": "pnpm exec expo start --dev-client",
+    "android": "pnpm exec expo run:android",
+    "ios": "pnpm exec expo run:ios",
+    "prebuild": "pnpm exec expo prebuild",
+    "web": "pnpm exec expo start --web",
+    "test": "pnpm exec jest"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -34,9 +34,16 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.25.0",
     "@types/react": "~19.2.2",
+    "babel-preset-expo": "~55.0.0",
     "jest-expo": "^55.0.9",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "exclude": ["expo-dev-client", "expo-dev-launcher", "expo-dev-menu"]
+    }
+  }
 }

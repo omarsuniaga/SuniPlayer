@@ -4,12 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "dev": "pnpm exec vite",
+    "build": "pnpm exec tsc --noEmit && pnpm exec vite build",
+    "preview": "pnpm exec vite preview",
+    "lint": "pnpm exec eslint .",
+    "typecheck": "pnpm exec tsc --noEmit",
+    "test": "pnpm exec vitest run",
+    "test:watch": "pnpm exec vitest"
   },
   "dependencies": {
     "@suniplayer/core": "workspace:*",

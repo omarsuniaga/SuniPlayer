@@ -10,19 +10,34 @@
       "bundleIdentifier": "com.suniplayer.app",
       "requireFullScreen": false,
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "NSMicrophoneUsageDescription": "SuniPlayer does not use the microphone.",
         "NSAppleMusicUsageDescription": "SuniPlayer accesses your audio files for playback."
       }
     },
     "android": {
       "package": "com.suniplayer.app",
-      "permissions": ["READ_EXTERNAL_STORAGE"]
+      "permissions": [
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
-    "plugins": ["expo-dev-client", "expo-router"],
+    "plugins": [
+      "expo-dev-client",
+      "expo-router",
+      "./plugins/withGradleWrapper"
+    ],
     "scheme": "suniplayer",
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9a231871-9483-453e-aee2-200fd18f25fb"
+      }
+    },
+    "owner": "omar_violin"
   }
 }

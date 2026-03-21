@@ -11,6 +11,10 @@ import { analyzeAudio } from "./analysisService";
 import { Track } from "../types";
 import { audioCache } from "./db";
 
+interface AudioContextWindow extends Window {
+    webkitAudioContext?: typeof AudioContext;
+}
+
 let isBusy = false;
 const failedIds = new Set<string>();
 let lastRetryTimestamp = Date.now();
@@ -60,7 +64,7 @@ export async function runBackgroundAnalysis() {
         
         const arrayBuffer = await response.arrayBuffer();
         
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const AudioContextClass = window.AudioContext || (window as AudioContextWindow).webkitAudioContext;
         audioCtx = new AudioContextClass();
         
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
@@ -100,7 +104,11 @@ export async function runBackgroundAnalysis() {
         failedIds.add(target.id); // Don't try again this session
     } finally {
         if (audioCtx) {
-            try { await audioCtx.close(); } catch {}
+            try {
+                await audioCtx.close();
+            } catch {
+                // Ignore close failures during background cleanup.
+            }
         }
         isBusy = false;
     }
