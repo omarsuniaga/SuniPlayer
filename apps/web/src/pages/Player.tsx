@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useProjectStore, setTrackTrim, updateTrackMetadata } from "../store/useProjectStore";
+import { useBuilderStore } from "../store/useBuilderStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { THEME } from "../data/theme.ts";
 import { Wave } from "../components/common/Wave.tsx";
@@ -12,6 +13,7 @@ import { SheetMusicViewer } from "../components/common/SheetMusicViewer";
 import { Dashboard } from "../components/player/Dashboard";
 import { LiveUnlockModal } from "../components/player/LiveUnlockModal";
 import { getWaveformData } from "../services/waveformService";
+import { MarkerLayer } from "../components/common/MarkerLayer";
 
 // ── Player Page ───────────────────────────────────────────────────────────────
 export const Player: React.FC = () => {
@@ -58,8 +60,11 @@ export const Player: React.FC = () => {
     const performanceMode = useSettingsStore(s => s.performanceMode);
     const setPerformanceMode = useSettingsStore(s => s.setPerformanceMode);
 
+    const curve = useBuilderStore(s => s.curve);
+
     // ── UI State ──
     const [showUnlockModal, setShowUnlockModal] = useState(false);
+    const [curveExpanded, setCurveExpanded] = useState(true);
     const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const [viewingSheetTrack, setViewingSheetTrack] = useState<Track | null>(null);
@@ -84,6 +89,14 @@ export const Player: React.FC = () => {
     const tPct = Math.min(1, pos / durMs);
     const prog = pos / durMs;
     const qTot = sumTrackDurationMs(pQueue);
+    const curvePlayheadPct = qTot > 0 ? (sumTrackDurationMs(pQueue.slice(0, ci)) + pos) / qTot : 0;
+
+    const currentMarkers = ct?.markers ?? [];
+
+    const handleMarkersChange = useCallback((markers: typeof currentMarkers) => {
+        if (!ct) return;
+        updateTrackMetadata(ct.id, { markers });
+    }, [ct]);
 
     const [currentWave, setCurrentWave] = useState<number[]>([]);
     const isLoadingWave = Boolean(ct) && currentWave.length === 0;
@@ -107,13 +120,6 @@ export const Player: React.FC = () => {
     }, [ct]);
 
     // ── Handlers ──
-    const seek = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isLive || !ct) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const p = (e.clientX - rect.left) / rect.width;
-        setPos(p * ct.duration_ms);
-    };
-
     const handleModeToggle = () => {
         if (isLive) setShowUnlockModal(true);
         else setMode("live");
@@ -221,21 +227,32 @@ export const Player: React.FC = () => {
                         fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={fadeExpanded} setFadeExpanded={setFadeExpanded}
                         crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={crossExpanded} setCrossExpanded={setCrossExpanded}
                         splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={splMeterExpanded} setSplMeterExpanded={setSplMeterExpanded}
+                        curve={curve} curvePlayheadPct={curvePlayheadPct} curveExpanded={curveExpanded} setCurveExpanded={setCurveExpanded}
                     />
 
                     {/* 4. VISUALIZADOR */}
                     <div style={{ display: "flex", flexDirection: "column", gap: performanceMode ? 24 : 12 }}>
-                        <div onClick={seek} style={{
-                            height: performanceMode ? 240 : 160, backgroundColor: "rgba(255,255,255,0.01)", border: `1px solid ${isLive ? THEME.colors.brand.cyan + "20" : THEME.colors.border}`,
-                            borderRadius: THEME.radius.xl, position: "relative", cursor: isLive ? "default" : "pointer", overflow: "hidden",
-                            opacity: isLoadingWave ? 0.4 : 1, transition: "all 0.3s"
-                        }}>
-                            <Wave data={currentWave.length > 0 ? currentWave : Array(100).fill(0.15)} progress={prog} color={mCol} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} totalMs={durMs} />
-                            <div style={{ position: "absolute", top: 0, bottom: 0, left: `${prog * 100}%`, width: 3, background: mCol, boxShadow: `0 0 20px ${mCol}`, zIndex: 5 }} />
-                            {isLive && playing && (
-                                <div style={{ position: "absolute", top: 12, left: 12, padding: "6px 14px", borderRadius: 6, background: THEME.colors.brand.cyan + "30", border: `1px solid ${THEME.colors.brand.cyan}50`, color: THEME.colors.brand.cyan, fontSize: 10, fontWeight: 900 }}>LIVE MODE PROTECTED</div>
-                            )}
-                        </div>
+                        <MarkerLayer
+                            markers={currentMarkers}
+                            posMs={pos}
+                            durationMs={durMs}
+                            isLive={isLive}
+                            onMarkersChange={handleMarkersChange}
+                            onSeek={(newPosMs) => { if (!isLive && ct) setPos(newPosMs); }}
+                        >
+                            <div style={{
+                                height: performanceMode ? 240 : 160, backgroundColor: "rgba(255,255,255,0.01)",
+                                border: `1px solid ${isLive ? THEME.colors.brand.cyan + "20" : THEME.colors.border}`,
+                                borderRadius: THEME.radius.xl, position: "relative",
+                                opacity: isLoadingWave ? 0.4 : 1, transition: "all 0.3s",
+                            }}>
+                                <Wave data={currentWave.length > 0 ? currentWave : Array(100).fill(0.15)} progress={prog} color={mCol} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} totalMs={durMs} />
+                                <div style={{ position: "absolute", top: 0, bottom: 0, left: `${prog * 100}%`, width: 3, background: mCol, boxShadow: `0 0 20px ${mCol}`, zIndex: 5 }} />
+                                {isLive && playing && (
+                                    <div style={{ position: "absolute", top: 12, left: 12, padding: "6px 14px", borderRadius: 6, background: THEME.colors.brand.cyan + "30", border: `1px solid ${THEME.colors.brand.cyan}50`, color: THEME.colors.brand.cyan, fontSize: 10, fontWeight: 900 }}>LIVE MODE PROTECTED</div>
+                                )}
+                            </div>
+                        </MarkerLayer>
                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: performanceMode ? 16 : 13, fontFamily: THEME.fonts.mono, opacity: 0.5 }}>
                             <span>{fmt(pos)}</span>
                             <span>-{fmt(rem)}</span>
