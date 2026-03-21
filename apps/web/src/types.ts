@@ -1,3 +1,9 @@
+export interface TrackMarker {
+    id: string;       // uuid, generated at creation time
+    posMs: number;    // position in milliseconds within the track
+    comment: string;  // max 140 characters
+}
+
 export interface Track {
     id: string;
     title: string;
@@ -13,6 +19,7 @@ export interface Track {
     analysis_cached: boolean;
     blob_url?: string;   // Object URL for user-imported files (session-only)
     notes?: string;      // Performance notes (e.g. "intro larga", "pedir aplauso")
+    markers?: TrackMarker[];
     isCustom?: boolean;  // true = imported by user, not from built-in catalog
     targetKey?: string;  // desired performance key after transposition
     transposeSemitones?: number; // saved semitone shift relative to key
