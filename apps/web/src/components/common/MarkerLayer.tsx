@@ -12,13 +12,11 @@ const PULSE_STYLE = `
   50%       { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
 }
 `;
-let pulseInjected = false;
-function injectPulse() {
-    if (pulseInjected || typeof document === "undefined") return;
+// Inject at module load (not inside component to avoid act() warnings in tests)
+if (typeof document !== "undefined") {
     const el = document.createElement("style");
     el.textContent = PULSE_STYLE;
     document.head.appendChild(el);
-    pulseInjected = true;
 }
 
 const LONG_PRESS_MS = 500;
@@ -42,8 +40,6 @@ interface ModalState {
 export const MarkerLayer: React.FC<MarkerLayerProps> = ({
     children, markers, posMs, durationMs, isLive, onMarkersChange, onSeek,
 }) => {
-    injectPulse();
-
     const containerRef = useRef<HTMLDivElement>(null);
     const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
