@@ -1,5 +1,6 @@
 import React from "react";
 import { useProjectStore } from "../../store/useProjectStore";
+import { useSettingsStore } from "../../store/useSettingsStore";
 import { THEME } from "../../data/theme.ts";
 import { PedalConfig } from "../settings/PedalConfig";
 
@@ -116,6 +117,8 @@ export const SettingsPanel: React.FC = () => {
     const splMeterTarget = useProjectStore(s => s.splMeterTarget);
     const setSplMeterTarget = useProjectStore(s => s.setSplMeterTarget);
     const resetApp = useProjectStore(s => s.resetApp);
+    const performanceMode = useSettingsStore(s => s.performanceMode);
+    const setPerformanceMode = useSettingsStore(s => s.setPerformanceMode);
 
     if (!showSettings) return null;
 
@@ -281,6 +284,13 @@ export const SettingsPanel: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    <Toggle
+                        label="Modo Tablet / Escenario"
+                        description="Aumenta el tamaño de fuentes y controles para uso en escenario"
+                        checked={performanceMode}
+                        onChange={setPerformanceMode}
+                    />
 
                     {/* Volumen actual */}
                     <div style={{ padding: "14px 0", borderBottom: `1px solid ${THEME.colors.border}` }}>
