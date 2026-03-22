@@ -58,13 +58,15 @@ export const Player: React.FC = () => {
     const setStackOrder = useProjectStore(s => s.setStackOrder);
 
     const performanceMode = useSettingsStore(s => s.performanceMode);
-    const setPerformanceMode = useSettingsStore(s => s.setPerformanceMode);
+    const curveVisible = useSettingsStore(s => s.curveVisible);
+    const setCurveVisible = useSettingsStore(s => s.setCurveVisible);
+    const curveExpanded = useSettingsStore(s => s.curveExpanded);
+    const setCurveExpanded = useSettingsStore(s => s.setCurveExpanded);
 
     const curve = useBuilderStore(s => s.curve);
 
     // ── UI State ──
     const [showUnlockModal, setShowUnlockModal] = useState(false);
-    const [curveExpanded, setCurveExpanded] = useState(true);
     const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const [viewingSheetTrack, setViewingSheetTrack] = useState<Track | null>(null);
@@ -219,7 +221,22 @@ export const Player: React.FC = () => {
                         <button onClick={() => setCrossfade(!crossfade)} style={{ padding: "10px 16px", borderRadius: THEME.radius.md, border: `1px solid ${crossfade ? THEME.colors.brand.cyan : "rgba(255,255,255,0.1)"}`, background: crossfade ? THEME.colors.brand.cyan + "20" : "transparent", color: crossfade ? THEME.colors.brand.cyan : THEME.colors.text.muted, fontSize: 11, fontWeight: 900, cursor: "pointer" }} title="Mezcla automática">CROSS</button>
                         <button onClick={() => setFadeEnabled(!fadeEnabled)} style={{ padding: "10px 16px", borderRadius: THEME.radius.md, border: `1px solid ${fadeEnabled ? THEME.colors.brand.cyan : "rgba(255,255,255,0.1)"}`, background: fadeEnabled ? THEME.colors.brand.cyan + "20" : "transparent", color: fadeEnabled ? THEME.colors.brand.cyan : THEME.colors.text.muted, fontSize: 11, fontWeight: 900, cursor: "pointer" }} title="Desvanecimiento global">FADE</button>
                         <button onClick={() => setSplMeterEnabled(!splMeterEnabled)} style={{ padding: "10px 16px", borderRadius: THEME.radius.md, border: `1px solid ${splMeterEnabled ? THEME.colors.brand.violet : "rgba(255,255,255,0.1)"}`, background: splMeterEnabled ? THEME.colors.brand.violet + "20" : "transparent", color: splMeterEnabled ? THEME.colors.brand.violet : THEME.colors.text.muted, fontSize: 11, fontWeight: 900, cursor: "pointer" }} title="Medidor SPL">METER</button>
-                        <button onClick={() => setPerformanceMode(!performanceMode)} style={{ padding: "10px 16px", borderRadius: THEME.radius.md, border: `1px solid ${performanceMode ? THEME.colors.brand.pink : "rgba(255,255,255,0.1)"}`, background: performanceMode ? THEME.colors.brand.pink + "20" : "transparent", color: performanceMode ? THEME.colors.brand.pink : THEME.colors.text.muted, fontSize: 11, fontWeight: 900, cursor: "pointer" }} title="Modo Tablet/Performance">TABLET UI</button>
+                        {curve && (
+                            <button
+                                onClick={() => setCurveVisible(!curveVisible)}
+                                style={{
+                                    padding: "10px 16px",
+                                    borderRadius: THEME.radius.md,
+                                    border: `1px solid ${curveVisible ? THEME.colors.brand.violet : "rgba(255,255,255,0.1)"}`,
+                                    background: curveVisible ? THEME.colors.brand.violet + "20" : "transparent",
+                                    color: curveVisible ? THEME.colors.brand.violet : THEME.colors.text.muted,
+                                    fontSize: 11, fontWeight: 900, cursor: "pointer"
+                                }}
+                                title="Curva de Energía del Set"
+                            >
+                                CURVE
+                            </button>
+                        )}
                         <button onClick={() => setShowQueue(!showQueue)} style={{ marginLeft: "auto", width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.05)", border: "none", color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg></button>
                     </div>
 
@@ -227,7 +244,7 @@ export const Player: React.FC = () => {
                         fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={fadeExpanded} setFadeExpanded={setFadeExpanded}
                         crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={crossExpanded} setCrossExpanded={setCrossExpanded}
                         splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={splMeterExpanded} setSplMeterExpanded={setSplMeterExpanded}
-                        curve={curve} curvePlayheadPct={curvePlayheadPct} curveExpanded={curveExpanded} setCurveExpanded={setCurveExpanded}
+                        curve={curve} curvePlayheadPct={curvePlayheadPct} curveVisible={curveVisible} curveExpanded={curveExpanded} setCurveExpanded={setCurveExpanded}
                     />
 
                     {/* 4. VISUALIZADOR */}
