@@ -62,6 +62,12 @@ interface SettingsState {
     splMeterExpanded: boolean;
     setSplMeterExpanded: (v: boolean) => void;
 
+    // Energy Curve panel
+    curveVisible: boolean;
+    setCurveVisible: (v: boolean) => void;
+    curveExpanded: boolean;
+    setCurveExpanded: (v: boolean) => void;
+
     // Pedal bindings
     pedalBindings: PedalBindings;
     setPedalBinding: (action: PedalAction, binding: PedalBinding) => void;
@@ -120,6 +126,11 @@ export const useSettingsStore = create<SettingsState>()(
             splMeterExpanded: true,
             setSplMeterExpanded: (splMeterExpanded) => set({ splMeterExpanded }),
 
+            curveVisible: true,
+            setCurveVisible: (curveVisible) => set({ curveVisible }),
+            curveExpanded: true,
+            setCurveExpanded: (curveExpanded) => set({ curveExpanded }),
+
             pedalBindings: {},
             setPedalBinding: (action, binding) =>
                 set((state) => ({
@@ -158,6 +169,8 @@ export const useSettingsStore = create<SettingsState>()(
                 splMeterEnabled: state.splMeterEnabled,
                 splMeterTarget: state.splMeterTarget,
                 splMeterExpanded: state.splMeterExpanded,
+                curveVisible: state.curveVisible,
+                curveExpanded: state.curveExpanded,
                 bpmMin: state.bpmMin,
                 bpmMax: state.bpmMax,
                 pedalBindings: state.pedalBindings,

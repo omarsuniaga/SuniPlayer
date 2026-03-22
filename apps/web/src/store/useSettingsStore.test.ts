@@ -52,3 +52,43 @@ describe("useSettingsStore — pedal bindings", () => {
         expect(parsed.state.learningAction).toBeUndefined();
     });
 });
+
+describe("useSettingsStore — curve panel visibility", () => {
+    beforeEach(() => {
+        resetStore();
+    });
+
+    it("curveVisible defaults to true", () => {
+        const { curveVisible } = useSettingsStore.getState();
+        expect(curveVisible).toBe(true);
+    });
+
+    it("setCurveVisible toggles visibility", () => {
+        const { setCurveVisible } = useSettingsStore.getState();
+        setCurveVisible(false);
+        expect(useSettingsStore.getState().curveVisible).toBe(false);
+        setCurveVisible(true);
+        expect(useSettingsStore.getState().curveVisible).toBe(true);
+    });
+
+    it("curveExpanded defaults to true", () => {
+        const { curveExpanded } = useSettingsStore.getState();
+        expect(curveExpanded).toBe(true);
+    });
+
+    it("setCurveExpanded toggles expansion", () => {
+        const { setCurveExpanded } = useSettingsStore.getState();
+        setCurveExpanded(false);
+        expect(useSettingsStore.getState().curveExpanded).toBe(false);
+    });
+
+    it("curveVisible and curveExpanded are persisted in localStorage", () => {
+        const { setCurveVisible, setCurveExpanded } = useSettingsStore.getState();
+        setCurveVisible(false);
+        setCurveExpanded(false);
+        const stored = localStorage.getItem("suniplayer-settings");
+        const parsed = JSON.parse(stored ?? "{}");
+        expect(parsed.state.curveVisible).toBe(false);
+        expect(parsed.state.curveExpanded).toBe(false);
+    });
+});
