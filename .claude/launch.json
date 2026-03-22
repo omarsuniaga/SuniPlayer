@@ -5,14 +5,14 @@
       "name": "Web (Vite)",
       "runtimeExecutable": "node",
       "runtimeArgs": ["C:\\Users\\omare\\.claude\\projects\\SuniPlayer\\node_modules\\vite\\bin\\vite.js"],
-      "cwd": "C:\\Users\\omare\\.claude\\projects\\SuniPlayer\\apps\\web",
+      "cwd": "apps/web",
       "port": 5173
     },
     {
       "name": "Native (Expo Metro)",
       "runtimeExecutable": "node",
       "runtimeArgs": ["C:\\Users\\omare\\.claude\\projects\\SuniPlayer\\node_modules\\expo\\bin\\cli", "start", "--port", "8081"],
-      "cwd": "C:\\Users\\omare\\.claude\\projects\\SuniPlayer\\apps\\native",
+      "cwd": "apps/native",
       "port": 8081
     }
   ]
