@@ -3,6 +3,7 @@ import { useProjectStore, setTrackTrim, updateTrackMetadata } from "../store/use
 import { useBuilderStore } from "../store/useBuilderStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { THEME } from "../data/theme.ts";
+import catalogTracks from "../data/tracks.json";
 import { Wave } from "../components/common/Wave.tsx";
 import { fmt, fmtM, mc } from "../services/uiUtils.ts";
 import { sumTrackDurationMs } from "../utils/trackMetrics.ts";
@@ -72,6 +73,14 @@ export const Player: React.FC = () => {
     const [viewingSheetTrack, setViewingSheetTrack] = useState<Track | null>(null);
     const [showQueue, setShowQueue] = useState(window.innerWidth > 1000);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 800);
+
+    // Auto-load catalog as preset queue when Player opens with no tracks
+    useEffect(() => {
+        if (pQueue.length === 0) {
+            setPQueue(catalogTracks as Track[]);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Dynamic resize tracking
     useEffect(() => {

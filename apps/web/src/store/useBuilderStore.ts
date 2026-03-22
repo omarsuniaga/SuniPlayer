@@ -39,7 +39,7 @@ interface BuilderState {
 export const useBuilderStore = create<BuilderState>()(
     persist(
         (set) => ({
-            view: "builder",
+            view: "player",
             setView: (view) => set({ view }),
 
             targetMin: 45,

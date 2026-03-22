@@ -17,7 +17,7 @@ const viewMap = {
 
 export const AppViewport: React.FC = () => {
     const view = useProjectStore((state) => state.view);
-    const ActiveView = viewMap[view] ?? Builder;
+    const ActiveView = viewMap[view] ?? Player;
 
     useAudio();
     usePedalBindings();
