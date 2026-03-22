@@ -35,6 +35,8 @@ interface DashboardProps {
     curvePlayheadPct?: number;
     curveExpanded: boolean;
     setCurveExpanded: (v: boolean) => void;
+    /** When false, the Energy Curve section is hidden regardless of curve value */
+    curveVisible: boolean;
 }
 
 // ── Reusable section container ────────────────────────────────────────────────
@@ -151,7 +153,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     fadeEnabled, fadeInMs, setFadeInMs, fadeOutMs, setFadeOutMs, fadeExpanded, setFadeExpanded,
     crossfade, crossfadeMs, setCrossfadeMs, crossExpanded, setCrossExpanded,
     splMeterEnabled, splMeterTarget, splMeterExpanded, setSplMeterExpanded,
-    curve, curvePlayheadPct, curveExpanded, setCurveExpanded,
+    curve, curvePlayheadPct, curveExpanded, setCurveExpanded, curveVisible,
 }) => {
     if (!crossfade && !fadeEnabled && !splMeterEnabled && !curve) return null;
 
@@ -314,7 +316,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             )}
 
             {/* ── ENERGY CURVE ───────────────────────────────────────── */}
-            {curve && (
+            {curve && curveVisible && (
                 <Section
                     accentColor={THEME.colors.brand.violet}
                     icon={
