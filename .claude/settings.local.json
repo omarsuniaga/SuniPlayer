@@ -20,7 +20,26 @@
       "Bash(node -e \"const r = require\\(''''/c/Users/omare/.claude/projects/SuniPlayer/node_modules/@testing-library/react''''\\); console.log\\(''''ok''''\\)\")",
       "Bash(grep -v \"^$\")",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(where npm:*)",
+      "Bash(where node:*)",
+      "Bash(grep -n '`' \"C:/Users/omare/.claude/projects/SuniPlayer/apps/web/src/components/common/SetSummary.tsx\")",
+      "Bash(npx vitest:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(pnpm install:*)",
+      "Bash(xargs grep:*)",
+      "Read(//usr/bin/**)",
+      "Read(//mingw64/bin/**)",
+      "Bash(powershell -Command \"\\(New-Object -ComObject Scripting.FileSystemObject\\).GetFolder\\(''C:\\\\Program Files\\\\nodejs''\\).ShortPath\")",
+      "Bash(node \"C:/Users/omare/.claude/projects/SuniPlayer/node_modules/vite/bin/vite.js\" --version)",
+      "Bash(node \"C:/Users/omare/.claude/projects/SuniPlayer/node_modules/vite/bin/vite.js\" --help)",
+      "Bash(curl -s http://localhost:5174/)",
+      "Bash(curl -s http://localhost:5174/src/pages/Player.tsx)",
+      "Bash(curl -s http://localhost:5174/src/components/layout/SettingsPanel.tsx)",
+      "Bash(curl -s http://localhost:5174/src/store/useSettingsStore.ts)",
+      "Bash(node -e \":*)",
+      "Bash(taskkill //F //IM node.exe)"
     ]
   }
 }
