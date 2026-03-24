@@ -203,14 +203,23 @@ export function updateTrackMetadata(trackId: string, updates: Partial<Track>) {
 
 /** Generate a set using current builder config + settings filters */
 export function doGen() {
-    const { targetMin, curve, venue } = useBuilderStore.getState();
+    const builderState = useBuilderStore.getState();
+    const { targetMin, curve, venue } = builderState;
     const { bpmMin, bpmMax } = useSettingsStore.getState();
     const tSec = targetMin * 60;
-    
-    // Apply overrides to catalog tracks BEFORE building the set if possible, 
+
+    // Exclude tracks already used in other sets of the current show
+    const excludedIds = builderState.getExcludedTrackIdsInShow();
+    const availablePool = excludedIds.length > 0
+        ? TRACKS.filter(t => !excludedIds.includes(t.id))
+        : TRACKS;
+    // Fall back to full catalog if pool is too small for generation
+    const workingPool = availablePool.length >= 3 ? availablePool : TRACKS;
+
+    // Apply overrides to catalog tracks BEFORE building the set if possible,
     // but building first then applying is safer for the algorithm's constraints.
-    const rawSet = buildSet(TRACKS, tSec, { curve, venue, bpmMin, bpmMax });
-    
+    const rawSet = buildSet(workingPool, tSec, { curve, venue, bpmMin, bpmMax });
+
     useBuilderStore.setState({
         genSet: applyOverrides(rawSet),
     });

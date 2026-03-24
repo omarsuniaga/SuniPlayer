@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { BuilderConfigSection } from "../features/set-builder/ui/BuilderConfigSection";
 import { BuilderGeneratedSetSection } from "../features/set-builder/ui/BuilderGeneratedSetSection";
 import { BuilderRepertoirePanel } from "../features/set-builder/ui/BuilderRepertoirePanel";
-import { useProjectStore } from "../store/useProjectStore";
+import { useProjectStore, useBuilderStore } from "../store/useProjectStore";
 import { THEME } from "../data/theme.ts";
 import { TRACKS } from "../data/constants.ts";
 import { useLibraryStore } from "../store/useLibraryStore";
@@ -21,6 +21,12 @@ export const Builder: React.FC = () => {
     const [importOpen, setImportOpen] = useState(false);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const isPlaying = playing && pQueue.length > 0;
+
+    // ── Show context selectors ────────────────────────────────────────────────
+    const currentShow = useBuilderStore(st => st.currentShow);
+    const startNewShow = useBuilderStore(st => st.startNewShow);
+    const addSetToCurrentShow = useBuilderStore(st => st.addSetToCurrentShow);
+    const getExcludedTrackIdsInShow = useBuilderStore(st => st.getExcludedTrackIdsInShow);
 
     // ── Generated set drag-to-reorder (HTML5 Drag API) ───────────────────────
     const dragIdx   = useRef<number | null>(null);
@@ -72,6 +78,29 @@ export const Builder: React.FC = () => {
 
                 {/* ── Main Content ── */}
                 <main style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px", overflowY: "auto", gap: 24, minWidth: 0 }} className="main-content">
+
+                    {/* ── Show Context Header ── */}
+                    {currentShow && (
+                        <div style={{ marginBottom: 0, padding: 16, borderRadius: 8, backgroundColor: "rgba(6,182,212,0.08)", borderLeft: `4px solid ${THEME.colors.brand.cyan}` }}>
+                            <div style={{ fontSize: 12, color: THEME.colors.text.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Show Context</div>
+                            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
+                                {currentShow.name}
+                            </div>
+                            <div style={{ fontSize: 13, color: THEME.colors.text.secondary }}>
+                                {currentShow.sets.length > 1 ? (
+                                    <>
+                                        Working on <strong>{currentShow.sets[currentShow.sets.length - 1].label}</strong> of {currentShow.sets.length} sets
+                                        {getExcludedTrackIdsInShow().length > 0 && (
+                                            <>, {getExcludedTrackIdsInShow().length} song{getExcludedTrackIdsInShow().length !== 1 ? "s" : ""} excluded from other sets</>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>Building <strong>Set 1</strong> of this show</>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <BuilderConfigSection
                         targetMin={s.targetMin}
                         venue={s.venue}
@@ -80,6 +109,10 @@ export const Builder: React.FC = () => {
                         onVenueChange={s.setVenue}
                         onCurveChange={s.setCurve}
                         onGenerate={s.doGen}
+                        currentShow={currentShow}
+                        genSetLength={s.genSet.length}
+                        onNewShow={startNewShow}
+                        onAddSet={addSetToCurrentShow}
                     />
 
                     <BuilderGeneratedSetSection
