@@ -56,3 +56,18 @@ export interface SetHistoryItem {
     curve: string;
     date: string;
 }
+
+export interface SetEntry {
+    id: string;
+    label: string;           // "Set 1", "Set 2", etc.
+    tracks: Track[];
+    durationMs: number;
+    builtAt: string;         // ISO date string
+}
+
+export interface Show {
+    id: string;
+    name: string;            // editable, auto-generated e.g. "Show 24 Mar"
+    createdAt: string;       // ISO date string
+    sets: SetEntry[];
+}
