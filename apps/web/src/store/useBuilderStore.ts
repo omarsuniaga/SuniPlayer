@@ -1,11 +1,11 @@
 /**
  * useBuilderStore — Set builder configuration and generated set
- * Persisted: targetMin, venue, curve, genSet
+ * Persisted: targetMin, venue, curve, genSet, currentShowId, currentShow
  * Ephemeral: view, search, fMood
  */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { Track } from "../types.ts";
+import { Track, Show, SetEntry } from "../types.ts";
 
 type View = "builder" | "player" | "history" | "library";
 
@@ -34,11 +34,20 @@ interface BuilderState {
 
     fMood: string | null;
     setFMood: (mood: string | null) => void;
+
+    // Show context for multi-set builds
+    currentShowId: string | null;
+    currentShow: Show | null;
+
+    // Show actions
+    startNewShow: () => void;
+    addSetToCurrentShow: () => void;
+    getExcludedTrackIdsInShow: () => string[];
 }
 
 export const useBuilderStore = create<BuilderState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             view: "player",
             setView: (view) => set({ view }),
 
@@ -62,6 +71,95 @@ export const useBuilderStore = create<BuilderState>()(
 
             fMood: null,
             setFMood: (fMood) => set({ fMood }),
+
+            // Show context
+            currentShowId: null,
+            currentShow: null,
+
+            startNewShow: () => {
+                const now = new Date();
+                const day = now.getDate();
+                const month = now.toLocaleDateString("en-US", { month: "short" });
+                const name = `Show ${day} ${month}`;
+
+                const showId = crypto.randomUUID();
+                const setId = crypto.randomUUID();
+
+                const newShow: Show = {
+                    id: showId,
+                    name,
+                    createdAt: new Date().toISOString(),
+                    sets: [
+                        {
+                            id: setId,
+                            label: "Set 1",
+                            tracks: [],
+                            durationMs: 0,
+                            builtAt: new Date().toISOString(),
+                        },
+                    ],
+                };
+
+                set({
+                    currentShowId: showId,
+                    currentShow: newShow,
+                    genSet: [],
+                });
+            },
+
+            addSetToCurrentShow: () => {
+                set((state) => {
+                    if (!state.currentShow) return state;
+
+                    // Snapshot current genSet into the last (active) set entry
+                    const currentGenSet = state.genSet;
+                    const updatedSets = state.currentShow.sets.map((entry, i) => {
+                        if (i === state.currentShow!.sets.length - 1) {
+                            return {
+                                ...entry,
+                                tracks: currentGenSet,
+                                durationMs: currentGenSet.reduce((sum, t) => sum + t.duration_ms, 0),
+                                builtAt: new Date().toISOString(),
+                            };
+                        }
+                        return entry;
+                    });
+
+                    const setNum = state.currentShow.sets.length + 1;
+                    const newSetId = crypto.randomUUID();
+                    const newSetEntry: SetEntry = {
+                        id: newSetId,
+                        label: `Set ${setNum}`,
+                        tracks: [],
+                        durationMs: 0,
+                        builtAt: new Date().toISOString(),
+                    };
+
+                    return {
+                        currentShow: {
+                            ...state.currentShow,
+                            sets: [...updatedSets, newSetEntry],
+                        },
+                        genSet: [],
+                    };
+                });
+            },
+
+            getExcludedTrackIdsInShow: () => {
+                const state = get();
+                if (!state.currentShow) return [];
+
+                const currentSetIndex = state.currentShow.sets.length - 1; // Last set is "active"
+                const excluded = new Set<string>();
+
+                state.currentShow.sets.forEach((entry, i) => {
+                    if (i !== currentSetIndex) {
+                        entry.tracks.forEach((track) => excluded.add(track.id));
+                    }
+                });
+
+                return Array.from(excluded);
+            },
         }),
         {
             name: "suniplayer-builder",
@@ -71,6 +169,8 @@ export const useBuilderStore = create<BuilderState>()(
                 venue: state.venue,
                 curve: state.curve,
                 genSet: state.genSet,
+                currentShowId: state.currentShowId,
+                currentShow: state.currentShow,
             }),
         }
     )
