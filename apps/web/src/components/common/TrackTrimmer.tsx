@@ -4,6 +4,7 @@ import { THEME } from "../../data/theme.ts";
 import { getWaveformData } from "../../services/waveformService.ts";
 import { Wave } from "./Wave.tsx";
 import { fmt } from "../../services/uiUtils.ts";
+import { usePlayerStore } from "../../store/usePlayerStore.ts";
 
 interface TrackTrimmerProps {
     track: Track;
@@ -16,12 +17,18 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
     const [start, setStart] = useState(track.startTime || 0);
     const [end, setEnd] = useState(track.endTime || track.duration_ms);
     const [isPreviewing, setIsPreviewing] = useState(false);
-    
+
     const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+    const setPlaying = usePlayerStore(s => s.setPlaying);
+    const wasPlayingRef = useRef(false);
     const duration = track.duration_ms;
     const loading = waveData.length === 0;
 
     useEffect(() => {
+        // Pause main player on mount and save whether it was playing
+        wasPlayingRef.current = usePlayerStore.getState().playing;
+        setPlaying(false);
+
         const url = track.blob_url ?? `/audio/${encodeURIComponent(track.file_path)}`;
         getWaveformData(url, track.id, 200).then(data => {
             setWaveData(data);
@@ -41,7 +48,7 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
             audio.pause();
             previewAudioRef.current = null;
         };
-    }, [track]);
+    }, [track, setPlaying]);
 
     const togglePreview = () => {
         const audio = previewAudioRef.current;
@@ -69,6 +76,11 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
 
     const handleSave = () => {
         onSave(start, end);
+    };
+
+    const handleCancel = () => {
+        if (wasPlayingRef.current) setPlaying(true);
+        onCancel();
     };
 
     const startPct = (start / duration) * 100;
@@ -100,8 +112,8 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
                             <span>{track.title}</span>
                         </p>
                     </div>
-                    <button 
-                        onClick={onCancel}
+                    <button
+                        onClick={handleCancel}
                         style={{ background: "none", border: "none", color: THEME.colors.text.dim, cursor: "pointer", padding: 4 }}
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -237,7 +249,7 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
 
                 <footer style={{ display: "flex", gap: 16, marginTop: 8 }}>
                     <button
-                        onClick={onCancel}
+                        onClick={handleCancel}
                         style={{
                             flex: 1, padding: "16px", borderRadius: THEME.radius.lg, border: `1px solid ${THEME.colors.border}`,
                             backgroundColor: "transparent", color: THEME.colors.text.secondary, fontSize: 14, fontWeight: 700, cursor: "pointer",
