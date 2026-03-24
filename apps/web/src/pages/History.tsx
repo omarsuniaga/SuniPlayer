@@ -1,10 +1,27 @@
 import React from "react";
-import { useProjectStore } from "../store/useProjectStore";
+import { useHistoryStore } from "../store/useHistoryStore";
+import { usePlayerStore } from "../store/usePlayerStore";
+import { useBuilderStore } from "../store/useBuilderStore";
 import { THEME } from "../data/theme.ts";
-import { fmtM } from "../services/uiUtils.ts";
+import type { SetEntry, Show } from "../types";
 
 export const History: React.FC = () => {
-    const s = useProjectStore();
+    const history = useHistoryStore(s => s.history);
+    const clearHistory = useHistoryStore(s => s.clearHistory);
+    const setView = useBuilderStore(s => s.setView);
+
+    const sendToPlayer = (setEntry: SetEntry, show: Show) => {
+        usePlayerStore.getState().setPQueue(setEntry.tracks);
+        usePlayerStore.getState().setCi(0);
+        usePlayerStore.getState().setPos(0);
+        usePlayerStore.getState().setElapsed(0);
+        usePlayerStore.getState().setCurrentSetMetadata(
+            show.sets.length > 1
+                ? { setLabel: setEntry.label, totalSetsInShow: show.sets.length }
+                : null
+        );
+        setView("player");
+    };
 
     return (
         <div style={{ flex: 1, padding: "32px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 24 }} className="main-content">
@@ -13,9 +30,9 @@ export const History: React.FC = () => {
                     <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em" }}>Session History</h2>
                     <p style={{ color: THEME.colors.text.muted, fontSize: 14, marginTop: 4 }}>Your recently generated and saved sets</p>
                 </div>
-                {s.history.length > 0 && (
+                {history.length > 0 && (
                     <button
-                        onClick={s.clearHistory}
+                        onClick={clearHistory}
                         style={{
                             padding: "8px 16px",
                             borderRadius: THEME.radius.md,
@@ -35,112 +52,118 @@ export const History: React.FC = () => {
                 )}
             </header>
 
-            {!s.history.length ? (
+            {history.length === 0 ? (
                 <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${THEME.colors.border}`, borderRadius: THEME.radius.xl, color: THEME.colors.text.muted }}>
                     No sets saved yet. Generate some in the Builder!
                 </div>
             ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(400px, 1fr))", gap: 16 }}>
-                    {s.history.map((hist) => (
-                        <div
-                            key={hist.id}
-                            style={{
-                                padding: "20px",
-                                borderRadius: THEME.radius.xl,
-                                backgroundColor: THEME.colors.surface,
-                                border: `1px solid ${THEME.colors.border}`,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 16,
-                                transition: "transform 0.2s",
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-                            onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-                        >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                <div>
-                                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{hist.name}</h3>
-                                    <div style={{ fontSize: 11, color: THEME.colors.text.muted, marginTop: 4 }}>{hist.date}</div>
-                                </div>
-                                <div style={{ fontFamily: THEME.fonts.mono, fontSize: 18, fontWeight: 700, color: THEME.colors.brand.cyan }}>
-                                    {fmtM(hist.total)}
-                                </div>
-                            </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    {history.map((show: Show) => {
+                        const totalDurationMs = show.sets.reduce((sum, s) => sum + s.durationMs, 0);
+                        const totalTracks = show.sets.reduce((sum, s) => sum + s.tracks.length, 0);
+                        const totalMin = Math.round(totalDurationMs / 60000);
 
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                                {hist.tracks.slice(0, 6).map((t, idx) => (
-                                    <span
-                                        key={idx}
-                                        style={{
-                                            fontSize: 10,
-                                            padding: "4px 8px",
-                                            borderRadius: THEME.radius.sm,
-                                            backgroundColor: "rgba(255,255,255,0.05)",
-                                            color: THEME.colors.text.muted,
-                                            border: `1px solid ${THEME.colors.border}`,
-                                        }}
-                                    >
-                                        {t.title}
+                        return (
+                            <div
+                                key={show.id}
+                                style={{
+                                    borderRadius: THEME.radius.xl,
+                                    backgroundColor: THEME.colors.surface,
+                                    border: `1px solid ${THEME.colors.border}`,
+                                    overflow: "hidden",
+                                }}
+                            >
+                                {/* Show header */}
+                                <div style={{
+                                    padding: "16px 20px",
+                                    borderBottom: show.sets.length > 0 ? `1px solid ${THEME.colors.border}` : "none",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    gap: 12,
+                                }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                        <span style={{ fontSize: 16 }}>📅</span>
+                                        <span style={{ fontSize: 15, fontWeight: 700 }}>{show.name}</span>
+                                    </div>
+                                    <span style={{ fontSize: 12, color: THEME.colors.text.muted, whiteSpace: "nowrap" }}>
+                                        {show.sets.length} set{show.sets.length !== 1 ? "s" : ""} · {totalTracks} songs · {totalMin} min
                                     </span>
-                                ))}
-                                {hist.tracks.length > 6 && (
-                                    <span style={{ fontSize: 10, padding: "4px 8px", color: THEME.colors.text.muted }}>
-                                        + {hist.tracks.length - 6} more
-                                    </span>
-                                )}
-                            </div>
+                                </div>
 
-                            <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
-                                <button
-                                    onClick={() => {
-                                        s.setGenSet(hist.tracks);
-                                        s.setTargetMin(hist.target / 60);
-                                        s.setVenue(hist.venue);
-                                        s.setCurve(hist.curve);
-                                        s.setView("builder");
-                                    }}
-                                    style={{
-                                        flex: 1,
-                                        padding: "10px",
-                                        borderRadius: THEME.radius.md,
-                                        border: `1px solid ${THEME.colors.brand.cyan}40`,
-                                        backgroundColor: "transparent",
-                                        color: THEME.colors.brand.cyan,
-                                        fontSize: 12,
-                                        fontWeight: 700,
-                                        cursor: "pointer",
-                                        transition: "all 0.2s",
-                                    }}
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        s.setPQueue(hist.tracks);
-                                        s.setCi(0);
-                                        s.setPos(0);
-                                        s.setTTarget(hist.target);
-                                        s.setElapsed(0);
-                                        s.setView("player");
-                                    }}
-                                    style={{
-                                        flex: 1,
-                                        padding: "10px",
-                                        borderRadius: THEME.radius.md,
-                                        border: "none",
-                                        background: THEME.gradients.brand,
-                                        color: "white",
-                                        fontSize: 12,
-                                        fontWeight: 700,
-                                        cursor: "pointer",
-                                        boxShadow: `0 4px 12px ${THEME.colors.brand.cyan}20`,
-                                    }}
-                                >
-                                    Recall & Play
-                                </button>
+                                {/* Sets within the show */}
+                                {show.sets.map((setEntry: SetEntry, index: number) => {
+                                    const setMin = Math.round(setEntry.durationMs / 60000);
+                                    const isLast = index === show.sets.length - 1;
+
+                                    return (
+                                        <div
+                                            key={setEntry.id}
+                                            style={{
+                                                padding: "14px 20px 14px 36px",
+                                                borderBottom: isLast ? "none" : `1px solid ${THEME.colors.border}`,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 16,
+                                            }}
+                                        >
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontSize: 13, fontWeight: 700, color: THEME.colors.text.primary }}>
+                                                    {setEntry.label}
+                                                </div>
+                                                <div style={{ fontSize: 11, color: THEME.colors.text.muted, marginTop: 2 }}>
+                                                    {setMin} min · {setEntry.tracks.length} songs
+                                                </div>
+
+                                                {/* Track pills */}
+                                                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
+                                                    {setEntry.tracks.slice(0, 5).map((t, idx) => (
+                                                        <span
+                                                            key={idx}
+                                                            style={{
+                                                                fontSize: 10,
+                                                                padding: "3px 7px",
+                                                                borderRadius: THEME.radius.sm,
+                                                                backgroundColor: "rgba(255,255,255,0.05)",
+                                                                color: THEME.colors.text.muted,
+                                                                border: `1px solid ${THEME.colors.border}`,
+                                                            }}
+                                                        >
+                                                            {t.title}
+                                                        </span>
+                                                    ))}
+                                                    {setEntry.tracks.length > 5 && (
+                                                        <span style={{ fontSize: 10, padding: "3px 7px", color: THEME.colors.text.muted }}>
+                                                            +{setEntry.tracks.length - 5} more
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={() => sendToPlayer(setEntry, show)}
+                                                style={{
+                                                    padding: "8px 16px",
+                                                    borderRadius: THEME.radius.md,
+                                                    border: "none",
+                                                    background: THEME.gradients.brand,
+                                                    color: "white",
+                                                    fontSize: 12,
+                                                    fontWeight: 700,
+                                                    cursor: "pointer",
+                                                    whiteSpace: "nowrap",
+                                                    boxShadow: `0 4px 12px ${THEME.colors.brand.cyan}20`,
+                                                    flexShrink: 0,
+                                                }}
+                                            >
+                                                Load
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

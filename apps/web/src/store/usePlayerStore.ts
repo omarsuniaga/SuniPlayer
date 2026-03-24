@@ -38,6 +38,10 @@ interface PlayerState {
     /** IDs of tracks to play next in LIVE mode, in priority order */
     stackOrder: string[];
     setStackOrder: (ids: string[] | ((prev: string[]) => string[])) => void;
+
+    /** Metadata about which show/set is currently loaded — used for "Set N / M" indicator */
+    currentSetMetadata: { setLabel: string; totalSetsInShow: number } | null;
+    setCurrentSetMetadata: (metadata: { setLabel: string; totalSetsInShow: number } | null) => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -87,6 +91,9 @@ export const usePlayerStore = create<PlayerState>()(
                 set((state) => ({
                     stackOrder: typeof update === "function" ? update(state.stackOrder) : update,
                 })),
+
+            currentSetMetadata: null,
+            setCurrentSetMetadata: (currentSetMetadata) => set({ currentSetMetadata }),
         }),
         {
             name: "suniplayer-player",

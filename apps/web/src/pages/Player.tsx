@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useProjectStore, setTrackTrim, updateTrackMetadata } from "../store/useProjectStore";
 import { useBuilderStore } from "../store/useBuilderStore";
 import { useSettingsStore } from "../store/useSettingsStore";
+import { usePlayerStore } from "../store/usePlayerStore";
 import { THEME } from "../data/theme.ts";
 import catalogTracks from "../data/tracks.json";
 import { Wave } from "../components/common/Wave.tsx";
@@ -65,6 +66,8 @@ export const Player: React.FC = () => {
     const setCurveExpanded = useSettingsStore(s => s.setCurveExpanded);
 
     const curve = useBuilderStore(s => s.curve);
+
+    const currentSetMetadata = usePlayerStore(s => s.currentSetMetadata);
 
     // ── UI State ──
     const [showUnlockModal, setShowUnlockModal] = useState(false);
@@ -211,6 +214,15 @@ export const Player: React.FC = () => {
                                     </>
                                 )}
                             </div>
+
+                            {currentSetMetadata && currentSetMetadata.totalSetsInShow > 1 && (
+                                <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.brand.violet}15`, border: `1px solid ${THEME.colors.brand.violet}30` }}>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.brand.violet} strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+                                    <span style={{ fontSize: 11, fontWeight: 700, color: THEME.colors.brand.violet }}>
+                                        {currentSetMetadata.setLabel} / {currentSetMetadata.totalSetsInShow}
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         <div style={{ position: "relative", width: performanceMode ? 120 : 90, height: performanceMode ? 120 : 90, flexShrink: 0 }}>
