@@ -46,15 +46,20 @@ export function usePedalBindings() {
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
+            // Debugging log - this helps see what the pedal is actually sending
+            console.log("Key pressed:", event.key, "Code:", event.code);
+
             if (isTypingTarget(event.target)) return;
 
             // ── Learn mode ──────────────────────────────────────────────────
             const currentLearning = useSettingsStore.getState().learningAction;
             if (currentLearning !== null) {
                 event.preventDefault();
+                event.stopPropagation();
                 if (event.key === "Escape") {
                     setLearningAction(null);
                 } else {
+                    console.log(`Mapping ${currentLearning} to key: ${event.key}`);
                     setPedalBinding(currentLearning, {
                         key: event.key,
                         label: keyLabel(event.key),
@@ -71,10 +76,15 @@ export function usePedalBindings() {
             ).find(([, b]) => b.key === event.key)?.[0];
 
             if (!matchedAction) return;
+            
+            // Critical for PWAs: stop the browser from scrolling or acting on these keys
             event.preventDefault();
+            event.stopPropagation();
 
             const { ci: currentCi, pQueue: currentQueue, vol: currentVol } =
                 usePlayerStore.getState();
+
+            console.log("Executing pedal action:", matchedAction);
 
             switch (matchedAction) {
                 case "next":
@@ -99,8 +109,9 @@ export function usePedalBindings() {
             }
         };
 
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
+        // useCapture: true ensures we get the event before other elements
+        window.addEventListener("keydown", handleKeyDown, { capture: true });
+        return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Empty deps: reads latest state from store directly — no stale closure
 }
