@@ -1,0 +1,19 @@
+[build]
+  # El comando de construcción corre desde la raíz para aprovechar el monorepo
+  command = "pnpm --filter @suniplayer/web build"
+  # El directorio donde Vite genera los archivos estáticos
+  publish = "apps/web/dist"
+  # Indica a Netlify que debe usar la versión de Node.js instalada o la especificada
+  node_bundler = "esbuild"
+
+[build.environment]
+  # Asegurar que se use pnpm
+  PNPM_FLAGS = "--frozen-lockfile"
+  # Versión de Node compatible (recomendada 18+)
+  NODE_VERSION = "20"
+
+[[redirects]]
+  # Esto es vital para SPAs (React, Vue, etc.) para que no den 404 al recargar páginas internas
+  from = "/*"
+  to = "/index.html"
+  status = 200

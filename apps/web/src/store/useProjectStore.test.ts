@@ -51,9 +51,8 @@ describe("useProjectStore cross-domain actions", () => {
 
         const historyItem = useHistoryStore.getState().history[0];
         expect(historyItem).toBeDefined();
-        expect(historyItem.tracks).toHaveLength(2);
-        expect(historyItem.total).toBe(tracks[0].duration_ms + tracks[1].duration_ms);
-        expect(historyItem.target).toBe(30 * 60);
+        expect(historyItem.sets[0].tracks).toHaveLength(2);
+        expect(historyItem.sets[0].durationMs).toBe(tracks[0].duration_ms + tracks[1].duration_ms);
     });
 
     it("appends tracks after the current song without interrupting playback", () => {

@@ -12,7 +12,7 @@
  *   useHistoryStore  — history
  *   useLibraryStore  — customTracks
  */
-import { Track, SetHistoryItem } from "../types.ts";
+import { Track, SetHistoryItem, Show } from "../types.ts";
 import { TRACKS, VENUES } from "../data/constants.ts";
 import { buildSet } from "../services/setBuilderService.ts";
 import { sumTrackDurationMs, sumTrackDurationSeconds } from "../utils/trackMetrics.ts";
@@ -112,7 +112,7 @@ export interface ProjectState {
     setSplMeterExpanded: (v: boolean) => void;
 
     // History
-    history: SetHistoryItem[];
+    history: Show[];
     setHistory: (history: SetHistoryItem[] | ((prev: SetHistoryItem[]) => SetHistoryItem[])) => void;
     clearHistory: () => void;
 
@@ -275,21 +275,26 @@ export function appendToQueue(tracks: Track[]) {
 
 /** Save the current generated set to history */
 export function saveSet() {
-    const { genSet, targetMin, venue, curve } = useBuilderStore.getState();
+    const { genSet, targetMin, venue } = useBuilderStore.getState();
     if (!genSet.length) return;
-    const tSec = targetMin * 60;
+
     const v = VENUES.find((x) => x.id === venue);
-    const newItem: SetHistoryItem = {
-        id: Date.now() + "",
+    const now = new Date().toISOString();
+
+    const newShow: Show = {
+        id: crypto.randomUUID(),
         name: (v?.label || "Set") + " " + targetMin + "min",
-        tracks: [...genSet],
-        total: sumTrackDurationMs(genSet),
-        target: tSec,
-        venue,
-        curve,
-        date: new Date().toLocaleString(),
+        createdAt: now,
+        sets: [{
+            id: crypto.randomUUID(),
+            label: "Set 1",
+            tracks: [...genSet],
+            durationMs: sumTrackDurationMs(genSet),
+            builtAt: now
+        }]
     };
-    useHistoryStore.setState((s) => ({ history: [newItem, ...s.history] }));
+
+    useHistoryStore.getState().saveShow(newShow);
 }
 
 /** Change defaultVol in settings AND sync to active player vol */

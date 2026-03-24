@@ -1,4 +1,4 @@
-import type { SetHistoryItem, Track } from "../types";
+import type { SetEntry, Show, Track } from "../types";
 
 import { useBuilderStore } from "../store/useBuilderStore";
 import { useHistoryStore } from "../store/useHistoryStore";
@@ -34,7 +34,7 @@ export interface ShowSessionSnapshot {
         stackOrder: string[];
     };
     history: {
-        history: SetHistoryItem[];
+        history: Show[];
     };
     library: {
         customTracks: SnapshotTrack[];
@@ -118,10 +118,17 @@ function sanitizeTrackForSnapshot(track: Track): SnapshotTrack {
     };
 }
 
-function sanitizeHistory(history: SetHistoryItem[]): SetHistoryItem[] {
-    return history.map((item) => ({
-        ...item,
-        tracks: item.tracks.map(sanitizeTrackForSnapshot),
+function sanitizeSetEntry(entry: SetEntry): SetEntry {
+    return {
+        ...entry,
+        tracks: entry.tracks.map(sanitizeTrackForSnapshot),
+    };
+}
+
+function sanitizeShows(shows: Show[]): Show[] {
+    return shows.map((show) => ({
+        ...show,
+        sets: show.sets.map(sanitizeSetEntry),
     }));
 }
 
@@ -165,7 +172,7 @@ export function buildShowSessionSnapshot(): ShowSessionSnapshot {
             stackOrder: player.stackOrder,
         },
         history: {
-            history: sanitizeHistory(history.history),
+            history: sanitizeShows(history.history),
         },
         library: {
             customTracks: snapshotCustomTracks,

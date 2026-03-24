@@ -22,7 +22,7 @@ const flushSync = (ReactDOM as any).flushSync as (fn: () => void) => void;
 (ReactDOMClient as any).createRoot = function patchedCreateRoot(container: Element, options?: unknown) {
     const root = _origCreateRoot(container, options as Parameters<typeof _origCreateRoot>[1]);
     const _origRender = root.render.bind(root);
-    root.render = function syncRender(element: unknown) {
+    root.render = function syncRender(element: any) {
         flushSync(() => {
             _origRender(element);
         });

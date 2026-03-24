@@ -406,8 +406,8 @@ describe("F5 — Historial de sets", () => {
         const { history } = useHistoryStore.getState();
         expect(history).toHaveLength(1);
         expect(history[0].name).toContain("30min");
-        expect(history[0].tracks.length).toBeGreaterThan(0);
-        expect(history[0].date).toBeTruthy();
+        expect(history[0].sets[0].tracks.length).toBeGreaterThan(0);
+        expect(history[0].createdAt).toBeTruthy();
     });
 
     it("los sets más recientes aparecen primero en el historial", () => {
@@ -434,7 +434,7 @@ describe("F5 — Historial de sets", () => {
         saveSet();
 
         const { history } = useHistoryStore.getState();
-        expect(history[0].total).toBeGreaterThan(0);
+        expect(history[0].sets[0].durationMs).toBeGreaterThan(0);
     });
 
     it("el historial persiste entre sesiones (localStorage)", () => {

@@ -55,13 +55,13 @@ describe("TrackTrimmer", () => {
 
     it("pauses the main player on mount", () => {
         mockStore.playing = true;
-        render(<TrackTrimmer track={sampleTrack} onSave={onSave} onCancel={onCancel} />);
+        render(<TrackTrimmer track={sampleTrack} onSave={onSave as any} onCancel={onCancel as any} />);
         expect(mockSetPlaying).toHaveBeenCalledWith(false);
     });
 
     it("resumes the main player on cancel when it was playing", () => {
         mockStore.playing = true;
-        render(<TrackTrimmer track={sampleTrack} onSave={onSave} onCancel={onCancel} />);
+        render(<TrackTrimmer track={sampleTrack} onSave={onSave as any} onCancel={onCancel as any} />);
         mockSetPlaying.mockClear();
         fireEvent.click(screen.getByText("Descartar"));
         expect(mockSetPlaying).toHaveBeenCalledWith(true);
@@ -69,7 +69,7 @@ describe("TrackTrimmer", () => {
 
     it("does not resume the main player on save", () => {
         mockStore.playing = true;
-        render(<TrackTrimmer track={sampleTrack} onSave={onSave} onCancel={onCancel} />);
+        render(<TrackTrimmer track={sampleTrack} onSave={onSave as any} onCancel={onCancel as any} />);
         mockSetPlaying.mockClear();
         fireEvent.click(screen.getByText("Aplicar Cambios"));
         expect(mockSetPlaying).not.toHaveBeenCalledWith(true);
@@ -79,7 +79,7 @@ describe("TrackTrimmer", () => {
         // Simulate: player was playing, ProfileModal paused it, then Trimmer opened inside it
         // At Trimmer mount, player is already paused → wasPlayingRef = false
         mockStore.playing = false; // player already paused by ProfileModal
-        render(<TrackTrimmer track={sampleTrack} onSave={onSave} onCancel={onCancel} />);
+        render(<TrackTrimmer track={sampleTrack} onSave={onSave as any} onCancel={onCancel as any} />);
         mockSetPlaying.mockClear();
         fireEvent.click(screen.getByText("Descartar"));
         // Trimmer should NOT resume because it saw playing=false at mount
