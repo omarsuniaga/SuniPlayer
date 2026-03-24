@@ -298,10 +298,33 @@ export const Player: React.FC = () => {
                     </div>
 
                     {/* 5. REPRODUCTOR CONTROLES */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: performanceMode ? 80 : 48 }}>
-                        <button onClick={() => { if (!isLive && ci > 0) { setCi(ci - 1); setPos(0); } }} style={{ background: "none", border: "none", opacity: ci > 0 ? 0.9 : 0.2, cursor: "pointer", transform: performanceMode ? "scale(1.5)" : "none", transition: "transform 0.3s" }}><svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" /></svg></button>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: performanceMode ? 60 : 32 }}>
+                        {/* Botón Stop — Bloqueado en Live Mode */}
+                        <button 
+                            onClick={() => { if (!isLive) { setPlaying(false); setPos(0); } }} 
+                            title={isLive ? "Stop bloqueado en Live Mode" : "Detener"}
+                            style={{ 
+                                background: "none", 
+                                border: "none", 
+                                opacity: isLive ? 0.15 : (playing || pos > 0) ? 0.9 : 0.2, 
+                                cursor: isLive ? "not-allowed" : "pointer",
+                                transform: performanceMode ? "scale(1.3)" : "none",
+                                transition: "all 0.3s",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center"
+                            }}
+                        >
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                                <rect x="6" y="6" width="12" height="12" rx="1" />
+                            </svg>
+                        </button>
+
+                        <button onClick={() => { if (!isLive && ci > 0) { setCi(ci - 1); setPos(0); } }} style={{ background: "none", border: "none", opacity: isLive ? 0.15 : ci > 0 ? 0.9 : 0.2, cursor: isLive ? "not-allowed" : "pointer", transform: performanceMode ? "scale(1.5)" : "none", transition: "transform 0.3s" }}><svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" /></svg></button>
+                        
                         <button onClick={() => setPlaying(!playing)} style={{ width: performanceMode ? 120 : 88, height: performanceMode ? 120 : 88, borderRadius: "50%", border: "none", background: THEME.gradients.brand, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: playing ? `0 0 40px ${mCol}50` : "0 10px 30px rgba(0,0,0,0.5)", transition: "all 0.3s" }}>{playing ? <svg width={performanceMode ? 48 : 36} height={performanceMode ? 48 : 36} viewBox="0 0 24 24" fill="white"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg> : <svg width={performanceMode ? 48 : 36} height={performanceMode ? 48 : 36} viewBox="0 0 24 24" fill="white" style={{ marginLeft: performanceMode ? 8 : 6 }}><path d="M8 5v14l11-7z" /></svg>}</button>
-                        <button onClick={() => { if (!isLive && ci < pQueue.length - 1) { setCi(ci + 1); setPos(0); } }} style={{ background: "none", border: "none", opacity: ci < pQueue.length - 1 ? 0.9 : 0.2, cursor: "pointer", transform: performanceMode ? "scale(1.5)" : "none", transition: "transform 0.3s" }}><svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></svg></button>
+                        
+                        <button onClick={() => { if (!isLive && ci < pQueue.length - 1) { setCi(ci + 1); setPos(0); } }} style={{ background: "none", border: "none", opacity: isLive ? 0.15 : ci < pQueue.length - 1 ? 0.9 : 0.2, cursor: isLive ? "not-allowed" : "pointer", transform: performanceMode ? "scale(1.5)" : "none", transition: "transform 0.3s" }}><svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></svg></button>
                     </div>
 
                     {/* 6. VOLUMEN */}
@@ -343,41 +366,97 @@ export const Player: React.FC = () => {
 
             {/* Queue Sidebar */}
             {showQueue && isMobile && (
-                <div onClick={() => setShowQueue(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)", zIndex: 1000 }} />
+                <div 
+                    onClick={() => setShowQueue(false)} 
+                    style={{ 
+                        position: "fixed", 
+                        inset: 0, 
+                        backgroundColor: "rgba(0,0,0,0.8)", 
+                        backdropFilter: "blur(8px)", 
+                        zIndex: 2000 // Aumentado
+                    }} 
+                />
             )}
             <aside style={{
                 position: isMobile ? "fixed" : "relative",
                 right: 0, top: 0, bottom: 0,
-                width: showQueue ? "min(360px, 100vw)" : 0, 
-                transition: "width 0.4s",
-                backgroundColor: THEME.colors.panel, 
+                width: showQueue ? (isMobile ? "85vw" : "360px") : 0, 
+                transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                backgroundColor: isMobile ? THEME.colors.bg : THEME.colors.panel, 
                 borderLeft: `1px solid ${THEME.colors.border}`,
                 display: "flex", flexDirection: "column", 
                 overflow: "hidden",
-                zIndex: 1001
+                zIndex: 2001, // Por encima del overlay
+                boxShadow: isMobile && showQueue ? "-20px 0 50px rgba(0,0,0,0.5)" : "none"
             }}>
-                <div style={{ width: isMobile ? "100vw" : 360, maxWidth: 360, height: "100%", display: "flex", flexDirection: "column" }}>
-                    <div style={{ padding: "24px", borderBottom: `1px solid ${THEME.colors.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ width: isMobile ? "85vw" : 360, maxWidth: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+                    <div style={{ 
+                        padding: isMobile ? "32px 24px" : "24px", 
+                        borderBottom: `1px solid ${THEME.colors.border}`, 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center",
+                        background: "rgba(255,255,255,0.02)"
+                    }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                            <h2 style={{ fontSize: 13, fontWeight: 900, margin: 0, opacity: 0.8 }}>SETLIST QUEUE</h2>
+                            <h2 style={{ fontSize: isMobile ? 16 : 13, fontWeight: 900, margin: 0, opacity: 0.8, color: THEME.colors.brand.cyan }}>SETLIST QUEUE</h2>
                             <span style={{ fontSize: 11, fontWeight: 800, color: THEME.colors.text.muted }}>{pQueue.length} Tracks</span>
                         </div>
-                        <button onClick={() => setShowQueue(false)} style={{ background: "none", border: "none", color: THEME.colors.text.muted, cursor: "pointer" }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
+                        <button 
+                            onClick={() => setShowQueue(false)} 
+                            style={{ 
+                                background: isMobile ? "rgba(255,255,255,0.05)" : "none", 
+                                border: "none", 
+                                borderRadius: isMobile ? "50%" : 0,
+                                width: isMobile ? 44 : "auto",
+                                height: isMobile ? 44 : "auto",
+                                color: THEME.colors.text.muted, 
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s"
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.color = "white"}
+                        >
+                            <svg width={isMobile ? "24" : "18"} height={isMobile ? "24" : "18"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
                     </div>
-                    <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
+                    <div style={{ flex: 1, overflowY: "auto", padding: "12px", WebkitOverflowScrolling: "touch" }}>
                         {pQueue.map((t, i) => {
                             const stackIdx = stackOrder.indexOf(t.id);
                             const isActive = ci === i;
                             return (
-                                <div key={t.id} onClick={() => handleQueueClick(t)} draggable={!isLive} onDragStart={(e) => { e.dataTransfer.setData("idx", i.toString()); }} onDragOver={e => e.preventDefault()} onDrop={e => onDrop(parseInt(e.dataTransfer.getData("idx")), i)} style={{
-                                    padding: "14px", borderRadius: THEME.radius.md, marginBottom: 6, cursor: "pointer",
-                                    background: isActive ? `${mCol}15` : "rgba(255,255,255,0.03)",
-                                    border: `1px solid ${isActive ? mCol + "40" : "transparent"}`,
-                                    display: "flex", gap: 14, alignItems: "center", transition: "all 0.2s"
-                                }}>
-                                    <span style={{ fontFamily: THEME.fonts.mono, fontSize: 11, opacity: 0.3, minWidth: 20 }}>{String(i + 1).padStart(2, '0')}</span>
+                                <div 
+                                    key={t.id} 
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Evitar que el clic llegue al fondo
+                                        handleQueueClick(t);
+                                    }} 
+                                    draggable={!isLive} 
+                                    onDragStart={(e) => { e.dataTransfer.setData("idx", i.toString()); }} 
+                                    onDragOver={e => e.preventDefault()} 
+                                    onDrop={e => onDrop(parseInt(e.dataTransfer.getData("idx")), i)} 
+                                    style={{
+                                        padding: isMobile ? "18px 20px" : "14px", 
+                                        borderRadius: THEME.radius.md, 
+                                        marginBottom: 8, 
+                                        cursor: "pointer",
+                                        background: isActive ? `${mCol}15` : "rgba(255,255,255,0.03)",
+                                        border: `1px solid ${isActive ? mCol + "40" : "transparent"}`,
+                                        display: "flex", 
+                                        gap: 14, 
+                                        alignItems: "center", 
+                                        transition: "all 0.2s",
+                                        userSelect: "none"
+                                    }}
+                                >
+                                    <span style={{ fontFamily: THEME.fonts.mono, fontSize: 11, opacity: 0.3, minWidth: 24 }}>{String(i + 1).padStart(2, '0')}</span>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: isActive ? "white" : THEME.colors.text.primary }}>{t.title}</div>
+                                        <div style={{ fontSize: isMobile ? 15 : 14, fontWeight: 700, color: isActive ? "white" : THEME.colors.text.primary }}>{t.title}</div>
                                         <div style={{ fontSize: 11, color: THEME.colors.text.muted }}>{t.artist}</div>
                                     </div>
                                     {isLive && stackIdx !== -1 && (
