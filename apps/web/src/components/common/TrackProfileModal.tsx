@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Track } from "../../types.ts";
 import { THEME } from "../../data/theme.ts";
 import { fmt, fmtFull } from "../../services/uiUtils.ts";
@@ -8,6 +8,7 @@ import { analyzeAudio } from "../../services/analysisService.ts";
 import { saveAsset, deleteAsset } from "../../services/assetStorage.ts";
 import { KEY_OPTIONS, buildTargetKey, describeTranspose, getTransposeSemitones, parseMusicalKey } from "../../features/library/lib/transpose";
 import { getPitchEngine } from "../../services/pitchEngine";
+import { usePlayerStore } from "../../store/usePlayerStore.ts";
 
 interface TrackProfileModalProps {
     track: Track;
@@ -25,6 +26,14 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     const [isUploadingSheet, setIsUploadingSheet] = useState(false);
     const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+    const setPlaying = usePlayerStore(s => s.setPlaying);
+    const wasPlayingRef = useRef(false);
+
+    useEffect(() => {
+        wasPlayingRef.current = usePlayerStore.getState().playing;
+        setPlaying(false);
+    }, []);
 
     const sourceKey = edit.key || track.key || "";
     const targetKey = edit.targetKey || sourceKey;
@@ -75,6 +84,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     const handleCancel = () => {
         getPitchEngine().stop();
         setIsPreviewPlaying(false);
+        if (wasPlayingRef.current) setPlaying(true);
         onCancel();
     };
 

@@ -19,6 +19,28 @@ vi.mock("../../services/pitchEngine", () => ({
     getPitchEngine: vi.fn(() => mockEngine),
 }));
 
+// Mock usePlayerStore for auto-pause tests
+const { mockSetPlaying, mockStore } = vi.hoisted(() => {
+    const mockSetPlaying = vi.fn();
+    const mockStore = { playing: false, setPlaying: mockSetPlaying };
+    return { mockSetPlaying, mockStore };
+});
+
+vi.mock("../../store/usePlayerStore", () => ({
+    usePlayerStore: Object.assign(
+        vi.fn((selector: (s: typeof mockStore) => unknown) => selector(mockStore)),
+        { getState: () => mockStore }
+    ),
+}));
+
+// Mock useLibraryStore to avoid zustand/react version conflicts in test environment
+vi.mock("../../store/useLibraryStore", () => ({
+    useLibraryStore: vi.fn(() => ({
+        availableTags: ["Jazz", "Pop", "Bolero"],
+        addTag: vi.fn(),
+    })),
+}));
+
 const sampleTrack = {
     ...TRACKS[0],
     key: "C Major",
@@ -40,6 +62,8 @@ describe("TrackProfileModal", () => {
         mockEngine.play.mockClear();
         mockEngine.stop.mockClear();
         mockEngine.onTimeUpdate.mockClear();
+        mockSetPlaying.mockClear();
+        mockStore.playing = false;
     });
 
     afterEach(() => {
@@ -96,5 +120,27 @@ describe("TrackProfileModal", () => {
         fireEvent.click(screen.getByText("Cancelar"));
         expect(mockEngine.stop).toHaveBeenCalled();
         expect(onCancel).toHaveBeenCalled();
+    });
+
+    it("pauses the main player on mount", () => {
+        mockStore.playing = true;
+        render(<TrackProfileModal track={sampleTrack} onSave={onSave as unknown as (updates: Partial<Track>) => void} onCancel={onCancel as unknown as () => void} />);
+        expect(mockSetPlaying).toHaveBeenCalledWith(false);
+    });
+
+    it("resumes the main player on cancel when it was playing", () => {
+        mockStore.playing = true;
+        render(<TrackProfileModal track={sampleTrack} onSave={onSave as unknown as (updates: Partial<Track>) => void} onCancel={onCancel as unknown as () => void} />);
+        mockSetPlaying.mockClear();
+        fireEvent.click(screen.getByText("Cancelar"));
+        expect(mockSetPlaying).toHaveBeenCalledWith(true);
+    });
+
+    it("does not resume the main player on save", () => {
+        mockStore.playing = true;
+        render(<TrackProfileModal track={sampleTrack} onSave={onSave as unknown as (updates: Partial<Track>) => void} onCancel={onCancel as unknown as () => void} />);
+        mockSetPlaying.mockClear();
+        fireEvent.click(screen.getByText("Guardar Perfil"));
+        expect(mockSetPlaying).not.toHaveBeenCalledWith(true);
     });
 });
