@@ -21,6 +21,7 @@ export const PedalConfig: React.FC = () => {
     
     const lastEvent = useDebugStore(s => s.lastEvent);
     const isFocused = useDebugStore(s => s.isFocused);
+    const addLog = useDebugStore(s => s.addLog);
 
     // Activity flash
     const [activityFlash, setActivityFlash] = React.useState(false);
@@ -42,7 +43,10 @@ export const PedalConfig: React.FC = () => {
         };
     }, [pedalBindings]);
 
-    const forceiPadFocus = () => {
+    const forceiPadFocus = (fromAction?: string) => {
+        if (fromAction) {
+            addLog(`Botón pulsado: ${fromAction}`);
+        }
         const el = document.getElementById("suni-pedal-focus") as HTMLInputElement;
         if (el) {
             el.focus();
@@ -55,7 +59,7 @@ export const PedalConfig: React.FC = () => {
     };
 
     return (
-        <div>
+        <div style={{ position: "relative", zIndex: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "20px 0 8px" }}>
                 <span style={{ fontSize: 18 }}>🦶</span>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.colors.text.muted, flex: 1 }}>
@@ -86,12 +90,12 @@ export const PedalConfig: React.FC = () => {
                 {!isFocused && (
                     <button 
                         id="btn-activate-ipad"
-                        onClick={forceiPadFocus}
+                        onClick={() => forceiPadFocus("ACTIVACIÓN")}
                         style={{
-                            width: "100%", padding: "10px", borderRadius: THEME.radius.sm,
-                            border: `1px solid ${THEME.colors.brand.cyan}`,
-                            background: "transparent", color: THEME.colors.brand.cyan,
-                            fontSize: 11, fontWeight: 800, cursor: "pointer", marginBottom: 12,
+                            width: "100%", padding: "14px", borderRadius: THEME.radius.sm,
+                            border: `2px solid ${THEME.colors.brand.cyan}`,
+                            background: "rgba(0,255,255,0.1)", color: "white",
+                            fontSize: 12, fontWeight: 900, cursor: "pointer", marginBottom: 12,
                             transition: "all 0.2s"
                         }}
                     >
@@ -103,9 +107,9 @@ export const PedalConfig: React.FC = () => {
                     type="text" 
                     placeholder="Prueba tu pedal aquí..."
                     style={{
-                        width: "100%", background: "rgba(255,255,255,0.05)", border: "none",
-                        borderRadius: 4, padding: "8px", fontSize: 12, color: "white",
-                        outline: "none", borderBottom: `1px solid ${THEME.colors.border}`
+                        width: "100%", background: "rgba(255,255,255,0.1)", border: "none",
+                        borderRadius: 4, padding: "10px", fontSize: 14, color: "white",
+                        outline: "none", borderBottom: `2px solid ${THEME.colors.brand.cyan}`
                     }}
                 />
             </div>
@@ -114,20 +118,20 @@ export const PedalConfig: React.FC = () => {
             {learningAction && (
                 <div style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "12px 16px", backgroundColor: `${THEME.colors.brand.cyan}12`,
-                    border: `1px solid ${THEME.colors.brand.cyan}40`, borderRadius: THEME.radius.md,
-                    marginBottom: 12
+                    padding: "16px", backgroundColor: "rgba(239, 68, 68, 0.2)",
+                    border: "2px solid #EF4444", borderRadius: THEME.radius.md,
+                    marginBottom: 16
                 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#EF4444", boxShadow: "0 0 6px #EF4444", animation: "pedalPulse 1s infinite" }} />
-                        <span style={{ fontSize: 13, color: THEME.colors.text.primary }}>Asignando <strong>{learningAction}</strong>... Pisa el pedal</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#EF4444", boxShadow: "0 0 10px #EF4444", animation: "pedalPulse 1s infinite" }} />
+                        <span style={{ fontSize: 14, color: "white", fontWeight: 700 }}>Asignando <strong>{learningAction.toUpperCase()}</strong>... Pisa el pedal</span>
                     </div>
-                    <button onClick={() => setLearningAction(null)} style={{ background: "none", border: "none", color: THEME.colors.text.muted, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>Cancelar</button>
+                    <button onClick={() => setLearningAction(null)} style={{ background: "white", border: "none", color: "black", padding: "4px 12px", borderRadius: 4, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>CANCELAR</button>
                 </div>
             )}
 
             <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "0 0 12px" }}>
-                Conecta tu pedalera y asigna cada pedal. Si usas iPad, pulsa el botón para activar la señal.
+                Conecta tu pedalera y asigna cada pedal. Si usas iPad, asegúrate de que el estado sea <strong>LISTO</strong>.
             </p>
 
             {PEDAL_ACTIONS.map(({ action, label }) => {
@@ -135,19 +139,21 @@ export const PedalConfig: React.FC = () => {
                 const isLearning = learningAction === action;
 
                 return (
-                    <div key={action} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px solid ${THEME.colors.border}` }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: THEME.colors.text.primary, flex: 1 }}>{label}</span>
-                        <div style={{ padding: "4px 10px", backgroundColor: binding ? `${THEME.colors.brand.cyan}15` : "rgba(255,255,255,0.04)", border: `1px solid ${binding ? THEME.colors.brand.cyan + "40" : THEME.colors.border}`, borderRadius: THEME.radius.sm, fontSize: 12, fontFamily: THEME.fonts.mono, color: binding ? THEME.colors.brand.cyan : THEME.colors.text.muted, minWidth: 90, textAlign: "center", marginRight: 8 }}>
+                    <div key={action} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderBottom: `1px solid ${THEME.colors.border}` }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: "white", flex: 1 }}>{label}</span>
+                        <div style={{ padding: "6px 12px", backgroundColor: binding ? `${THEME.colors.brand.cyan}25` : "rgba(255,255,255,0.05)", border: `1px solid ${binding ? THEME.colors.brand.cyan : THEME.colors.border}`, borderRadius: THEME.radius.sm, fontSize: 13, fontFamily: THEME.fonts.mono, color: binding ? THEME.colors.brand.cyan : "rgba(255,255,255,0.3)", minWidth: 100, textAlign: "center", marginRight: 12 }}>
                             {binding ? binding.label : "sin asignar"}
                         </div>
                         <button 
-                            onClick={() => { setLearningAction(action); forceiPadFocus(); }} 
+                            onClick={() => { setLearningAction(action); forceiPadFocus(label); }} 
+                            onPointerDown={() => { setLearningAction(action); forceiPadFocus(label); }}
                             style={{ 
-                                padding: "6px 12px", borderRadius: THEME.radius.sm, 
-                                border: `1px solid ${isLearning ? THEME.colors.brand.cyan : THEME.colors.border}`, 
-                                backgroundColor: isLearning ? `${THEME.colors.brand.cyan}20` : "transparent", 
-                                color: isLearning ? THEME.colors.brand.cyan : THEME.colors.text.muted, 
-                                cursor: "pointer", fontSize: 12, fontWeight: 700, minWidth: 72 
+                                padding: "10px 16px", borderRadius: THEME.radius.sm, 
+                                border: `2px solid ${isLearning ? THEME.colors.brand.cyan : "rgba(255,255,255,0.3)"}`, 
+                                backgroundColor: isLearning ? `${THEME.colors.brand.cyan}30` : "rgba(255,255,255,0.05)", 
+                                color: "white", // Forzado a blanco para que no parezca inactivo
+                                cursor: "pointer", fontSize: 12, fontWeight: 900, minWidth: 85,
+                                textTransform: "uppercase"
                             }}
                         >
                             {isLearning ? "Oído..." : (binding ? "Cambiar" : "Aprender")}
@@ -156,16 +162,16 @@ export const PedalConfig: React.FC = () => {
                 );
             })}
 
-            <div style={{ paddingTop: 16, display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={() => { clearPedalBindings(); }} style={{ padding: "6px 12px", borderRadius: THEME.radius.sm, border: `1px solid ${THEME.colors.status.error}40`, backgroundColor: "transparent", color: THEME.colors.status.error, cursor: "pointer", fontSize: 12 }}>
-                    Borrar todo
+            <div style={{ paddingTop: 24, display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={() => { clearPedalBindings(); addLog("Reset completo"); }} style={{ padding: "10px 20px", borderRadius: THEME.radius.sm, border: `1px solid ${THEME.colors.status.error}`, backgroundColor: "transparent", color: THEME.colors.status.error, cursor: "pointer", fontSize: 12, fontWeight: 800 }}>
+                    BORRAR TODO
                 </button>
             </div>
 
             <style>{`
                 @keyframes pedalPulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.4; }
+                    0%, 100% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.2); opacity: 0.5; }
                 }
             `}</style>
         </div>
