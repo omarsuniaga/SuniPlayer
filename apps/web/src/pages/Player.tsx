@@ -202,17 +202,24 @@ export const Player: React.FC = () => {
             {/* Left Column: Stats & Dashboard (Only on Desktop/Tablet Landscape) */}
             {useColumns && (
                 <aside style={{ 
-                    width: "320px", borderRight: `1px solid ${THEME.colors.border}`, 
-                    padding: "24px", display: "flex", flexDirection: "column", gap: 24,
-                    backgroundColor: "rgba(0,0,0,0.1)", overflowY: "auto"
+                    width: "320px", 
+                    borderRight: `1px solid ${THEME.colors.border}`, 
+                    padding: "24px", 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    gap: 24,
+                    backgroundColor: "rgba(0,0,0,0.12)", 
+                    overflowY: "auto", // Habilitar scroll
+                    height: "100%",    // Altura completa
+                    WebkitOverflowScrolling: "touch"
                 }}>
-                    <h2 style={{ fontSize: 11, fontWeight: 900, color: THEME.colors.brand.cyan, letterSpacing: 2 }}>SHOW MONITOR</h2>
+                    <h2 style={{ fontSize: 11, fontWeight: 900, color: THEME.colors.brand.cyan, letterSpacing: 2, flexShrink: 0 }}>SHOW MONITOR</h2>
                     <SetStatusPanel 
                         isLive={isLive} performanceMode={performanceMode}
                         elapsed={elapsed} qTot={qTot} currentProgressMs={currentProgressMs}
                         onModeToggle={handleModeToggle} mCol={mCol}
                     />
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flexShrink: 0 }}>
                         <Dashboard
                             fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={true} setFadeExpanded={() => {}}
                             crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={true} setCrossExpanded={() => {}}
@@ -224,12 +231,18 @@ export const Player: React.FC = () => {
             )}
 
             {/* Central Column: Main Player */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", height: "100%" }}>
                 <main style={{ 
-                    flex: 1, display: "flex", flexDirection: "column", 
+                    flex: 1, 
+                    display: "flex", 
+                    flexDirection: "column", 
                     padding: screenSize.isMobile ? "16px" : "32px", 
-                    overflowY: "auto", gap: performanceMode ? 40 : 32,
-                    maxWidth: useColumns ? "900px" : "100%", margin: "0 auto", width: "100%"
+                    overflowY: "auto", // Habilitar scroll
+                    gap: performanceMode ? 40 : 32,
+                    maxWidth: useColumns ? "900px" : "100%", 
+                    margin: "0 auto", 
+                    width: "100%",
+                    WebkitOverflowScrolling: "touch"
                 }}>
                     {isSimulating && playing && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.status.warning}10`, border: `1px solid ${THEME.colors.status.warning}30` }}>
