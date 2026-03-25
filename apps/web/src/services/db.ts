@@ -13,12 +13,22 @@ export interface AudioFileEntry {
     timestamp: number;
 }
 
+export interface AnalysisData {
+    id: string;
+    bpm: number;
+    key: string;
+    energy: number;
+    gainOffset: number;
+    timestamp: number;
+    waveform?: number[];
+}
+
 let db: IDBPDatabase | null = null;
 
 async function getDB() {
     if (db) return db;
     db = await openDB(DB_NAME, DB_VERSION, {
-        upgrade(db, oldVersion) {
+        upgrade(db, _oldVersion) {
             if (!db.objectStoreNames.contains(STORE_WAVEFORMS)) {
                 db.createObjectStore(STORE_WAVEFORMS, { keyPath: 'id' });
             }

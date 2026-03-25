@@ -3,6 +3,7 @@ import { useProjectStore, setTrackTrim, updateTrackMetadata } from "../store/use
 import { useBuilderStore } from "../store/useBuilderStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
+import { useLibraryStore } from "../store/useLibraryStore";
 import { THEME } from "../data/theme.ts";
 import catalogTracks from "../data/tracks.json";
 import { mc as mcHelper } from "../services/uiUtils.ts";
@@ -28,7 +29,6 @@ export const Player: React.FC = () => {
     // ── Store Selectors ──
     const pQueue = useProjectStore(s => s.pQueue);
     const ci = useProjectStore(s => s.ci);
-    const pos = useProjectStore(s => s.pos);
     const playing = useProjectStore(s => s.playing);
     const setPos = useProjectStore(s => s.setPos);
     const setCi = useProjectStore(s => s.setCi);
@@ -37,6 +37,7 @@ export const Player: React.FC = () => {
     const setMode = useProjectStore(s => s.setMode);
     const setPQueue = useProjectStore(s => s.setPQueue);
 
+    const pos = useProjectStore(s => s.pos);
     const vol = useProjectStore(s => s.vol);
     const mode = useProjectStore(s => s.mode);
     const elapsed = useProjectStore(s => s.elapsed);

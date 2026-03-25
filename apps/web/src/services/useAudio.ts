@@ -22,7 +22,6 @@ export function useAudio() {
     const pQueue = usePlayerStore(s => s.pQueue);
     const ci = usePlayerStore(s => s.ci);
     const playing = usePlayerStore(s => s.playing);
-    const pos = usePlayerStore(s => s.pos);
     const vol = usePlayerStore(s => s.vol);
     const setCi = usePlayerStore(s => s.setCi);
     const setPos = usePlayerStore(s => s.setPos);

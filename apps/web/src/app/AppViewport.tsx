@@ -5,10 +5,12 @@ import { Builder } from "../pages/Builder";
 import { Player } from "../pages/Player";
 import { Library } from "../pages/Library";
 import { useProjectStore } from "../store/useProjectStore";
+import { usePlayerStore } from "../store/usePlayerStore";
 import { useAudio } from "../services/useAudio";
 import { usePedalBindings } from "../services/usePedalBindings";
 
 import { useDebugStore } from "../store/useDebugStore";
+import { Track } from "../types";
 
 const viewMap = {
     builder: Builder,
@@ -33,7 +35,7 @@ export const AppViewport: React.FC = () => {
             const { audioCache } = await import("../services/db");
             
             let changed = false;
-            const updatedQueue = await Promise.all(pQueue.map(async (track) => {
+            const updatedQueue = await Promise.all(pQueue.map(async (track: Track) => {
                 if (track.isCustom && !track.blob_url) {
                     const blob = await audioCache.getAudioFile(track.id);
                     if (blob) {
