@@ -10,9 +10,11 @@ vi.mock("../store/usePlayerStore", () => ({
             ci: 0,
             pQueue: [{ id: '1' }, { id: '2' }],
             vol: 0.5,
+            playing: false,
             setCi: vi.fn(),
             setPlaying: vi.fn(),
             setVol: vi.fn(),
+            setPos: vi.fn(),
         }),
     }
 }));
@@ -25,49 +27,40 @@ describe("Lógica de Pedalera (Unit Test)", () => {
     });
 
     it("debe capturar una tecla en modo aprendizaje y guardarla en el store", () => {
-        const setPedalBinding = vi.fn((a, b) => useSettingsStore.getState().setPedalBinding(a, b));
-        const setLearningAction = vi.fn((a) => useSettingsStore.setState({ learningAction: a }));
         const addLog = vi.fn();
         const setLastEvent = vi.fn();
 
         // 1. Simular evento de teclado
         const event = new KeyboardEvent("keydown", { key: "ArrowRight" });
 
-        // 2. Ejecutar lógica en modo aprendizaje para 'next'
+        // 2. Activar modo aprendizaje en el store real
+        useSettingsStore.setState({ learningAction: 'next' });
+
+        // 3. Ejecutar lógica (ahora solo requiere event, addLog y setLastEvent)
         handlePedalEvent(
             event,
-            'next',
-            setPedalBinding,
-            setLearningAction,
             addLog,
             setLastEvent
         );
 
-        // 3. Verificaciones
-        expect(setPedalBinding).toHaveBeenCalledWith('next', expect.objectContaining({ key: 'ArrowRight' }));
-        expect(setLearningAction).toHaveBeenCalledWith(null);
-        
+        // 4. Verificaciones
         // Verificar que el store realmente cambió
         expect(useSettingsStore.getState().pedalBindings.next?.key).toBe("ArrowRight");
+        expect(useSettingsStore.getState().learningAction).toBeNull();
     });
 
     it("debe ejecutar la acción mapeada en modo normal", () => {
         // 1. Mapear 'play_pause' a la tecla ' ' (Espacio)
         useSettingsStore.getState().setPedalBinding('play_pause', { key: ' ', label: 'Espacio' });
         
-        const setPedalBinding = vi.fn();
-        const setLearningAction = vi.fn();
         const addLog = vi.fn();
         const setLastEvent = vi.fn();
 
         const event = new KeyboardEvent("keydown", { key: " " });
 
-        // 2. Ejecutar lógica en modo normal (learningAction = null)
+        // 2. Ejecutar lógica en modo normal
         handlePedalEvent(
             event,
-            null,
-            setPedalBinding,
-            setLearningAction,
             addLog,
             setLastEvent
         );
