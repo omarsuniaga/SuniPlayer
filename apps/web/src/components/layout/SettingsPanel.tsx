@@ -1,6 +1,7 @@
 import React from "react";
 import { useProjectStore } from "../../store/useProjectStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
+import { useLibraryStore } from "../../store/useLibraryStore";
 import { THEME } from "../../data/theme.ts";
 import { PedalConfig } from "../settings/PedalConfig";
 import { VERSION_INFO } from "../../version";
@@ -120,6 +121,7 @@ export const SettingsPanel: React.FC = () => {
     const resetApp = useProjectStore(s => s.resetApp);
     const performanceMode = useSettingsStore(s => s.performanceMode);
     const setPerformanceMode = useSettingsStore(s => s.setPerformanceMode);
+    const setView = useProjectStore(s => s.setView);
 
     if (!showSettings) return null;
 
@@ -376,7 +378,7 @@ export const SettingsPanel: React.FC = () => {
                             Tus canciones están guardadas de forma segura en la memoria de este navegador y están disponibles sin conexión.
                         </p>
                         <button
-                            onClick={() => { useProjectStore.getState().setView("library"); setShowSettings(false); }}
+                            onClick={() => { setView("library"); setShowSettings(false); }}
                             style={{
                                 padding: "10px", borderRadius: THEME.radius.sm,
                                 border: `1px solid ${THEME.colors.brand.violet}40`,
