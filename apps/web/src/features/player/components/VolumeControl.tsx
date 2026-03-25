@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { THEME } from "../../../data/theme.ts";
 
 interface VolumeControlProps {
