@@ -337,6 +337,62 @@ export function useAudio() {
         }
     }, [pos, ct]);
 
+    // ── Media Session API (iOS/Android Lock Screen & Bluetooth Controls) ────
+    useEffect(() => {
+        if (!ct || !('mediaSession' in navigator)) return;
+
+        // Set Metadata
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: ct.title,
+            artist: ct.artist,
+            album: "SuniPlayer Setlist",
+            artwork: [
+                { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+                { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+            ]
+        });
+
+        // Set Action Handlers
+        const handlers: [MediaSessionAction, () => void][] = [
+            ['play', () => setPlaying(true)],
+            ['pause', () => setPlaying(false)],
+            ['previoustrack', () => {
+                if (ciRef.current > 0) {
+                    setCi(ciRef.current - 1);
+                    setPos(0);
+                }
+            }],
+            ['nexttrack', () => {
+                if (ciRef.current < pQueueLenRef.current - 1) {
+                    setCi(ciRef.current + 1);
+                    setPos(0);
+                }
+            }],
+            ['seekbackward', () => setPos(Math.max(0, posRef.current - 5000))],
+            ['seekforward', () => setPos(posRef.current + 5000)],
+            ['stop', () => { setPlaying(false); setPos(0); }]
+        ];
+
+        for (const [action, handler] of handlers) {
+            try {
+                navigator.mediaSession.setActionHandler(action, handler);
+            } catch { /* Some browsers don't support all actions */ }
+        }
+
+        return () => {
+            // Clean up handlers
+            for (const [action] of handlers) {
+                try { navigator.mediaSession.setActionHandler(action, null); } catch { }
+            }
+        };
+    }, [ct, setPlaying, setCi, setPos]);
+
+    // Update playback state in Media Session
+    useEffect(() => {
+        if (!('mediaSession' in navigator)) return;
+        navigator.mediaSession.playbackState = playing ? "playing" : "paused";
+    }, [playing]);
+
     // ── Main play/pause + auto-next engine ───────────────────────────────────
     useEffect(() => {
         const audio = audioRef.current;

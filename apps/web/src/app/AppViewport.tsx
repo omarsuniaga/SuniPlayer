@@ -18,6 +18,7 @@ const viewMap = {
 export const AppViewport: React.FC = () => {
     const view = useProjectStore((state) => state.view);
     const ActiveView = viewMap[view] ?? Player;
+    const hiddenInputRef = React.useRef<HTMLInputElement>(null);
 
     useAudio();
     usePedalBindings();
@@ -30,8 +31,38 @@ export const AppViewport: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // Maintain focus for pedal events (iPad keyboard emulation)
+    React.useEffect(() => {
+        const refocus = (e: MouseEvent | TouchEvent) => {
+            // Only refocus if the target isn't already an input/textarea
+            const target = e.target as HTMLElement;
+            if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+                setTimeout(() => hiddenInputRef.current?.focus(), 100);
+            }
+        };
+
+        window.addEventListener('click', refocus);
+        window.addEventListener('touchstart', refocus);
+        
+        // Initial focus
+        setTimeout(() => hiddenInputRef.current?.focus(), 500);
+
+        return () => {
+            window.removeEventListener('click', refocus);
+            window.removeEventListener('touchstart', refocus);
+        };
+    }, []);
+
     return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 }}>
+            {/* Hidden focus anchor for iPad pedals */}
+            <input 
+                ref={hiddenInputRef}
+                type="text" 
+                readOnly
+                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', top: -100, left: -100, width: 1, height: 1 }}
+                aria-hidden="true"
+            />
             <ActiveView />
         </div>
     );
