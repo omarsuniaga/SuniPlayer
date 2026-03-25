@@ -57,6 +57,7 @@ export const AppViewport: React.FC = () => {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 }}>
             {/* Hidden focus anchor for iPad pedals */}
             <input 
+                id="suni-pedal-focus"
                 ref={hiddenInputRef}
                 type="text" 
                 readOnly

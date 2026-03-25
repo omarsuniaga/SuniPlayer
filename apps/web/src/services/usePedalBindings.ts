@@ -18,10 +18,14 @@ function keyLabel(key: string): string {
     return map[key] ?? key;
 }
 
-/** Returns true if the key event originated from a text input element */
+/** Returns true if the key event originated from a real text input element */
 function isTypingTarget(target: EventTarget | null): boolean {
     if (!target || !(target instanceof HTMLElement)) return false;
     const tag = target.tagName;
+    
+    // EXCEPTION: Don't treat our invisible pedal focus anchor as a typing target
+    if (target.id === "suni-pedal-focus") return false;
+
     if (tag === "INPUT" || tag === "TEXTAREA") return true;
     if (target.isContentEditable) return true;
     return false;
