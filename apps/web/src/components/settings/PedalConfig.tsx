@@ -1,5 +1,5 @@
 import React from "react";
-import { useSettingsStore, PedalAction, PedalBinding } from "../../store/useSettingsStore";
+import { useSettingsStore, PedalAction } from "../../store/useSettingsStore";
 import { useDebugStore } from "../../store/useDebugStore";
 import { THEME } from "../../data/theme";
 
@@ -12,38 +12,14 @@ const PEDAL_ACTIONS: { action: PedalAction; label: string }[] = [
     { action: "vol_down",   label: "Volumen −" },
 ];
 
-function findConflict(
-    bindings: Partial<Record<PedalAction, PedalBinding>>,
-    forAction: PedalAction,
-    candidateKey: string
-): PedalAction | null {
-    for (const [action, binding] of Object.entries(bindings) as [PedalAction, { key: string }][]) {
-        if (action !== forAction && binding.key === candidateKey) return action;
-    }
-    return null;
-}
-
-function actionLabel(action: PedalAction): string {
-    return PEDAL_ACTIONS.find((a) => a.action === action)?.label ?? action;
-}
-
 export const PedalConfig: React.FC = () => {
     const pedalBindings = useSettingsStore((s) => s.pedalBindings);
-    const setPedalBinding = useSettingsStore((s) => s.setPedalBinding);
-    const clearPedalBindings = useSettingsStore((s) => s.clearPedalBindings);
-    const clearPedalBinding = useSettingsStore((s) => s.clearPedalBinding);
     const learningAction = useSettingsStore((s) => s.learningAction);
     const setLearningAction = useSettingsStore((s) => s.setLearningAction);
+    const clearPedalBindings = useSettingsStore((s) => s.clearPedalBindings);
     
     const lastEvent = useDebugStore(s => s.lastEvent);
-    const log = useDebugStore(s => s.log);
     const isFocused = useDebugStore(s => s.isFocused);
-
-    const [pendingConflict, setPendingConflict] = React.useState<{
-        forAction: PedalAction;
-        conflictsWith: PedalAction;
-        binding: PedalBinding;
-    } | null>(null);
 
     // Activity flash
     const [activityFlash, setActivityFlash] = React.useState(false);
@@ -59,19 +35,20 @@ export const PedalConfig: React.FC = () => {
             }
         };
         window.addEventListener("keydown", handleKey);
-        return () => window.removeEventListener("keydown", handleKey);
+        return () => {
+            window.removeEventListener("keydown", handleKey);
+            if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+        };
     }, [pedalBindings]);
 
-    // Función para forzar el foco en el iPad
     const forceiPadFocus = () => {
         const el = document.getElementById("suni-pedal-focus") as HTMLInputElement;
         if (el) {
             el.focus();
-            // Pequeño feedback visual
             const btn = document.getElementById("btn-activate-ipad");
             if (btn) {
                 btn.style.backgroundColor = THEME.colors.brand.cyan;
-                setTimeout(() => btn.style.backgroundColor = "transparent", 500);
+                setTimeout(() => { if (btn) btn.style.backgroundColor = "transparent"; }, 500);
             }
         }
     };
@@ -88,7 +65,6 @@ export const PedalConfig: React.FC = () => {
                 )}
             </div>
             
-            {/* Diagnostics Monitor */}
             <div style={{ backgroundColor: "rgba(0,0,0,0.3)", borderRadius: THEME.radius.md, padding: "12px", border: `1px solid ${THEME.colors.border}`, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -106,7 +82,6 @@ export const PedalConfig: React.FC = () => {
                     <span style={{ fontSize: 10, color: THEME.colors.text.muted }}>Señal: <strong style={{ color: THEME.colors.brand.cyan }}>{lastEvent}</strong></span>
                 </div>
 
-                {/* BOTÓN CRÍTICO PARA IPAD */}
                 {!isFocused && (
                     <button 
                         id="btn-activate-ipad"
@@ -135,10 +110,9 @@ export const PedalConfig: React.FC = () => {
             </div>
 
             <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "0 0 12px" }}>
-                Conecta tu pedalera y asigna cada pedal. Si usas iPad, asegúrate de que el estado sea <strong>LISTO</strong>.
+                Conecta tu pedalera y asigna cada pedal. Si usas iPad, pulsa el botón para activar la señal.
             </p>
 
-            {/* Rest of action rows... */}
             {PEDAL_ACTIONS.map(({ action, label }) => {
                 const binding = pedalBindings[action];
                 const isLearning = learningAction === action;

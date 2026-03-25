@@ -3,7 +3,7 @@ import { useHistoryStore } from "../store/useHistoryStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useBuilderStore } from "../store/useBuilderStore";
 import { THEME } from "../data/theme.ts";
-import type { SetEntry, Show } from "../types";
+import type { SetEntry, Show, Track } from "../types";
 
 export const History: React.FC = () => {
     const history = useHistoryStore(s => s.history);
@@ -59,8 +59,8 @@ export const History: React.FC = () => {
             ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     {history.map((show: Show) => {
-                        const totalDurationMs = show.sets.reduce((sum, s) => sum + s.durationMs, 0);
-                        const totalTracks = show.sets.reduce((sum, s) => sum + s.tracks.length, 0);
+                        const totalDurationMs = show.sets.reduce((sum: number, s: SetEntry) => sum + s.durationMs, 0);
+                        const totalTracks = show.sets.reduce((sum: number, s: SetEntry) => sum + s.tracks.length, 0);
                         const totalMin = Math.round(totalDurationMs / 60000);
 
                         return (
@@ -117,7 +117,7 @@ export const History: React.FC = () => {
 
                                                 {/* Track pills */}
                                                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
-                                                    {setEntry.tracks.slice(0, 5).map((t, idx) => (
+                                                    {setEntry.tracks.slice(0, 5).map((t: Track, idx: number) => (
                                                         <span
                                                             key={idx}
                                                             style={{

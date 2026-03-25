@@ -9,6 +9,7 @@ import { usePlayerStore } from "../store/usePlayerStore.ts";
 import { useSettingsStore } from "../store/useSettingsStore.ts";
 import { useLibraryStore } from "../store/useLibraryStore.ts";
 import { probeOne } from "./audioProbe.ts";
+import { useDebugStore } from "../store/useDebugStore.ts";
 import { PitchShifter } from "soundtouchjs";
 import { Track } from "../types.ts";
 

@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useProjectStore, setTrackTrim, updateTrackMetadata } from "../store/useProjectStore";
 import { useBuilderStore } from "../store/useBuilderStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { THEME } from "../data/theme.ts";
 import catalogTracks from "../data/tracks.json";
-import { mc, mc as mcHelper } from "../services/uiUtils.ts";
+import { mc as mcHelper } from "../services/uiUtils.ts";
 import { sumTrackDurationMs } from "../utils/trackMetrics.ts";
 import { TrackTrimmer } from "../components/common/TrackTrimmer";
 import { TrackProfileModal } from "../components/common/TrackProfileModal";
@@ -193,7 +193,7 @@ export const Player: React.FC = () => {
                     {/* 1. SECCIÓN CABECERA */}
                     <PlayerHeader 
                         track={ct} performanceMode={performanceMode} playing={playing} 
-                        pos={pos} rem={rem} tPct={tPct} currentSetMetadata={currentSetMetadata}
+                        rem={rem} tPct={tPct} currentSetMetadata={currentSetMetadata}
                         onProfileClick={() => setProfileTrack(ct)} 
                         onSheetMusicClick={() => setViewingSheetTrack(ct)}
                     />

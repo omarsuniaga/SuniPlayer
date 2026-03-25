@@ -7,7 +7,6 @@ interface PlayerHeaderProps {
     track: Track | null;
     performanceMode: boolean;
     playing: boolean;
-    pos: number;
     rem: number;
     tPct: number;
     currentSetMetadata: any;
@@ -16,10 +15,10 @@ interface PlayerHeaderProps {
 }
 
 export const PlayerHeader: React.FC<PlayerHeaderProps> = ({
-    track, performanceMode, playing, pos, rem, tPct, currentSetMetadata,
+    track, performanceMode, playing, rem, tPct, currentSetMetadata,
     onProfileClick, onSheetMusicClick
 }) => {
-    const mCol = mc(track?.mood);
+    const mCol = mc(track?.mood || "default");
     const tCol = playing ? mCol : THEME.colors.text.muted;
 
     return (

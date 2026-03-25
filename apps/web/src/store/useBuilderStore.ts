@@ -113,12 +113,12 @@ export const useBuilderStore = create<BuilderState>()(
 
                     // Snapshot current genSet into the last (active) set entry
                     const currentGenSet = state.genSet;
-                    const updatedSets = state.currentShow.sets.map((entry, i) => {
+                    const updatedSets = state.currentShow.sets.map((entry: SetEntry, i: number) => {
                         if (i === state.currentShow!.sets.length - 1) {
                             return {
                                 ...entry,
                                 tracks: currentGenSet,
-                                durationMs: currentGenSet.reduce((sum, t) => sum + t.duration_ms, 0),
+                                durationMs: currentGenSet.reduce((sum: number, t: Track) => sum + t.duration_ms, 0),
                                 builtAt: new Date().toISOString(),
                             };
                         }
@@ -152,9 +152,9 @@ export const useBuilderStore = create<BuilderState>()(
                 const currentSetIndex = state.currentShow.sets.length - 1; // Last set is "active"
                 const excluded = new Set<string>();
 
-                state.currentShow.sets.forEach((entry, i) => {
+                state.currentShow.sets.forEach((entry: SetEntry, i: number) => {
                     if (i !== currentSetIndex) {
-                        entry.tracks.forEach((track) => excluded.add(track.id));
+                        entry.tracks.forEach((track: Track) => excluded.add(track.id));
                     }
                 });
 
