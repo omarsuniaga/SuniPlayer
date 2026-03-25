@@ -1,5 +1,5 @@
 /**
- * useAudio — Audio Engine v2.5 (Gapless Ping-Pong Buffer)
+ * useAudio — Audio Engine v2.5.1 (Gapless Ping-Pong Buffer - Clean Version)
  * 
  * Uses two separate HTMLAudioElement instances to ensure perfect transitions.
  * Track B is pre-loaded and primed while Track A is still playing.
@@ -7,15 +7,12 @@
 import { useEffect, useRef } from "react";
 import { usePlayerStore } from "../store/usePlayerStore.ts";
 import { useSettingsStore } from "../store/useSettingsStore.ts";
-import { useLibraryStore } from "../store/useLibraryStore.ts";
 import { useDebugStore } from "../store/useDebugStore.ts";
 import { useDownloadStore } from "../store/useDownloadStore.ts";
 import { AudioStreamerService } from "./AudioStreamerService.ts";
-import { PitchShifter } from "soundtouchjs";
 import { Track } from "../types.ts";
 
 const TICK_MS = 250;
-const ST_BUFFER_SIZE = 4096;
 
 export function useAudio() {
     const pQueue = usePlayerStore(s => s.pQueue);
@@ -30,12 +27,8 @@ export function useAudio() {
     const setStackOrder = usePlayerStore(s => s.setStackOrder);
     const stackOrder = usePlayerStore(s => s.stackOrder);
 
-    const autoNext = useSettingsStore(s => s.autoNext);
     const crossfade = useSettingsStore(s => s.crossfade);
     const crossfadeMs = useSettingsStore(s => s.crossfadeMs);
-    const fadeEnabled = useSettingsStore(s => s.fadeEnabled);
-    const fadeInMs = useSettingsStore(s => s.fadeInMs);
-    const fadeOutMs = useSettingsStore(s => s.fadeOutMs);
     const autoGain = useSettingsStore(s => s.autoGain);
 
     const updateDownload = useDownloadStore(s => s.updateProgress);
@@ -76,7 +69,6 @@ export function useAudio() {
         primaryAudioRef.current = new Audio();
         secondaryAudioRef.current = new Audio();
         
-        // Configuración de ahorro de energía / iPad
         [primaryAudioRef.current, secondaryAudioRef.current].forEach(a => {
             if (a) a.preload = "auto";
         });
@@ -90,9 +82,13 @@ export function useAudio() {
     const getPlayer = () => activePlayerRef.current === "A" ? primaryAudioRef.current : secondaryAudioRef.current;
     const getNextPlayer = () => activePlayerRef.current === "A" ? secondaryAudioRef.current : primaryAudioRef.current;
 
-    const getEffectiveVol = (baseVol: number, track: Track | null) => {
-        if (!track || !autoGain || !track.gainOffset) return baseVol;
-        return Math.min(1.0, baseVol * Math.min(2.0, track.gainOffset));
+    const applyEffectiveVol = (audio: HTMLAudioElement, track: Track | null) => {
+        if (!audio) return;
+        let v = volRef.current;
+        if (track && autoGain && track.gainOffset) {
+            v = Math.min(1.0, v * Math.min(2.0, track.gainOffset));
+        }
+        audio.volume = v;
     };
 
     // ── Carga y Pre-carga (SuniSync) ─────────────────────────────────────────
@@ -105,7 +101,6 @@ export function useAudio() {
         isReal.current = false;
         posRef.current = 0;
         
-        // 1. Cargar track actual si no estaba ya listo
         const audioUrl = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
         
         AudioStreamerService.fetchWithProgress(audioUrl, (p) => {
@@ -116,11 +111,47 @@ export function useAudio() {
                 audio.load();
             }
             audio.currentTime = (ct.startTime || 0) / 1000;
+            applyEffectiveVol(audio, ct);
             isReal.current = true;
             setIsSimulating(false);
         });
 
-    }, [ci, ct?.id]);
+    }, [ci, ct?.id, autoGain]);
+
+    // ── Media Session API ────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!ct || !('mediaSession' in navigator)) return;
+        const logger = useDebugStore.getState().addLog;
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: ct.title, artist: ct.artist, album: "SuniPlayer Setlist",
+            artwork: [
+                { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+                { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+            ]
+        });
+
+        const handlers: [MediaSessionAction, () => void][] = [
+            ['play', () => { logger("Media: PLAY"); setPlaying(true); }],
+            ['pause', () => { logger("Media: PAUSE"); setPlaying(false); }],
+            ['previoustrack', () => {
+                logger("Media: PREV");
+                if (ciRef.current > 0) { setCi(ciRef.current - 1); setPos(0); }
+            }],
+            ['nexttrack', () => {
+                logger("Media: NEXT");
+                if (ciRef.current < pQueueLenRef.current - 1) { setCi(ciRef.current + 1); setPos(0); }
+            }],
+            ['stop', () => { logger("Media: STOP"); setPlaying(false); setPos(0); }]
+        ];
+
+        for (const [action, handler] of handlers) {
+            try { navigator.mediaSession.setActionHandler(action, handler); } catch { }
+        }
+        return () => {
+            for (const [action] of handlers) { try { navigator.mediaSession.setActionHandler(action, null); } catch { } }
+        };
+    }, [ct, setPlaying, setCi, setPos]);
 
     // ── Engine Loop Principal ────────────────────────────────────────────────
     useEffect(() => {
@@ -140,34 +171,33 @@ export function useAudio() {
             
             posRef.current = Math.floor(audio.currentTime * 1000);
             setPos(posRef.current);
+            applyEffectiveVol(audio, ct);
 
             // 🟢 LOGICA DE PRE-CARGA (20s antes)
-            if (remainingMs < 20000 && nextTrack && !hasAdvanced.current) {
+            if (remainingMs < 20000 && nextTrackRef.current && !hasAdvanced.current) {
                 const nextPlayer = getNextPlayer();
-                const nextUrl = nextTrack.blob_url ?? `/audio/${encodeURIComponent(nextTrack.file_path)}`;
+                const nextUrl = nextTrackRef.current.blob_url ?? `/audio/${encodeURIComponent(nextTrackRef.current.file_path)}`;
                 
-                if (nextPlayer && nextPlayer.dataset.trackId !== nextTrack.id) {
-                    addLog(`Pre-cargando: ${nextTrack.title}`);
+                if (nextPlayer && nextPlayer.dataset.trackId !== nextTrackRef.current.id) {
+                    addLog(`Pre-cargando: ${nextTrackRef.current.title}`);
                     AudioStreamerService.fetchWithProgress(nextUrl, (p) => {
                         updateDownload(nextUrl, p);
                     }).then(objUrl => {
                         nextPlayer.src = objUrl;
-                        nextPlayer.dataset.trackId = nextTrack.id;
+                        nextPlayer.dataset.trackId = nextTrackRef.current!.id;
                         nextPlayer.load();
                     });
                 }
             }
 
-            // 🟢 LOGICA DE TRANSICIÓN (Crossfade o Gapless)
-            const triggerTime = crossfade ? crossfadeMs : 300; // 300ms de margen para gapless real
+            // 🟢 LOGICA DE TRANSICIÓN
+            const triggerTime = crossfade ? crossfadeMsRef.current : 300;
             if (remainingMs <= triggerTime && !hasAdvanced.current) {
                 hasAdvanced.current = true;
-                addLog("Iniciando transición suave...");
+                addLog("Transición iniciada");
                 
-                // Cambiar el turno de los reproductores
                 activePlayerRef.current = activePlayerRef.current === "A" ? "B" : "A";
                 
-                // Avanzar el índice (esto disparará el useEffect de carga para el siguiente-siguiente)
                 if (stackOrder.length > 0) {
                     const nextIdx = pQueue.findIndex(t => t.id === stackOrder[0]);
                     setCi(nextIdx !== -1 ? nextIdx : ci + 1);
@@ -186,7 +216,7 @@ export function useAudio() {
             clearInterval(simRef.current!);
             clearInterval(elapsedRef.current!);
         };
-    }, [playing, ci, ct?.id]);
+    }, [playing, ci, ct?.id, crossfade, stackOrder.length]);
 
     return { isReal: isReal.current };
 }
