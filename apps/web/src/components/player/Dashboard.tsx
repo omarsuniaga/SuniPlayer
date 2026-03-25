@@ -62,7 +62,7 @@ const Section: React.FC<{
             onClick={onToggle}
             style={{
                 width: "100%", display: "flex", alignItems: "center", gap: 10,
-                padding: "11px 14px", background: "none", border: "none",
+                padding: "14px 16px", background: "none", border: "none", // Aumentado padding
                 cursor: "pointer", color: "white",
             }}
         >
@@ -101,13 +101,13 @@ const Presets: React.FC<{
     format: (v: number) => string;
     color: string;
 }> = ({ values, current, onChange, format, color }) => (
-    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {values.map(v => (
             <button
                 key={v}
                 onClick={() => onChange(v)}
                 style={{
-                    fontSize: 10, padding: "3px 9px", borderRadius: THEME.radius.sm,
+                    fontSize: 11, padding: "6px 12px", borderRadius: THEME.radius.sm, // Aumentado padding y font
                     border: `1px solid ${current === v ? color + "60" : "rgba(255,255,255,0.08)"}`,
                     background: current === v ? `${color}15` : "rgba(255,255,255,0.03)",
                     color: current === v ? color : THEME.colors.text.muted,
@@ -131,18 +131,19 @@ const SliderRow: React.FC<{
     color: string;
     fillPct: number;
 }> = ({ label, value, min, max, step, onChange, displayValue, color, fillPct }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 10, color: THEME.colors.text.muted, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{label}</span>
-            <span style={{ fontSize: 12, fontWeight: 900, fontFamily: THEME.fonts.mono, color }}>{displayValue}</span>
+            <span style={{ fontSize: 13, fontWeight: 900, fontFamily: THEME.fonts.mono, color }}>{displayValue}</span>
         </div>
-        <div style={{ position: "relative", height: 20, display: "flex", alignItems: "center" }}>
-            <div style={{ position: "absolute", left: 0, right: 0, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.07)" }}/>
-            <div style={{ position: "absolute", left: 0, height: 4, borderRadius: 2, width: `${fillPct * 100}%`, background: `linear-gradient(to right, ${color}80, ${color})` }}/>
+        <div style={{ position: "relative", height: 32, display: "flex", alignItems: "center" }}> 
+            {/* Height aumentado de 20 a 32 para mejor captura táctil */}
+            <div style={{ position: "absolute", left: 0, right: 0, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.07)" }}/>
+            <div style={{ position: "absolute", left: 0, height: 6, borderRadius: 3, width: `${fillPct * 100}%`, background: `linear-gradient(to right, ${color}80, ${color})` }}/>
             <input
                 type="range" min={min} max={max} step={step} value={value}
                 onChange={e => onChange(parseInt(e.target.value))}
-                style={{ position: "relative", width: "100%", appearance: "none", height: 20, background: "transparent", cursor: "pointer", outline: "none" }}
+                style={{ position: "relative", width: "100%", appearance: "none", height: 32, background: "transparent", cursor: "pointer", outline: "none" }}
             />
         </div>
     </div>

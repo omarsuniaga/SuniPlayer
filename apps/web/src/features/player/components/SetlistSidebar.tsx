@@ -20,6 +20,24 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
     showQueue, isMobile, pQueue, ci, playing, isLive, stackOrder, mCol,
     onQueueClick, onClose, onDrop
 }) => {
+    const touchStartRef = React.useRef<number | null>(null);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartRef.current = e.touches[0].clientX;
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (touchStartRef.current === null) return;
+        const currentX = e.touches[0].clientX;
+        const diff = currentX - touchStartRef.current;
+
+        // If swipe right > 100px, close
+        if (diff > 100 && isMobile) {
+            onClose();
+            touchStartRef.current = null;
+        }
+    };
+
     return (
         <>
             {showQueue && isMobile && (
@@ -34,7 +52,10 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
                     }} 
                 />
             )}
-            <aside style={{
+            <aside 
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                style={{
                 position: isMobile ? "fixed" : "relative",
                 right: 0, top: 0, bottom: 0,
                 width: showQueue ? (isMobile ? "85vw" : "360px") : 0, 
