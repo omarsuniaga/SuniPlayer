@@ -362,7 +362,7 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
     const confirmImport = useCallback(async () => {
         setProcessing(true);
         const { audioCache } = await import("../../services/db");
-        const { analyzeAudio } = await import("../../services/analysisService");
+        const { analyzeAudioInBackground } = await import("../../services/backgroundAnalysis");
         
         const newTracks: Track[] = [];
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -374,20 +374,25 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
                 const response = await fetch(p.blobUrl);
                 const blob = await response.blob();
                 
-                // 2. Perform deep analysis (BPM, Key, Waveform)
+                // 2. Perform deep analysis in BACKGROUND WORKER
                 let waveform = p.waveform;
                 let bpm = p.bpm;
                 let key = p.key;
                 let energy = p.energy;
+                let gainOffset = 1.0;
 
                 try {
                     const arrayBuffer = await blob.arrayBuffer();
                     const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                    const analysis = await analyzeAudio(audioBuffer);
+                    
+                    // Call the background worker instead of analysisService
+                    const analysis = await analyzeAudioInBackground(audioBuffer);
+                    
                     waveform = analysis.waveform;
                     bpm = analysis.bpm;
                     key = analysis.key;
                     energy = analysis.energy;
+                    gainOffset = analysis.gainOffset;
                 } catch (e) {
                     console.warn("Analysis failed for", p.title, e);
                 }
@@ -409,6 +414,7 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
                     blob_url:        p.blobUrl,
                     isCustom:        true,
                     waveform,
+                    gainOffset,
                 });
             }
         } finally {

@@ -1,115 +1,49 @@
 /**
- * Background Analysis Service
+ * backgroundAnalysis.ts
  * 
- * Automatically analyzes tracks that are missing metadata.
+ * Orchestrator for the Audio Analysis Web Worker.
+ * Offloads heavy computations to keep the Main Thread free for audio playback and UI.
  */
-import { useLibraryStore } from "../store/useLibraryStore";
-import { usePlayerStore } from "../store/usePlayerStore";
-import { useBuilderStore } from "../store/useBuilderStore";
-import { TRACKS } from "../data/constants";
-import { analyzeAudio } from "./analysisService";
-import { Track } from "../types";
-import { audioCache } from "./db";
+import { AnalysisWorkerResults } from "./analysis.worker";
 
-interface AudioContextWindow extends Window {
-    webkitAudioContext?: typeof AudioContext;
-}
+/**
+ * Executes audio analysis in a background Web Worker.
+ */
+export async function analyzeAudioInBackground(buffer: AudioBuffer): Promise<AnalysisWorkerResults> {
+    return new Promise((resolve, reject) => {
+        // Create worker using Vite's constructor pattern
+        const worker = new Worker(
+            new URL("./analysis.worker.ts", import.meta.url),
+            { type: "module" }
+        );
 
-let isBusy = false;
-const failedIds = new Set<string>();
-let lastRetryTimestamp = Date.now();
+        // Prepare data (only first channel for analysis speed)
+        const audioData = buffer.getChannelData(0);
+        const sampleRate = buffer.sampleRate;
 
-export async function runBackgroundAnalysis() {
-    if (isBusy) return;
-    
-    // Clear failed IDs if it's been more than 60 seconds (allow retries on fresh interval)
-    if (Date.now() - lastRetryTimestamp > 60000) {
-        failedIds.clear();
-        lastRetryTimestamp = Date.now();
-    }
-    
-    const customTracks = useLibraryStore.getState().customTracks;
-    const { trackOverrides } = useLibraryStore.getState();
-    const pool: Track[] = [...TRACKS, ...customTracks];
-    
-    // Find first one that needs analysis and hasn't failed in this session
-    const target = pool.find(t => {
-        if (failedIds.has(t.id)) return false;
-        
-        const override = trackOverrides[t.id] || {};
-        const hasWaveform = t.waveform || override.waveform;
-        const isCached = t.analysis_cached || override.analysis_cached;
-        return !(hasWaveform && isCached);
-    });
-
-    if (!target) return;
-
-    isBusy = true;
-    console.log(`[BackgroundAnalysis] Analyzing: ${target.title}`);
-
-    let audioCtx: AudioContext | null = null;
-    try {
-        let url = target.blob_url;
-        if (!url && target.file_path) {
-             url = `/audio/${encodeURI(target.file_path)}`;
-        }
-        
-        if (!url) throw new Error("No URL found");
-
-        console.log(`[BackgroundAnalysis] Fetching: ${url}`);
-        const response = await fetch(url);
-        if (!response.ok) {
-             throw new Error(`HTTP ${response.status}: ${response.statusText} at ${url}`);
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        
-        const AudioContextClass = window.AudioContext || (window as AudioContextWindow).webkitAudioContext;
-        audioCtx = new AudioContextClass();
-        
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        const analysis = await analyzeAudio(audioBuffer);
-        
-        // Save to persistent IndexedDB cache
-        await audioCache.saveWaveform(target.id, analysis.waveform);
-        await audioCache.saveAnalysis(target.id, {
-            bpm: analysis.bpm,
-            key: analysis.key,
-            energy: analysis.energy,
-            gainOffset: analysis.gainOffset
-        });
-
-        const updates: Partial<Track> = {
-            bpm: analysis.bpm,
-            key: analysis.key,
-            energy: analysis.energy,
-            gainOffset: analysis.gainOffset,
-            analysis_cached: true
+        worker.onmessage = (event: MessageEvent<AnalysisWorkerResults>) => {
+            resolve(event.data);
+            worker.terminate(); // Clean up immediately after success
         };
 
-        useLibraryStore.getState().updateTrack(target.id, updates);
-        
-        // Update UI stores
-        usePlayerStore.setState(s => ({
-            pQueue: s.pQueue.map(t => t.id === target.id ? { ...t, ...updates } : t)
-        }));
-        
-        useBuilderStore.setState(s => ({
-            genSet: s.genSet.map(t => t.id === target.id ? { ...t, ...updates } : t)
-        }));
+        worker.onerror = (err) => {
+            console.error("[AnalysisWorker] Error:", err);
+            reject(err);
+            worker.terminate(); // Clean up after error
+        };
 
-        console.log(`[BackgroundAnalysis] Success: ${target.title}`);
-    } catch (e) {
-        console.error(`[BackgroundAnalysis] Permanently skipping ${target.title} due to error:`, e);
-        failedIds.add(target.id); // Don't try again this session
-    } finally {
-        if (audioCtx) {
-            try {
-                await audioCtx.close();
-            } catch {
-                // Ignore close failures during background cleanup.
-            }
-        }
-        isBusy = false;
-    }
+        // Send data to worker. 
+        // audioData.buffer is passed as a 'Transferable' to avoid copying memory.
+        worker.postMessage(
+            { audioData, sampleRate }
+        );
+    });
+}
+
+/**
+ * Service to analyze tracks one by one from a queue if needed
+ */
+export async function runBackgroundAnalysis() {
+    // This could be expanded to scan the library for unanalyzed tracks
+    // and process them when the CPU is idle.
 }
