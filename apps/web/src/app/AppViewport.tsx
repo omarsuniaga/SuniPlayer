@@ -26,6 +26,33 @@ export const AppViewport: React.FC = () => {
     useAudio();
     usePedalBindings();
 
+    // Session Recovery: Restore blob URLs for custom tracks in the queue
+    React.useEffect(() => {
+        const restoreSession = async () => {
+            const { pQueue, setPQueue } = usePlayerStore.getState();
+            const { audioCache } = await import("../services/db");
+            
+            let changed = false;
+            const updatedQueue = await Promise.all(pQueue.map(async (track) => {
+                if (track.isCustom && !track.blob_url) {
+                    const blob = await audioCache.getAudioFile(track.id);
+                    if (blob) {
+                        changed = true;
+                        return { ...track, blob_url: URL.createObjectURL(blob) };
+                    }
+                }
+                return track;
+            }));
+
+            if (changed) {
+                setPQueue(updatedQueue);
+                console.log("[Session] Recovered local audio URLs from DB");
+            }
+        };
+
+        restoreSession();
+    }, []);
+
     // Background analysis check
     React.useEffect(() => {
         const interval = setInterval(() => {
