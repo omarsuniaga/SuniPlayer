@@ -40,6 +40,7 @@ export const PedalConfig: React.FC = () => {
     
     const lastEvent = useDebugStore(s => s.lastEvent);
     const log = useDebugStore(s => s.log);
+    const isFocused = useDebugStore(s => s.isFocused);
 
     // Conflict state: { forAction, conflictsWith, binding }
     const [pendingConflict, setPendingConflict] = React.useState<{
@@ -117,8 +118,21 @@ export const PedalConfig: React.FC = () => {
                 border: `1px solid ${THEME.colors.border}`,
                 marginBottom: 16
             }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.brand.violet }}>DIAGNÓSTICO IPAD</span>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.brand.violet }}>DIAGNÓSTICO IPAD</span>
+                        <div style={{ 
+                            fontSize: 9, 
+                            padding: "2px 6px", 
+                            borderRadius: 4, 
+                            backgroundColor: isFocused ? `${THEME.colors.status.success}20` : `${THEME.colors.status.error}20`,
+                            color: isFocused ? THEME.colors.status.success : THEME.colors.status.error,
+                            border: `1px solid ${isFocused ? THEME.colors.status.success : THEME.colors.status.error}40`,
+                            fontWeight: 900
+                        }}>
+                            FOCO: {isFocused ? "ACTIVO" : "PERDIDO"}
+                        </div>
+                    </div>
                     <span style={{ fontSize: 10, color: THEME.colors.text.muted }}>Última señal: <strong style={{ color: THEME.colors.brand.cyan }}>{lastEvent}</strong></span>
                 </div>
                 {log.length > 0 && (
