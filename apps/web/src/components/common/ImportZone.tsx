@@ -359,27 +359,40 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
         setPending(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
     }, []);
 
-    const confirmImport = useCallback(() => {
-        const newTracks: Track[] = pending.map(p => ({
-            id:              p.id,
-            title:           p.title,
-            artist:          p.artist,
-            duration_ms:     p.duration_ms,
-            bpm:             p.bpm,
-            key:             p.key,
-            energy:          p.energy,
-            mood:            p.mood,
-            file_path:       p.fileName,
-            analysis_cached: true,
-            blob_url:        p.blobUrl,
-            isCustom:        true,
-            waveform:        p.waveform,
-        }));
+    const confirmImport = useCallback(async () => {
+        setProcessing(true);
+        const { audioCache } = await import("../../services/db");
+        
+        const newTracks: Track[] = [];
+        
+        for (const p of pending) {
+            // Save actual file to IndexedDB for persistence
+            const response = await fetch(p.blobUrl);
+            const blob = await response.blob();
+            await audioCache.saveAudioFile(p.id, blob, p.fileName);
+
+            newTracks.push({
+                id:              p.id,
+                title:           p.title,
+                artist:          p.artist,
+                duration_ms:     p.duration_ms,
+                bpm:             p.bpm,
+                key:             p.key,
+                energy:          p.energy,
+                mood:            p.mood,
+                file_path:       p.fileName,
+                analysis_cached: true,
+                blob_url:        p.blobUrl,
+                isCustom:        true,
+                waveform:        p.waveform,
+            });
+        }
 
         newTracks.forEach(t => addCustomTrack(t));
         appendToQueue(newTracks);
         setResults(newTracks.map(t => ({ title: t.title, ok: true })));
         setPending([]);
+        setProcessing(false);
 
         if (onClose) setTimeout(onClose, 2500);
     }, [pending, addCustomTrack, appendToQueue, onClose]);

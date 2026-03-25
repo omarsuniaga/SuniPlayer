@@ -160,58 +160,72 @@ export function useAudio() {
         stActiveRef.current = false;
 
         let probeActive = true;
-        const audioUrl = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
+        let audioUrl = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
 
-        // Load via AudioStreamer with Progress Tracking
-        AudioStreamerService.fetchWithProgress(audioUrl, (p) => {
-            if (probeActive) updateDownload(audioUrl, p);
-        }).then((objectUrl) => {
-            if (!probeActive || !audio) return;
-            
-            audio.src = objectUrl;
-            const startOffset = (ct.startTime || 0);
-            const resolvedStart = isNaN(startOffset) ? 0 : startOffset;
-            audio.currentTime = resolvedStart / 1000;
-            posRef.current = resolvedStart;
-            setPos(resolvedStart);
-
-            // Handle Pitch Shifting
-            const semitones = ct.transposeSemitones ?? 0;
-            const tempo = ct.playbackTempo ?? 1.0;
-
-            if (semitones !== 0 || tempo !== 1.0) {
-                fetch(objectUrl)
-                    .then(r => r.arrayBuffer())
-                    .then(ab => {
-                        if (!probeActive) return;
-                        if (!stCtxRef.current) {
-                            const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-                            stCtxRef.current = new AudioCtxClass();
-                            stGainRef.current = stCtxRef.current.createGain();
-                            stGainRef.current.connect(stCtxRef.current.destination);
-                        }
-                        return stCtxRef.current!.decodeAudioData(ab);
-                    })
-                    .then(buffer => {
-                        if (!probeActive || !buffer || !stCtxRef.current || !stGainRef.current) return;
-                        const shifter = new PitchShifter(stCtxRef.current, buffer, ST_BUFFER_SIZE);
-                        shifter.pitchSemitones = semitones;
-                        shifter.tempo = tempo;
-                        stShifterRef.current = shifter;
-                        stActiveRef.current = true;
-                        isReal.current = true;
-                        setIsSimulating(false);
-                        if (startOffset > 0 && buffer.duration > 0) {
-                            shifter.percentagePlayed = (startOffset / 1000) / buffer.duration;
-                        }
-                    });
+        // NEW: If it's a custom track and blob_url is missing/invalid, recover from DB
+        const prepareUrl = async () => {
+            if (ct.isCustom && !ct.blob_url) {
+                const { audioCache } = await import("./db");
+                const blob = await audioCache.getAudioFile(ct.id);
+                if (blob && probeActive) {
+                    audioUrl = URL.createObjectURL(blob);
+                }
             }
+            return audioUrl;
+        };
 
-            isReal.current = true;
-            setIsSimulating(false);
-        }).catch(err => {
-            console.error("[Streamer] Load failed:", err);
-            setIsSimulating(true);
+        prepareUrl().then(finalUrl => {
+            // Load via AudioStreamer with Progress Tracking
+            AudioStreamerService.fetchWithProgress(finalUrl, (p) => {
+                if (probeActive) updateDownload(finalUrl, p);
+            }).then((objectUrl) => {
+                if (!probeActive || !audio) return;
+                
+                audio.src = objectUrl;
+                const startOffset = (ct.startTime || 0);
+                const resolvedStart = isNaN(startOffset) ? 0 : startOffset;
+                audio.currentTime = resolvedStart / 1000;
+                posRef.current = resolvedStart;
+                setPos(resolvedStart);
+
+                // Handle Pitch Shifting
+                const semitones = ct.transposeSemitones ?? 0;
+                const tempo = ct.playbackTempo ?? 1.0;
+
+                if (semitones !== 0 || tempo !== 1.0) {
+                    fetch(objectUrl)
+                        .then(r => r.arrayBuffer())
+                        .then(ab => {
+                            if (!probeActive) return;
+                            if (!stCtxRef.current) {
+                                const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+                                stCtxRef.current = new AudioCtxClass();
+                                stGainRef.current = stCtxRef.current.createGain();
+                                stGainRef.current.connect(stCtxRef.current.destination);
+                            }
+                            return stCtxRef.current!.decodeAudioData(ab);
+                        })
+                        .then(buffer => {
+                            if (!probeActive || !buffer || !stCtxRef.current || !stGainRef.current) return;
+                            const shifter = new PitchShifter(stCtxRef.current, buffer, ST_BUFFER_SIZE);
+                            shifter.pitchSemitones = semitones;
+                            shifter.tempo = tempo;
+                            stShifterRef.current = shifter;
+                            stActiveRef.current = true;
+                            isReal.current = true;
+                            setIsSimulating(false);
+                            if (startOffset > 0 && buffer.duration > 0) {
+                                shifter.percentagePlayed = (startOffset / 1000) / buffer.duration;
+                            }
+                        });
+                }
+
+                isReal.current = true;
+                setIsSimulating(false);
+            }).catch(err => {
+                console.error("[Streamer] Load failed:", err);
+                setIsSimulating(true);
+            });
         });
 
         return () => {
