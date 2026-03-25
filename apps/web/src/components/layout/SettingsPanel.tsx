@@ -3,6 +3,7 @@ import { useProjectStore } from "../../store/useProjectStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { THEME } from "../../data/theme.ts";
 import { PedalConfig } from "../settings/PedalConfig";
+import { VERSION_INFO } from "../../version";
 
 // ── Toggle Switch ────────────────────────────────────────────────────────────
 const Toggle: React.FC<{
@@ -384,20 +385,42 @@ export const SettingsPanel: React.FC = () => {
                         </svg>
                     } />
 
-                    <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 6 }}>
-                        {[
-                            ["Versión", "2.1.0"],
-                            ["Motor de sets", "Monte Carlo (600 iter)"],
-                            ["Crossfade", `${(crossfadeMs / 1000).toFixed(1)} segundos`],
-                            ["Persistencia", "LocalStorage"],
-                        ].map(([k, v]) => (
-                            <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span style={{ fontSize: 13, color: THEME.colors.text.muted }}>{k}</span>
-                                <span style={{ fontSize: 13, fontFamily: THEME.fonts.mono, color: THEME.colors.text.secondary }}>{v}</span>
-                            </div>
-                        ))}
-                    </div>
+                    <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 10 }}>
+                        <div style={{ 
+                            backgroundColor: "rgba(0,0,0,0.2)", 
+                            borderRadius: THEME.radius.md, 
+                            padding: "12px", 
+                            border: `1px solid ${THEME.colors.border}`,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 8
+                        }}>
+                           {[
+                               ["Versión", VERSION_INFO.tag],
+                               ["Build Date", VERSION_INFO.buildDate],
+                               ["Build Time", `${VERSION_INFO.buildTime} (UTC-4)`],
+                               ["Storage", "IndexedDB + CacheAPI"],
+                               ["Analysis", "Web Worker Threaded"],
+                           ].map(([k, v]) => (
+                               <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                   <span style={{ fontSize: 11, fontWeight: 700, color: THEME.colors.text.muted, textTransform: "uppercase" }}>{k}</span>
+                                   <span style={{ fontSize: 12, fontFamily: THEME.fonts.mono, color: THEME.colors.brand.cyan }}>{v}</span>
+                               </div>
+                           ))}
+                        </div>
 
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                           {VERSION_INFO.features.map(f => (
+                               <span key={f} style={{ 
+                                   fontSize: 9, padding: "2px 8px", borderRadius: 4, 
+                                   background: "rgba(255,255,255,0.05)", border: `1px solid ${THEME.colors.border}`,
+                                   color: THEME.colors.text.muted
+                               }}>
+                                   ✓ {f}
+                               </span>
+                           ))}
+                        </div>
+                    </div>
                     {/* ── System ── */}
                     <Section title="Sistema" icon={
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
