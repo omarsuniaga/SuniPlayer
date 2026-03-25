@@ -362,30 +362,57 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
     const confirmImport = useCallback(async () => {
         setProcessing(true);
         const { audioCache } = await import("../../services/db");
+        const { analyzeAudio } = await import("../../services/analysisService");
         
         const newTracks: Track[] = [];
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const audioCtx = new AudioContextClass();
         
-        for (const p of pending) {
-            // Save actual file to IndexedDB for persistence
-            const response = await fetch(p.blobUrl);
-            const blob = await response.blob();
-            await audioCache.saveAudioFile(p.id, blob, p.fileName);
+        try {
+            for (const p of pending) {
+                // 1. Get real Blob
+                const response = await fetch(p.blobUrl);
+                const blob = await response.blob();
+                
+                // 2. Perform deep analysis (BPM, Key, Waveform)
+                let waveform = p.waveform;
+                let bpm = p.bpm;
+                let key = p.key;
+                let energy = p.energy;
 
-            newTracks.push({
-                id:              p.id,
-                title:           p.title,
-                artist:          p.artist,
-                duration_ms:     p.duration_ms,
-                bpm:             p.bpm,
-                key:             p.key,
-                energy:          p.energy,
-                mood:            p.mood,
-                file_path:       p.fileName,
-                analysis_cached: true,
-                blob_url:        p.blobUrl,
-                isCustom:        true,
-                waveform:        p.waveform,
-            });
+                try {
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                    const analysis = await analyzeAudio(audioBuffer);
+                    waveform = analysis.waveform;
+                    bpm = analysis.bpm;
+                    key = analysis.key;
+                    energy = analysis.energy;
+                } catch (e) {
+                    console.warn("Analysis failed for", p.title, e);
+                }
+
+                // 3. Save to IndexedDB
+                await audioCache.saveAudioFile(p.id, blob, p.fileName);
+
+                newTracks.push({
+                    id:              p.id,
+                    title:           p.title,
+                    artist:          p.artist,
+                    duration_ms:     p.duration_ms,
+                    bpm,
+                    key,
+                    energy,
+                    mood:            energy > 0.7 ? "energetic" : energy > 0.4 ? "happy" : "calm",
+                    file_path:       p.fileName,
+                    analysis_cached: true,
+                    blob_url:        p.blobUrl,
+                    isCustom:        true,
+                    waveform,
+                });
+            }
+        } finally {
+            audioCtx.close().catch(() => {});
         }
 
         newTracks.forEach(t => addCustomTrack(t));

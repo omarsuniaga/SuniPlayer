@@ -82,10 +82,17 @@ export const Player: React.FC = () => {
     const [showQueue, setShowQueue] = useState(window.innerWidth > 1000);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 800);
 
-    // Auto-load catalog as preset queue when Player opens with no tracks
+    // Auto-load queue prioritizing user tracks
     useEffect(() => {
         if (pQueue.length === 0) {
-            setPQueue(catalogTracks as Track[]);
+            const { customTracks } = useLibraryStore.getState();
+            if (customTracks.length > 0) {
+                // If user has their own music, load that!
+                setPQueue(customTracks);
+            } else {
+                // Otherwise fallback to catalog
+                setPQueue(catalogTracks as Track[]);
+            }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
