@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useSettingsStore, PedalAction } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
+import { useDebugStore } from "../store/useDebugStore";
 
 /** Maps raw event.key values to human-readable labels */
 function keyLabel(key: string): string {
@@ -33,13 +34,6 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 /**
  * usePedalBindings — mount once globally in AppViewport.
- *
- * Listens for keydown events on the window.
- * - In learn mode: captures the next key press as a binding.
- * - In normal mode: dispatches the mapped player action.
- *
- * learningAction state lives in useSettingsStore (non-persisted)
- * so PedalConfig (a sibling component) can read/write it too.
  */
 export function usePedalBindings() {
     const setPedalBinding = useSettingsStore((s) => s.setPedalBinding);
@@ -47,11 +41,15 @@ export function usePedalBindings() {
     const setCi = usePlayerStore((s) => s.setCi);
     const setPlaying = usePlayerStore((s) => s.setPlaying);
     const setVol = usePlayerStore((s) => s.setVol);
+    
+    const setLastEvent = useDebugStore(s => s.setLastEvent);
+    const addLog = useDebugStore(s => s.addLog);
 
     useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            // Debugging log - this helps see what the pedal is actually sending
-            console.log("Key pressed:", event.key, "Code:", event.code);
+        const handleKeyEvent = (event: KeyboardEvent) => {
+            // Log to debug store for iPad visibility
+            setLastEvent(`${event.type}: ${event.key}`);
+            console.log(`[Pedal] ${event.type}:`, event.key);
 
             if (isTypingTarget(event.target)) return;
 
@@ -60,20 +58,27 @@ export function usePedalBindings() {
             if (currentLearning !== null) {
                 event.preventDefault();
                 event.stopPropagation();
-                if (event.key === "Escape") {
-                    setLearningAction(null);
-                } else {
-                    console.log(`Mapping ${currentLearning} to key: ${event.key}`);
-                    setPedalBinding(currentLearning, {
-                        key: event.key,
-                        label: keyLabel(event.key),
-                    });
-                    setLearningAction(null);
+                
+                // Only capture on keydown to avoid double-triggers
+                if (event.type === "keydown") {
+                    if (event.key === "Escape") {
+                        setLearningAction(null);
+                    } else {
+                        addLog(`Mapeado: ${currentLearning} -> ${event.key}`);
+                        setPedalBinding(currentLearning, {
+                            key: event.key,
+                            label: keyLabel(event.key),
+                        });
+                        setLearningAction(null);
+                    }
                 }
                 return;
             }
 
             // ── Normal mode — find matching binding ──────────────────────────
+            // Only respond to keydown for actions
+            if (event.type !== "keydown") return;
+
             const bindings = useSettingsStore.getState().pedalBindings;
             const matchedAction = (
                 Object.entries(bindings) as [PedalAction, { key: string }][]
@@ -81,14 +86,13 @@ export function usePedalBindings() {
 
             if (!matchedAction) return;
             
-            // Critical for PWAs: stop the browser from scrolling or acting on these keys
             event.preventDefault();
             event.stopPropagation();
 
             const { ci: currentCi, pQueue: currentQueue, vol: currentVol } =
                 usePlayerStore.getState();
 
-            console.log("Executing pedal action:", matchedAction);
+            addLog(`Acción: ${matchedAction}`);
 
             switch (matchedAction) {
                 case "next":
@@ -113,9 +117,13 @@ export function usePedalBindings() {
             }
         };
 
-        // useCapture: true ensures we get the event before other elements
-        window.addEventListener("keydown", handleKeyDown, { capture: true });
-        return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
+        window.addEventListener("keydown", handleKeyEvent, { capture: true });
+        window.addEventListener("keyup", handleKeyEvent, { capture: true });
+        
+        return () => {
+            window.removeEventListener("keydown", handleKeyEvent, { capture: true });
+            window.removeEventListener("keyup", handleKeyEvent, { capture: true });
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Empty deps: reads latest state from store directly — no stale closure
+    }, []); 
 }

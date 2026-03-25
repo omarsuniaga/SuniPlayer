@@ -1,5 +1,6 @@
 import React from "react";
 import { useSettingsStore, PedalAction, PedalBinding } from "../../store/useSettingsStore";
+import { useDebugStore } from "../../store/useDebugStore";
 import { THEME } from "../../data/theme";
 
 // ── Action definitions ────────────────────────────────────────────────────────
@@ -36,6 +37,9 @@ export const PedalConfig: React.FC = () => {
     const clearPedalBinding = useSettingsStore((s) => s.clearPedalBinding);
     const learningAction = useSettingsStore((s) => s.learningAction);
     const setLearningAction = useSettingsStore((s) => s.setLearningAction);
+    
+    const lastEvent = useDebugStore(s => s.lastEvent);
+    const log = useDebugStore(s => s.log);
 
     // Conflict state: { forAction, conflictsWith, binding }
     const [pendingConflict, setPendingConflict] = React.useState<{
@@ -104,6 +108,26 @@ export const PedalConfig: React.FC = () => {
                     }} />
                 )}
             </div>
+            
+            {/* Diagnostics Monitor */}
+            <div style={{
+                backgroundColor: "rgba(0,0,0,0.3)",
+                borderRadius: THEME.radius.md,
+                padding: "12px",
+                border: `1px solid ${THEME.colors.border}`,
+                marginBottom: 16
+            }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.brand.violet }}>DIAGNÓSTICO IPAD</span>
+                    <span style={{ fontSize: 10, color: THEME.colors.text.muted }}>Última señal: <strong style={{ color: THEME.colors.brand.cyan }}>{lastEvent}</strong></span>
+                </div>
+                {log.length > 0 && (
+                    <div style={{ fontSize: 10, color: THEME.colors.text.muted, fontFamily: THEME.fonts.mono, maxHeight: 40, overflow: "hidden" }}>
+                        {log.slice(0, 2).map((l, i) => <div key={i}>{l}</div>)}
+                    </div>
+                )}
+            </div>
+
             <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "0 0 12px" }}>
                 Conecta tu pedalera y asigna cada pedal
             </p>

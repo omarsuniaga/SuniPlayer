@@ -37,7 +37,8 @@ export const AppViewport: React.FC = () => {
             // Only refocus if the target isn't already an input/textarea
             const target = e.target as HTMLElement;
             if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-                setTimeout(() => hiddenInputRef.current?.focus(), 100);
+                // Immediate focus works better on iPad during user gesture
+                hiddenInputRef.current?.focus();
             }
         };
 
@@ -45,7 +46,7 @@ export const AppViewport: React.FC = () => {
         window.addEventListener('touchstart', refocus);
         
         // Initial focus
-        setTimeout(() => hiddenInputRef.current?.focus(), 500);
+        setTimeout(() => hiddenInputRef.current?.focus(), 1000);
 
         return () => {
             window.removeEventListener('click', refocus);
@@ -55,13 +56,23 @@ export const AppViewport: React.FC = () => {
 
     return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 }}>
-            {/* Hidden focus anchor for iPad pedals */}
+            {/* Hidden focus anchor for iPad pedals - Modified for better OS visibility */}
             <input 
                 id="suni-pedal-focus"
                 ref={hiddenInputRef}
                 type="text" 
                 readOnly
-                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', top: -100, left: -100, width: 1, height: 1 }}
+                style={{ 
+                    position: 'absolute', 
+                    top: 0, left: 0, 
+                    width: '1px', height: '1px', 
+                    padding: 0, margin: 0,
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'transparent',
+                    outline: 'none',
+                    zIndex: -1
+                }}
                 aria-hidden="true"
             />
             <ActiveView />
