@@ -119,7 +119,23 @@ export const AppViewport: React.FC = () => {
                 }}
                 aria-hidden="true"
             />
-            <ActiveView />
+            <div 
+                key={view}
+                className="view-transition"
+                style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}
+            >
+                <ActiveView />
+            </div>
+
+            <style>{`
+                .view-transition {
+                    animation: viewFade 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                }
+                @keyframes viewFade {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
         </div>
     );
 };
