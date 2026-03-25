@@ -66,14 +66,17 @@ export const AppViewport: React.FC = () => {
 
     return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 }}>
-            {/* Hidden focus anchor for iPad pedals - REMOVED readOnly to fix iOS blocking */}
+            {/* Hidden focus anchor for iPad pedals - Modified for better OS visibility */}
             <input 
                 id="suni-pedal-focus"
                 ref={hiddenInputRef}
                 type="text" 
                 inputMode="none"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
                 style={{ 
-                    position: 'absolute', 
+                    position: 'fixed', 
                     top: 0, left: 0, 
                     width: '1px', height: '1px', 
                     padding: 0, margin: 0,
@@ -81,7 +84,8 @@ export const AppViewport: React.FC = () => {
                     background: 'transparent',
                     color: 'transparent',
                     outline: 'none',
-                    zIndex: -1
+                    zIndex: 9999, // Traer al frente para que sea 'visible'
+                    pointerEvents: 'none' // Pero que no estorbe los clics
                 }}
                 aria-hidden="true"
             />
