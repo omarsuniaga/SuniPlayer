@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useProjectStore } from "../../store/useProjectStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useLibraryStore } from "../../store/useLibraryStore";
@@ -14,7 +14,7 @@ const Toggle: React.FC<{
     onChange: (v: boolean) => void;
 }> = ({ label, description, checked, onChange }) => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 0", borderBottom: `1px solid ${THEME.colors.border}` }}>
-        <div>
+        <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: THEME.colors.text.primary }}>{label}</div>
             {description && <div style={{ fontSize: 12, color: THEME.colors.text.muted, marginTop: 3 }}>{description}</div>}
         </div>
@@ -71,20 +71,53 @@ const SliderRow: React.FC<{
                 outline: "none", cursor: "pointer",
             }}
         />
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 10, color: THEME.colors.text.muted }}>{min}{unit}</span>
-            <span style={{ fontSize: 10, color: THEME.colors.text.muted }}>{max}{unit}</span>
-        </div>
     </div>
 );
 
-// ── Section Header ───────────────────────────────────────────────────────────
-const Section: React.FC<{ title: string; icon: React.ReactNode }> = ({ title, icon }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "20px 0 8px" }}>
-        <div style={{ color: THEME.colors.brand.cyan }}>{icon}</div>
-        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.colors.text.muted }}>
-            {title}
-        </span>
+// ── Accordion Section ────────────────────────────────────────────────────────
+const AccordionSection: React.FC<{ 
+    title: string; 
+    icon: React.ReactNode; 
+    isOpen: boolean; 
+    onToggle: () => void;
+    children: React.ReactNode;
+}> = ({ title, icon, isOpen, onToggle, children }) => (
+    <div style={{ borderBottom: `1px solid ${THEME.colors.border}` }}>
+        <button 
+            onClick={onToggle}
+            style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "20px 0",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: isOpen ? THEME.colors.brand.cyan : "white"
+            }}
+        >
+            <div style={{ color: isOpen ? THEME.colors.brand.cyan : THEME.colors.text.muted }}>{icon}</div>
+            <span style={{ flex: 1, textAlign: "left", fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                {title}
+            </span>
+            <svg 
+                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"
+                style={{ transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.3s", opacity: 0.3 }}
+            >
+                <polyline points="6 9 12 15 18 9" />
+            </svg>
+        </button>
+        <div style={{ 
+            maxHeight: isOpen ? "2000px" : "0",
+            overflow: "hidden",
+            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+            opacity: isOpen ? 1 : 0
+        }}>
+            <div style={{ paddingBottom: 24 }}>
+                {children}
+            </div>
+        </div>
     </div>
 );
 
@@ -123,7 +156,12 @@ export const SettingsPanel: React.FC = () => {
     const setPerformanceMode = useSettingsStore(s => s.setPerformanceMode);
     const setView = useProjectStore(s => s.setView);
 
+    // State for accordions
+    const [openSection, setOpenSection] = useState<string | null>("audio");
+
     if (!showSettings) return null;
+
+    const toggle = (id: string) => setOpenSection(openSection === id ? null : id);
 
     return (
         <>
@@ -172,23 +210,12 @@ export const SettingsPanel: React.FC = () => {
                             </svg>
                         </div>
                         <div>
-                            <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>Configuración</h2>
-                            <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: 0 }}>SuniPlayer</p>
+                            <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>Ajustes</h2>
+                            <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: 0 }}>SuniPlayer Control</p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setShowSettings(false)}
-                        style={{
-                            background: "none", border: `1px solid ${THEME.colors.border}`,
-                            borderRadius: THEME.radius.md, padding: "6px 8px",
-                            cursor: "pointer", color: THEME.colors.text.muted,
-                            display: "flex", alignItems: "center",
-                            transition: "all 0.2s",
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = THEME.colors.surfaceHover}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <button onClick={() => setShowSettings(false)} style={{ background: "none", border: "none", color: THEME.colors.text.muted, cursor: "pointer" }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                     </button>
@@ -197,286 +224,98 @@ export const SettingsPanel: React.FC = () => {
                 {/* Content */}
                 <div style={{ flex: 1, overflowY: "auto", padding: "0 24px 32px" }}>
 
-                    {/* ── Reproducción ── */}
-                    <Section title="Reproducción" icon={
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-                    } />
+                    <AccordionSection 
+                        title="Reproducción" 
+                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>}
+                        isOpen={openSection === "audio"}
+                        onToggle={() => toggle("audio")}
+                    >
+                        <Toggle label="Auto-siguiente" checked={autoNext} onChange={setAutoNext} />
+                        <Toggle label="Crossfade" checked={crossfade} onChange={v => { setCrossfade(v); if (v) setAutoNext(true); }} />
+                        {crossfade && <SliderRow label="Duración Crossfade" value={crossfadeMs} min={500} max={10000} step={500} unit=" ms" onChange={setCrossfadeMs} />}
+                        <SliderRow label="Volumen por defecto" value={Math.round(defaultVol * 100)} min={0} max={100} unit="%" onChange={v => { setDefaultVol(v / 100); setVol(v / 100); }} />
+                        <Toggle label="Efecto Fade" checked={fadeEnabled} onChange={setFadeEnabled} />
+                        {fadeEnabled && (
+                            <>
+                                <SliderRow label="Duración Fade-IN" value={fadeInMs} min={500} max={10000} step={500} unit=" ms" onChange={setFadeInMs} />
+                                <SliderRow label="Duración Fade-OUT" value={fadeOutMs} min={500} max={10000} step={500} unit=" ms" onChange={setFadeOutMs} />
+                            </>
+                        )}
+                        <Toggle label="Sonómetro (dB SPL)" checked={splMeterEnabled} onChange={setSplMeterEnabled} />
+                        <Toggle label="Modo Tablet" checked={performanceMode} onChange={setPerformanceMode} />
+                    </AccordionSection>
 
-                    <Toggle
-                        label="Auto-siguiente"
-                        description="Al terminar una canción, reproduce la siguiente automáticamente"
-                        checked={autoNext}
-                        onChange={setAutoNext}
-                    />
+                    <AccordionSection 
+                        title="Builder de Sets" 
+                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" /></svg>}
+                        isOpen={openSection === "builder"}
+                        onToggle={() => toggle("builder")}
+                    >
+                        <SliderRow label="Duración del set" value={targetMin} min={15} max={180} unit=" min" onChange={setTargetMin} />
+                        <SliderRow label="BPM mínimo" value={bpmMin} min={40} max={bpmMax - 5} unit=" bpm" onChange={setBpmMin} />
+                        <SliderRow label="BPM máximo" value={bpmMax} min={bpmMin + 5} max={220} unit=" bpm" onChange={setBpmMax} />
+                    </AccordionSection>
 
-                    <Toggle
-                        label="Crossfade"
-                        description={`Transición suave entre canciones`}
-                        checked={crossfade}
-                        onChange={v => { setCrossfade(v); if (v) setAutoNext(true); }}
-                    />
+                    <AccordionSection 
+                        title="Pedalera Bluetooth" 
+                        icon={<span style={{fontSize: 14}}>🦶</span>}
+                        isOpen={openSection === "pedal"}
+                        onToggle={() => toggle("pedal")}
+                    >
+                        <PedalConfig />
+                    </AccordionSection>
 
-                    {crossfade && (
-                        <div style={{ paddingLeft: 12, borderLeft: `2px solid ${THEME.colors.brand.cyan}30`, marginBottom: 10 }}>
-                            <SliderRow
-                                label="Duración Crossfade"
-                                value={crossfadeMs}
-                                min={500} max={10000} step={500} unit=" ms"
-                                onChange={setCrossfadeMs}
-                            />
-                        </div>
-                    )}
-
-                    <SliderRow
-                        label="Volumen por defecto"
-                        value={Math.round(defaultVol * 100)}
-                        min={0} max={100} unit="%"
-                        onChange={v => { setDefaultVol(v / 100); setVol(v / 100); }}
-                    />
-
-                    <Toggle
-                        label="Efecto Fade (Suavizado)"
-                        description="Aplica crescendo al inicio y diminuendo al final/pausa"
-                        checked={fadeEnabled}
-                        onChange={setFadeEnabled}
-                    />
-
-                    {fadeEnabled && (
-                        <div style={{ paddingLeft: 12, borderLeft: `2px solid ${THEME.colors.brand.cyan}30`, marginBottom: 10 }}>
-                            <SliderRow
-                                label="Duración Fade-IN"
-                                value={fadeInMs}
-                                min={500} max={10000} step={500} unit=" ms"
-                                onChange={setFadeInMs}
-                            />
-                            <SliderRow
-                                label="Duración Fade-OUT"
-                                value={fadeOutMs}
-                                min={500} max={10000} step={500} unit=" ms"
-                                onChange={setFadeOutMs}
-                            />
-                        </div>
-                    )}
-
-                    <Toggle
-                        label="Sonómetro (dB SPL)"
-                        description="Mide el volumen ambiental con el micrófono"
-                        checked={splMeterEnabled}
-                        onChange={setSplMeterEnabled}
-                    />
-
-                    {splMeterEnabled && (
-                        <div style={{ padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 8, marginTop: 4 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: THEME.colors.text.muted, marginBottom: 8, textTransform: "uppercase" }}>Calibración / Espacio</div>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                                {(["studio", "small", "hall", "open"] as const).map(t => (
-                                    <button
-                                        key={t}
-                                        onClick={() => setSplMeterTarget(t)}
-                                        style={{
-                                            padding: "8px", borderRadius: 6, fontSize: 11, fontWeight: 700,
-                                            backgroundColor: splMeterTarget === t ? THEME.colors.brand.cyan : "transparent",
-                                            color: splMeterTarget === t ? "black" : "white",
-                                            border: `1px solid ${splMeterTarget === t ? THEME.colors.brand.cyan : THEME.colors.border}`,
-                                            cursor: "pointer", transition: "all 0.2s", textTransform: "capitalize"
-                                        }}
-                                    >
-                                        {t === "studio" ? "Estudio" : t === "small" ? "Sala Pequeña" : t === "hall" ? "Auditorio" : "Abierto"}
-                                    </button>
-                                ))}
+                    <AccordionSection 
+                        title="Almacenamiento Local" 
+                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>}
+                        isOpen={openSection === "storage"}
+                        onToggle={() => toggle("storage")}
+                    >
+                        <div style={{ padding: "16px", backgroundColor: "rgba(255,255,255,0.02)", borderRadius: THEME.radius.md, border: `1px solid ${THEME.colors.border}`, marginTop: 8 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                                <span style={{ fontSize: 13, color: THEME.colors.text.muted }}>Canciones en el iPad</span>
+                                <span style={{ fontSize: 14, fontWeight: 800, color: THEME.colors.brand.cyan }}>{useLibraryStore.getState().customTracks.length}</span>
                             </div>
+                            <button onClick={() => { setView("library"); setShowSettings(false); }} style={{ width: "100%", padding: "10px", borderRadius: THEME.radius.sm, border: `1px solid ${THEME.colors.brand.violet}40`, background: `${THEME.colors.brand.violet}15`, color: THEME.colors.brand.violet, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                                GESTIONAR BIBLIOTECA
+                            </button>
                         </div>
-                    )}
+                    </AccordionSection>
 
-                    <Toggle
-                        label="Modo Tablet / Escenario"
-                        description="Aumenta el tamaño de fuentes y controles para uso en escenario"
-                        checked={performanceMode}
-                        onChange={setPerformanceMode}
-                    />
-
-                    {/* Volumen actual */}
-                    <div style={{ padding: "14px 0", borderBottom: `1px solid ${THEME.colors.border}` }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                            <span style={{ fontSize: 14, fontWeight: 600 }}>Volumen ahora</span>
-                            <span style={{ fontSize: 13, fontFamily: THEME.fonts.mono, color: THEME.colors.brand.violet, fontWeight: 700 }}>
-                                {Math.round(vol * 100)}%
-                            </span>
-                        </div>
-                        <input
-                            type="range" min={0} max={100} value={Math.round(vol * 100)}
-                            onChange={e => setVol(Number(e.target.value) / 100)}
-                            style={{
-                                width: "100%", appearance: "none", height: 4, borderRadius: 2,
-                                background: `linear-gradient(to right, ${THEME.colors.brand.violet} ${vol * 100}%, rgba(255,255,255,0.1) ${vol * 100}%)`,
-                                outline: "none", cursor: "pointer",
-                            }}
-                        />
-                    </div>
-
-                    {/* ── Set Builder ── */}
-                    <Section title="Builder de Sets" icon={
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" />
-                        </svg>
-                    } />
-
-                    <SliderRow
-                        label="Duración por defecto del set"
-                        value={targetMin}
-                        min={15} max={180} unit=" min"
-                        onChange={setTargetMin}
-                    />
-
-                    <SliderRow
-                        label="BPM mínimo"
-                        value={bpmMin}
-                        min={40} max={bpmMax - 5} unit=" bpm"
-                        onChange={setBpmMin}
-                    />
-
-                    <SliderRow
-                        label="BPM máximo"
-                        value={bpmMax}
-                        min={bpmMin + 5} max={220} unit=" bpm"
-                        onChange={setBpmMax}
-                    />
-
-                    {/* ── Pedalera Bluetooth ── */}
-                    <PedalConfig />
-
-                    {/* ── Audio Files (Storage Monitor) ── */}
-                    <Section title="Almacenamiento Local" icon={
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                        </svg>
-                    } />
-
-                    <div style={{
-                        padding: "16px",
-                        backgroundColor: "rgba(255,255,255,0.02)",
-                        borderRadius: THEME.radius.md,
-                        border: `1px solid ${THEME.colors.border}`,
-                        marginTop: 8,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 12
-                    }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: 13, color: THEME.colors.text.muted }}>Archivos en este dispositivo</span>
-                            <span style={{ fontSize: 14, fontWeight: 800, color: THEME.colors.brand.cyan }}>
-                                {useLibraryStore.getState().customTracks.length} canciones
-                            </span>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: 13, color: THEME.colors.text.muted }}>Estado de base de datos</span>
-                            <span style={{ fontSize: 11, fontWeight: 900, color: THEME.colors.status.success, textTransform: "uppercase" }}>
-                                ● Operativa
-                            </span>
-                        </div>
-                        <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "4px 0 8px", lineHeight: 1.5 }}>
-                            Tus canciones están guardadas de forma segura en la memoria de este navegador y están disponibles sin conexión.
-                        </p>
-                        <button
-                            onClick={() => { setView("library"); setShowSettings(false); }}
-                            style={{
-                                padding: "10px", borderRadius: THEME.radius.sm,
-                                border: `1px solid ${THEME.colors.brand.violet}40`,
-                                background: `${THEME.colors.brand.violet}15`,
-                                color: THEME.colors.brand.violet,
-                                fontSize: 12, fontWeight: 700, cursor: "pointer",
-                                transition: "all 0.2s"
-                            }}
-                        >
-                            GESTIONAR BIBLIOTECA
-                        </button>
-                    </div>
-
-                    {/* ── About ── */}
-                    <Section title="Acerca de" icon={
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                        </svg>
-                    } />
-
-                    <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 10 }}>
-                        <div style={{ 
-                            backgroundColor: "rgba(0,0,0,0.2)", 
-                            borderRadius: THEME.radius.md, 
-                            padding: "12px", 
-                            border: `1px solid ${THEME.colors.border}`,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 8
-                        }}>
+                    <AccordionSection 
+                        title="Acerca de" 
+                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>}
+                        isOpen={openSection === "about"}
+                        onToggle={() => toggle("about")}
+                    >
+                        <div style={{ backgroundColor: "rgba(0,0,0,0.2)", borderRadius: THEME.radius.md, padding: "12px", border: `1px solid ${THEME.colors.border}`, display: "flex", flexDirection: "column", gap: 8 }}>
                            {[
                                ["Versión", VERSION_INFO.tag],
                                ["Build Date", VERSION_INFO.buildDate],
                                ["Build Time", `${VERSION_INFO.buildTime} (UTC-4)`],
-                               ["Storage", "IndexedDB + CacheAPI"],
-                               ["Analysis", "Web Worker Threaded"],
                            ].map(([k, v]) => (
-                               <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                               <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>
                                    <span style={{ fontSize: 11, fontWeight: 700, color: THEME.colors.text.muted, textTransform: "uppercase" }}>{k}</span>
                                    <span style={{ fontSize: 12, fontFamily: THEME.fonts.mono, color: THEME.colors.brand.cyan }}>{v}</span>
                                </div>
                            ))}
                         </div>
+                    </AccordionSection>
 
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                           {VERSION_INFO.features.map(f => (
-                               <span key={f} style={{ 
-                                   fontSize: 9, padding: "2px 8px", borderRadius: 4, 
-                                   background: "rgba(255,255,255,0.05)", border: `1px solid ${THEME.colors.border}`,
-                                   color: THEME.colors.text.muted
-                               }}>
-                                   ✓ {f}
-                               </span>
-                           ))}
-                        </div>
-                    </div>
-                    {/* ── System ── */}
-                    <Section title="Sistema" icon={
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-                        </svg>
-                    } />
-
-                    <div style={{ padding: "8px 0" }}>
-                        <button
-                            onClick={resetApp}
-                            style={{
-                                width: "100%",
-                                padding: "12px",
-                                borderRadius: THEME.radius.md,
-                                border: `1px solid ${THEME.colors.status.error}60`,
-                                backgroundColor: `${THEME.colors.status.error}10`,
-                                color: THEME.colors.status.error,
-                                fontSize: 13,
-                                fontWeight: 700,
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 8,
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = `${THEME.colors.status.error}20`}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = `${THEME.colors.status.error}10`}
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                    <AccordionSection 
+                        title="Sistema" 
+                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>}
+                        isOpen={openSection === "system"}
+                        onToggle={() => toggle("system")}
+                    >
+                        <button onClick={resetApp} style={{ width: "100%", padding: "12px", borderRadius: THEME.radius.md, border: `1px solid ${THEME.colors.status.error}60`, backgroundColor: `${THEME.colors.status.error}10`, color: THEME.colors.status.error, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                             Reiniciar aplicación y limpiar caché
                         </button>
-                        <p style={{ fontSize: 11, color: THEME.colors.text.muted, marginTop: 8, textAlign: "center", lineHeight: 1.4 }}>
-                            Borra datos locales (historial, sets, canciones importadas) y fuerza una recarga limpia.
-                        </p>
-                    </div>
+                    </AccordionSection>
+
                 </div>
             </div>
 
-            {/* Animations */}
             <style>{`
                 @keyframes slideInRight {
                     from { transform: translateX(100%); opacity: 0; }

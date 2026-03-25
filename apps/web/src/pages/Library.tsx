@@ -93,14 +93,46 @@ export const Library: React.FC = () => {
                     <div 
                         onClick={() => setImportOpen(true)}
                         style={{ 
-                            padding: "60px 20px", textAlign: "center", 
-                            backgroundColor: "rgba(255,255,255,0.02)", borderRadius: THEME.radius.xl,
-                            border: `2px dashed ${THEME.colors.border}`, cursor: "pointer"
+                            flex: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "80px 40px",
+                            textAlign: "center", 
+                            backgroundColor: "rgba(255,255,255,0.01)", 
+                            borderRadius: THEME.radius.xl,
+                            border: `2px dashed ${THEME.colors.border}`, 
+                            cursor: "pointer",
+                            gap: 20,
+                            animation: "fadeIn 0.6s ease-out"
                         }}
                     >
-                        <p style={{ color: THEME.colors.text.muted, fontSize: 15, margin: 0 }}>
-                            Tu biblioteca está vacía. <strong>Toca aquí para importar tus canciones</strong> de iPad o Android.
-                        </p>
+                        <div style={{
+                            width: 80, height: 80, borderRadius: "50%",
+                            backgroundColor: `${THEME.colors.brand.cyan}10`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: THEME.colors.brand.cyan,
+                            marginBottom: 8
+                        }}>
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18V5l12-2v13M6 15a3 3 0 1 0 0 6 3 3 0 000-6zm12-2a3 3 0 1 0 0 6 3 3 0 000-6z" /></svg>
+                        </div>
+                        <div>
+                            <h3 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 8px", color: "white" }}>Tu biblioteca está lista</h3>
+                            <p style={{ color: THEME.colors.text.muted, fontSize: 15, margin: 0, maxWidth: 400, lineHeight: 1.6 }}>
+                                Importa tus archivos <strong>MP3 o WAV</strong> desde tu iPad para empezar a crear sets inteligentes.
+                            </p>
+                        </div>
+                        <button
+                            style={{
+                                marginTop: 12, padding: "12px 32px", borderRadius: THEME.radius.full,
+                                border: "none", background: THEME.colors.brand.cyan,
+                                color: "black", fontSize: 14, fontWeight: 900,
+                                boxShadow: `0 10px 30px ${THEME.colors.brand.cyan}40`,
+                            }}
+                        >
+                            COMENZAR IMPORTACIÓN
+                        </button>
                     </div>
                 ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
