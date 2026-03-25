@@ -1,9 +1,10 @@
 export const VERSION_INFO = {
-    tag: "v1.3.0-PROFESSIONAL",
-    buildDate: "2026-03-24",
-    buildTime: "22:45",
+    tag: `v${__APP_VERSION__}`,
+    buildDate: __BUILD_DATE__,
+    buildTime: __BUILD_TIME__,
     environment: "Production (Netlify)",
     features: [
+        "Automated Versioning System",
         "Modular Architecture v2",
         "Web Worker Audio Analysis",
         "Persistent IndexedDB Storage",
