@@ -8,6 +8,7 @@ const PEDAL_ACTIONS: { action: PedalAction; label: string }[] = [
     { action: "next",       label: "Siguiente canción" },
     { action: "prev",       label: "Canción anterior" },
     { action: "play_pause", label: "Play / Pause" },
+    { action: "stop",       label: "Detener audio" },
     { action: "vol_up",     label: "Volumen +" },
     { action: "vol_down",   label: "Volumen −" },
 ];

@@ -6,7 +6,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 // ── Pedal Bindings ────────────────────────────────────────────────────────────
-export type PedalAction = 'next' | 'prev' | 'play_pause' | 'vol_up' | 'vol_down'
+export type PedalAction = 'next' | 'prev' | 'play_pause' | 'stop' | 'vol_up' | 'vol_down'
 
 export interface PedalBinding {
     key: string    // event.key value: "ArrowRight", "Space", " ", "PageDown", etc.

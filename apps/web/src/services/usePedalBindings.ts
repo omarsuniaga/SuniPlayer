@@ -90,6 +90,7 @@ export function handlePedalEvent(
     const setCi = usePlayerStore.getState().setCi;
     const setPlaying = usePlayerStore.getState().setPlaying;
     const setVol = usePlayerStore.getState().setVol;
+    const setPos = usePlayerStore.getState().setPos;
 
     addLog(`Acción: ${matchedAction}`);
 
@@ -97,15 +98,21 @@ export function handlePedalEvent(
         case "next":
             if (currentCi < currentQueue.length - 1) {
                 setCi(currentCi + 1);
+                setPos(0);
             }
             break;
         case "prev":
             if (currentCi > 0) {
                 setCi(currentCi - 1);
+                setPos(0);
             }
             break;
         case "play_pause":
             setPlaying((prev: boolean) => !prev);
+            break;
+        case "stop":
+            setPlaying(false);
+            setPos(0);
             break;
         case "vol_up":
             setVol(Math.min(currentVol + 0.05, 1));
