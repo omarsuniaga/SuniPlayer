@@ -378,6 +378,18 @@ export function useAudio() {
         simRef.current = setInterval(() => {
             const trackEnd = ct.endTime || ct.duration_ms;
             const trackStart = ct.startTime || 0;
+            const remainingMs = trackEnd - posRef.current;
+
+            // ── PREDICTIVE PRE-BUFFERING (SuniSync) ────────────────────────
+            // If we are close to the end (e.g. 20s or crossfade duration + 5s), start loading next
+            const prebufferThreshold = Math.max(20000, crossfadeMsRef.current + 5000);
+            if (remainingMs < prebufferThreshold && nextTrackRef.current && !hasAdvanced.current) {
+                const nextUrl = nextTrackRef.current.blob_url ?? `/audio/${encodeURIComponent(nextTrackRef.current.file_path)}`;
+                // Silent prefetch into disk cache
+                AudioStreamerService.fetchWithProgress(nextUrl, (p) => {
+                    updateDownload(nextUrl, p);
+                }).catch(() => {}); // Errors handled on actual play
+            }
 
             if (isReal.current && audio) {
                 const posMs = Math.floor(audio.currentTime * 1000);
@@ -385,6 +397,12 @@ export function useAudio() {
                 const elapsedInTrack = posMs - trackStart;
                 posRef.current = posMs;
                 setPos(posMs);
+
+                // ── CROSSFADE LOGIC ──────────────────────────────────────────
+                if (crossfadeRef.current && remMs <= crossfadeMsRef.current && !hasAdvanced.current) {
+                    // Start next track slightly before A ends, with fade-in/out
+                    advance();
+                }
 
                 if (fadeEnabledRef.current && !isPausingRef.current && !isResumingRef.current) {
                     const v = volRef.current;
