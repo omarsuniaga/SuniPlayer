@@ -124,11 +124,18 @@ export const Library: React.FC = () => {
                             </p>
                         </div>
                         <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setImportOpen(true);
+                            }}
                             style={{
                                 marginTop: 12, padding: "12px 32px", borderRadius: THEME.radius.full,
                                 border: "none", background: THEME.colors.brand.cyan,
                                 color: "black", fontSize: 14, fontWeight: 900,
                                 boxShadow: `0 10px 30px ${THEME.colors.brand.cyan}40`,
+                                cursor: "pointer",
+                                position: "relative",
+                                zIndex: 5
                             }}
                         >
                             COMENZAR IMPORTACIÓN
