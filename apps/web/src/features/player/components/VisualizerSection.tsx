@@ -73,31 +73,44 @@ export const VisualizerSection: React.FC<VisualizerSectionProps> = ({
                     )}
 
                     {/* Loading Spinner & Speed */}
-                    {isBuffering && (
+                    {isBuffering ? (
                         <div style={{ 
                             position: "absolute", inset: 0, 
                             display: "flex", flexDirection: "column", 
                             alignItems: "center", justifyContent: "center",
-                            background: "rgba(10, 14, 20, 0.4)",
-                            backdropFilter: "blur(4px)",
+                            background: "rgba(10, 14, 20, 0.6)",
+                            backdropFilter: "blur(6px)",
                             zIndex: 20
                         }}>
                             <div className="spinner" style={{
-                                width: 40, height: 40, 
-                                border: "3px solid rgba(255,255,255,0.1)",
+                                width: 48, height: 48, 
+                                border: "4px solid rgba(255,255,255,0.05)",
                                 borderTopColor: THEME.colors.brand.cyan,
                                 borderRadius: "50%",
-                                animation: "spin 1s linear infinite",
-                                marginBottom: 12
+                                animation: "spin 0.8s linear infinite",
+                                marginBottom: 16,
+                                boxShadow: `0 0 20px ${THEME.colors.brand.cyan}40`
                             }} />
-                            <div style={{ fontSize: 11, fontWeight: 900, color: THEME.colors.brand.cyan, letterSpacing: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 900, color: "white", letterSpacing: 2 }}>
                                 CARGANDO BUFFER...
                             </div>
-                            <div style={{ fontSize: 10, color: THEME.colors.text.muted, marginTop: 4, fontFamily: THEME.fonts.mono }}>
+                            <div style={{ fontSize: 11, color: THEME.colors.brand.cyan, marginTop: 6, fontFamily: THEME.fonts.mono, fontWeight: 700 }}>
                                 {(download.speedKbps / 1024).toFixed(1)} MB/s
                             </div>
                         </div>
-                    )}
+                    ) : download?.percentage === 100 ? (
+                        <div style={{ 
+                            position: "absolute", top: 12, right: 12, 
+                            display: "flex", alignItems: "center", gap: 6,
+                            padding: "4px 10px", borderRadius: 4,
+                            background: "rgba(0, 255, 255, 0.1)",
+                            border: `1px solid ${THEME.colors.brand.cyan}30`,
+                            zIndex: 15
+                        }}>
+                            <div style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.colors.brand.cyan, boxShadow: `0 0 8px ${THEME.colors.brand.cyan}` }} />
+                            <span style={{ fontSize: 9, fontWeight: 900, color: THEME.colors.brand.cyan, letterSpacing: 1 }}>BUFFER 100% (DISCO)</span>
+                        </div>
+                    ) : null}
 
                     <div style={{ position: "absolute", top: 0, bottom: 0, left: `${prog * 100}%`, width: 3, background: mCol, boxShadow: `0 0 20px ${mCol}`, zIndex: 5 }} />
                     {isLive && playing && (
