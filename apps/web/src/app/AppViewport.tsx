@@ -66,11 +66,10 @@ export const AppViewport: React.FC = () => {
 
     return (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 }}>
-            {/* Hidden focus anchor for iPad pedals - Modified for better OS visibility */}
-            <input 
+            {/* Last Resort Focus Anchor: Invisible Textarea covering screen area technically */}
+            <textarea 
                 id="suni-pedal-focus"
-                ref={hiddenInputRef}
-                type="text" 
+                ref={hiddenInputRef as any}
                 inputMode="none"
                 autoCapitalize="none"
                 autoCorrect="off"
@@ -78,14 +77,16 @@ export const AppViewport: React.FC = () => {
                 style={{ 
                     position: 'fixed', 
                     top: 0, left: 0, 
-                    width: '1px', height: '1px', 
+                    width: '100%', height: '100%', 
                     padding: 0, margin: 0,
                     border: 'none',
                     background: 'transparent',
                     color: 'transparent',
                     outline: 'none',
-                    zIndex: 9999, // Traer al frente para que sea 'visible'
-                    pointerEvents: 'none' // Pero que no estorbe los clics
+                    zIndex: 9999,
+                    pointerEvents: 'none',
+                    fontSize: '16px', // iOS requirement to avoid auto-zoom
+                    opacity: 0.01 // Minimal opacity sometimes helps more than 0
                 }}
                 aria-hidden="true"
             />

@@ -341,6 +341,8 @@ export function useAudio() {
     useEffect(() => {
         if (!ct || !('mediaSession' in navigator)) return;
 
+        const addLog = useDebugStore.getState().addLog;
+
         // Set Metadata
         navigator.mediaSession.metadata = new MediaMetadata({
             title: ct.title,
@@ -354,23 +356,25 @@ export function useAudio() {
 
         // Set Action Handlers
         const handlers: [MediaSessionAction, () => void][] = [
-            ['play', () => setPlaying(true)],
-            ['pause', () => setPlaying(false)],
+            ['play', () => { addLog("Media: PLAY"); setPlaying(true); }],
+            ['pause', () => { addLog("Media: PAUSE"); setPlaying(false); }],
             ['previoustrack', () => {
+                addLog("Media: PREV");
                 if (ciRef.current > 0) {
                     setCi(ciRef.current - 1);
                     setPos(0);
                 }
             }],
             ['nexttrack', () => {
+                addLog("Media: NEXT");
                 if (ciRef.current < pQueueLenRef.current - 1) {
                     setCi(ciRef.current + 1);
                     setPos(0);
                 }
             }],
-            ['seekbackward', () => setPos(Math.max(0, posRef.current - 5000))],
-            ['seekforward', () => setPos(posRef.current + 5000)],
-            ['stop', () => { setPlaying(false); setPos(0); }]
+            ['seekbackward', () => { addLog("Media: SEEK-BW"); setPos(Math.max(0, posRef.current - 5000)); }],
+            ['seekforward', () => { addLog("Media: SEEK-FW"); setPos(posRef.current + 5000); }],
+            ['stop', () => { addLog("Media: STOP"); setPlaying(false); setPos(0); }]
         ];
 
         for (const [action, handler] of handlers) {
