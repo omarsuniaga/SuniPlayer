@@ -370,11 +370,14 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
         
         try {
             for (const p of pending) {
-                // 1. Get real Blob
+                // Actualizar UI con el progreso actual
+                setResults(prev => [...prev, { title: `Guardando ${p.title}...`, ok: true }]);
+
+                // 1. Obtener Blob real
                 const response = await fetch(p.blobUrl);
                 const blob = await response.blob();
                 
-                // 2. Perform deep analysis in BACKGROUND WORKER
+                // 2. Análisis en segundo plano
                 let waveform = p.waveform;
                 let bpm = p.bpm;
                 let key = p.key;
@@ -384,10 +387,7 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
                 try {
                     const arrayBuffer = await blob.arrayBuffer();
                     const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                    
-                    // Call the background worker instead of analysisService
                     const analysis = await analyzeAudioInBackground(audioBuffer);
-                    
                     waveform = analysis.waveform;
                     bpm = analysis.bpm;
                     key = analysis.key;
@@ -397,10 +397,10 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
                     console.warn("Analysis failed for", p.title, e);
                 }
 
-                // 3. Save to IndexedDB
+                // 3. GUARDADO CRÍTICO EN INDEXEDDB (Esperar confirmación real)
                 await audioCache.saveAudioFile(p.id, blob, p.fileName);
-
-                newTracks.push({
+                
+                const track: Track = {
                     id:              p.id,
                     title:           p.title,
                     artist:          p.artist,
@@ -415,19 +415,24 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
                     isCustom:        true,
                     waveform,
                     gainOffset,
-                });
+                };
+
+                // 4. Agregar inmediatamente al Store para visibilidad instantánea
+                addCustomTrack(track);
+                newTracks.push(track);
             }
         } finally {
             audioCtx.close().catch(() => {});
         }
 
-        newTracks.forEach(t => addCustomTrack(t));
+        // 5. Unificar en la cola de reproducción
         appendToQueue(newTracks);
-        setResults(newTracks.map(t => ({ title: t.title, ok: true })));
+        setResults(newTracks.map(t => ({ title: `${t.title} - ¡LISTO!`, ok: true })));
         setPending([]);
         setProcessing(false);
 
-        if (onClose) setTimeout(onClose, 2500);
+        // Feedback final más largo para que el usuario lo vea
+        if (onClose) setTimeout(onClose, 3000);
     }, [pending, addCustomTrack, appendToQueue, onClose]);
 
     const cancelEdit = useCallback(() => {
