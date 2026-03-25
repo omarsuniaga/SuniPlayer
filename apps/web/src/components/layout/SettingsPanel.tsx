@@ -153,8 +153,6 @@ export const SettingsPanel: React.FC = () => {
     const setPerformanceMode = useSettingsStore(s => s.setPerformanceMode);
     const setView = useProjectStore(s => s.setView);
 
-    const vol = useProjectStore(s => s.vol); // Keeping vol because it's used in the 'Volumen ahora' slider
-
     // State for accordions
     const [openSection, setOpenSection] = useState<string | null>("audio");
 
