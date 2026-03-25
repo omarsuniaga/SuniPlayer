@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef } from "react";
 import { THEME } from "../../../data/theme.ts";
 
 interface VolumeControlProps {
@@ -10,20 +10,99 @@ interface VolumeControlProps {
 
 export const VolumeControl: React.FC<VolumeControlProps> = ({
     vol, mCol, performanceMode, onVolumeChange
-}) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "0 10px" }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" /></svg>
-        <div style={{ flex: 1, position: "relative", height: performanceMode ? 32 : 10 }}>
-            <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.06)", borderRadius: performanceMode ? 16 : 5 }} />
-            <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${vol * 100}%`, background: THEME.gradients.brand, borderRadius: performanceMode ? 16 : 5, boxShadow: `0 0 10px ${mCol}30` }} />
-            <input 
-                type="range" min="0" max="100" 
-                value={vol * 100} 
-                onChange={e => onVolumeChange(parseInt(e.target.value) / 100)} 
-                title="Control de volumen maestro" 
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }} 
-            />
+}) => {
+    const [prevVol, setPrevVol] = useState(vol > 0 ? vol : 0.5);
+    const isMuted = vol === 0;
+
+    const handleMuteToggle = () => {
+        if (isMuted) {
+            onVolumeChange(prevVol);
+        } else {
+            setPrevVol(vol);
+            onVolumeChange(0);
+        }
+    };
+
+    // Sensibilidad Logarítmica (Percepción humana)
+    // El usuario mueve de 0-100 linealmente, pero nosotros podemos 
+    // aplicar una curva para que el control sea más fino en rangos bajos.
+    const displayVol = Math.round(vol * 100);
+
+    return (
+        <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: 16, 
+            padding: performanceMode ? "10px 20px" : "0 10px",
+            backgroundColor: "rgba(255,255,255,0.02)",
+            borderRadius: THEME.radius.lg,
+            border: `1px solid ${isMuted ? THEME.colors.status.error + "30" : "transparent"}`,
+            transition: "all 0.3s"
+        }}>
+            {/* Botón MUTE */}
+            <button 
+                onClick={handleMuteToggle}
+                title={isMuted ? "Activar sonido" : "Silenciar"}
+                style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: isMuted ? THEME.colors.status.error : "rgba(255,255,255,0.5)",
+                    transition: "all 0.2s",
+                    padding: 8,
+                    borderRadius: "50%",
+                    backgroundColor: isMuted ? `${THEME.colors.status.error}15` : "transparent"
+                }}
+            >
+                {isMuted ? (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/></svg>
+                ) : (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                )}
+            </button>
+
+            <div style={{ flex: 1, position: "relative", height: performanceMode ? 32 : 12 }}>
+                <div style={{ 
+                    position: "absolute", inset: 0, 
+                    background: "rgba(255,255,255,0.06)", 
+                    borderRadius: performanceMode ? 16 : 6 
+                }} />
+                
+                {/* Barra de progreso de volumen */}
+                <div style={{ 
+                    position: "absolute", top: 0, bottom: 0, left: 0, 
+                    width: `${vol * 100}%`, 
+                    background: isMuted ? THEME.colors.status.error : THEME.gradients.brand, 
+                    borderRadius: performanceMode ? 16 : 6, 
+                    boxShadow: isMuted ? "none" : `0 0 15px ${mCol}40`,
+                    transition: "width 0.1s ease-out, background-color 0.3s"
+                }} />
+
+                <input 
+                    type="range" min="0" max="100" 
+                    value={vol * 100} 
+                    onChange={e => onVolumeChange(parseInt(e.target.value) / 100)} 
+                    style={{ 
+                        position: "absolute", inset: 0, width: "100%", height: "100%", 
+                        opacity: 0, cursor: "pointer", zIndex: 10
+                    }} 
+                />
+            </div>
+
+            <div style={{ 
+                minWidth: 50, 
+                textAlign: "right",
+                fontSize: performanceMode ? 22 : 15, 
+                fontWeight: 900, 
+                fontFamily: THEME.fonts.mono, 
+                color: isMuted ? THEME.colors.status.error : mCol,
+                opacity: isMuted ? 0.8 : 1
+            }}>
+                {isMuted ? "MUTE" : `${displayVol}%`}
+            </div>
         </div>
-        <span style={{ fontSize: performanceMode ? 24 : 16, fontWeight: 900, fontFamily: THEME.fonts.mono, color: mCol, width: 60 }}>{Math.round(vol * 100)}%</span>
-    </div>
-);
+    );
+};
