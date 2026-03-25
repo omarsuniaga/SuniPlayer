@@ -82,5 +82,10 @@ export const audioCache = {
     async deleteAudioFile(id: string) {
         const db = await getDB();
         await db.delete(STORE_AUDIO, id);
+    },
+
+    async countAudioFiles(): Promise<number> {
+        const db = await getDB();
+        return await db.count(STORE_AUDIO);
     }
 };

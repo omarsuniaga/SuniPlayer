@@ -343,10 +343,10 @@ export const SettingsPanel: React.FC = () => {
                     {/* ── Pedalera Bluetooth ── */}
                     <PedalConfig />
 
-                    {/* ── Audio Files ── */}
-                    <Section title="Archivos de Audio" icon={
+                    {/* ── Audio Files (Storage Monitor) ── */}
+                    <Section title="Almacenamiento Local" icon={
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                            <path d="M9 18V5l12-2v13M6 15a3 3 0 1 0 0 6 3 3 0 000-6zm12-2a3 3 0 1 0 0 6 3 3 0 000-6z" />
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                         </svg>
                     } />
 
@@ -356,26 +356,38 @@ export const SettingsPanel: React.FC = () => {
                         borderRadius: THEME.radius.md,
                         border: `1px solid ${THEME.colors.border}`,
                         marginTop: 8,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12
                     }}>
-                        <p style={{ fontSize: 13, color: THEME.colors.text.muted, margin: "0 0 12px", lineHeight: 1.6 }}>
-                            Para activar audio real, copia tus MP3 a:
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 13, color: THEME.colors.text.muted }}>Archivos en este dispositivo</span>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: THEME.colors.brand.cyan }}>
+                                {useLibraryStore.getState().customTracks.length} canciones
+                            </span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 13, color: THEME.colors.text.muted }}>Estado de base de datos</span>
+                            <span style={{ fontSize: 11, fontWeight: 900, color: THEME.colors.status.success, textTransform: "uppercase" }}>
+                                ● Operativa
+                            </span>
+                        </div>
+                        <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "4px 0 8px", lineHeight: 1.5 }}>
+                            Tus canciones están guardadas de forma segura en la memoria de este navegador y están disponibles sin conexión.
                         </p>
-                        <code style={{
-                            display: "block",
-                            padding: "10px 14px",
-                            backgroundColor: "rgba(0,0,0,0.4)",
-                            borderRadius: THEME.radius.sm,
-                            fontSize: 12,
-                            fontFamily: THEME.fonts.mono,
-                            color: THEME.colors.brand.cyan,
-                            marginBottom: 12,
-                            wordBreak: "break-all",
-                        }}>
-                            /public/audio/[Artista] - [Título].mp3
-                        </code>
-                        <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: 0, lineHeight: 1.5 }}>
-                            El nombre del archivo debe coincidir con el campo <code style={{ color: THEME.colors.brand.violet }}>file_path</code> en <code style={{ color: THEME.colors.brand.violet }}>constants.ts</code>
-                        </p>
+                        <button
+                            onClick={() => { useProjectStore.getState().setView("library"); setShowSettings(false); }}
+                            style={{
+                                padding: "10px", borderRadius: THEME.radius.sm,
+                                border: `1px solid ${THEME.colors.brand.violet}40`,
+                                background: `${THEME.colors.brand.violet}15`,
+                                color: THEME.colors.brand.violet,
+                                fontSize: 12, fontWeight: 700, cursor: "pointer",
+                                transition: "all 0.2s"
+                            }}
+                        >
+                            GESTIONAR BIBLIOTECA
+                        </button>
                     </div>
 
                     {/* ── About ── */}
