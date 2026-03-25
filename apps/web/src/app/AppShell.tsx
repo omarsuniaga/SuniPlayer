@@ -6,6 +6,7 @@ import { AppViewport } from "./AppViewport";
 import { Navbar } from "../components/layout/Navbar";
 import { BottomNav } from "../components/layout/BottomNav";
 import { SettingsPanel } from "../components/layout/SettingsPanel";
+import { THEME } from "../data/theme";
 
 import { useProjectStore } from "../store/useProjectStore";
 

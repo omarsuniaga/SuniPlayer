@@ -139,7 +139,6 @@ export const SettingsPanel: React.FC = () => {
     const setDefaultVol = useProjectStore(s => s.setDefaultVol);
     const targetMin = useProjectStore(s => s.targetMin);
     const setTargetMin = useProjectStore(s => s.setTargetMin);
-    const vol = useProjectStore(s => s.vol);
     const setVol = useProjectStore(s => s.setVol);
     const fadeEnabled = useProjectStore(s => s.fadeEnabled);
     const setFadeEnabled = useProjectStore(s => s.setFadeEnabled);
@@ -149,12 +148,12 @@ export const SettingsPanel: React.FC = () => {
     const setFadeOutMs = useProjectStore(s => s.setFadeOutMs);
     const splMeterEnabled = useProjectStore(s => s.splMeterEnabled);
     const setSplMeterEnabled = useProjectStore(s => s.setSplMeterEnabled);
-    const splMeterTarget = useProjectStore(s => s.splMeterTarget);
-    const setSplMeterTarget = useProjectStore(s => s.setSplMeterTarget);
     const resetApp = useProjectStore(s => s.resetApp);
     const performanceMode = useSettingsStore(s => s.performanceMode);
     const setPerformanceMode = useSettingsStore(s => s.setPerformanceMode);
     const setView = useProjectStore(s => s.setView);
+
+    const vol = useProjectStore(s => s.vol); // Keeping vol because it's used in the 'Volumen ahora' slider
 
     // State for accordions
     const [openSection, setOpenSection] = useState<string | null>("audio");
