@@ -556,7 +556,7 @@ export const ImportZone: React.FC<Props> = ({ onClose }) => {
             <input
                 ref={inputRef}
                 type="file"
-                accept="audio/*,.mp3,.wav,.ogg,.aac,.m4a,.flac"
+                accept="audio/*,audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/x-m4a,audio/aac,audio/flac,.mp3,.wav,.m4a,.ogg,.aac,.flac"
                 multiple
                 onChange={onInputChange}
                 style={{ display: "none" }}
