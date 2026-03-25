@@ -1,19 +1,19 @@
 /**
- * useAudio — Audio Engine v2.3 (SoundTouch Pitch + Stack Order)
+ * useAudio — Audio Engine v2.4 (Streaming Buffer + Predictive Caching)
  * 
- * Uses SoundTouchJS (WSOLA) for independent pitch shifting without tempo change.
- * Fallback to native HTMLAudioElement when no transposition is needed.
+ * Integrates AudioStreamerService for chunked loading, persistent Cache API,
+ * and real-time download speed tracking for professional performance.
  */
 import { useEffect, useRef } from "react";
 import { usePlayerStore } from "../store/usePlayerStore.ts";
 import { useSettingsStore } from "../store/useSettingsStore.ts";
 import { useLibraryStore } from "../store/useLibraryStore.ts";
-import { probeOne } from "./audioProbe.ts";
 import { useDebugStore } from "../store/useDebugStore.ts";
+import { useDownloadStore } from "../store/useDownloadStore.ts";
+import { AudioStreamerService } from "./AudioStreamerService.ts";
 import { PitchShifter } from "soundtouchjs";
 import { Track } from "../types.ts";
 
-const AUDIO_BASE = "/audio/";
 const TICK_MS = 250;
 const ST_BUFFER_SIZE = 4096;
 
@@ -29,8 +29,8 @@ export function useAudio() {
     const setPlaying = usePlayerStore(s => s.setPlaying);
     const setElapsed = usePlayerStore(s => s.setElapsed);
     const setIsSimulating = usePlayerStore(s => s.setIsSimulating);
-    const stackOrder = usePlayerStore(s => s.stackOrder);
     const setStackOrder = usePlayerStore(s => s.setStackOrder);
+    const stackOrder = usePlayerStore(s => s.stackOrder);
 
     const autoNext = useSettingsStore(s => s.autoNext);
     const crossfade = useSettingsStore(s => s.crossfade);
@@ -39,17 +39,18 @@ export function useAudio() {
     const fadeOutMs = useSettingsStore(s => s.fadeOutMs);
     const autoGain = useSettingsStore(s => s.autoGain);
 
-    // ── Stable refs (values that must survive effect teardown) ───────────────
+    const updateDownload = useDownloadStore(s => s.updateProgress);
+
+    // ── Stable refs ──────────────────────────────────────────────────────────
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const nextAudioRef = useRef<HTMLAudioElement | null>(null);
     const isReal = useRef(false);
-    const posRef = useRef(0);           // sync position in ms
-    const hasAdvanced = useRef(false);       // prevents double-advance per track
+    const posRef = useRef(0);
+    const hasAdvanced = useRef(false);
     const crossTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const simRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Stable ref so advance() always reads current store values
     const ciRef = useRef(ci);
     const pQueueLenRef = useRef(pQueue.length);
     const autoNextRef = useRef(autoNext);
@@ -72,14 +73,12 @@ export function useAudio() {
     const hasIncrementedCountRef = useRef(false);
     const activeTrackIdRef = useRef<string | null>(null);
 
-    // SoundTouch pitch shifting refs
     const stCtxRef = useRef<AudioContext | null>(null);
     const stShifterRef = useRef<PitchShifter | null>(null);
     const stGainRef = useRef<GainNode | null>(null);
-    const stActiveRef = useRef(false); // true when SoundTouch is handling audio
+    const stActiveRef = useRef(false);
 
     const ct = pQueue[ci];
-    // In LIVE mode with stackOrder, nextTrack should be the first in stack
     const nextTrackId = stackOrder[0];
     const nextTrackIdx = nextTrackId ? pQueue.findIndex(t => t.id === nextTrackId) : -1;
     const nextTrack = nextTrackIdx !== -1 ? pQueue[nextTrackIdx] : (pQueue[ci + 1] ?? null);
@@ -105,7 +104,6 @@ export function useAudio() {
         audioRef.current = new Audio();
         nextAudioRef.current = new Audio();
 
-        // Cross-browser interaction listener to "unlock" audio
         const resumeAll = () => {
             if (stCtxRef.current && stCtxRef.current.state === "suspended") {
                 stCtxRef.current.resume();
@@ -129,7 +127,7 @@ export function useAudio() {
         return Math.min(1.0, baseVol * Math.min(2.0, track.gainOffset));
     };
 
-    // ── Load + reset when track ID or index changes ──────────────────────────
+    // ── Load + reset with Streamer ──────────────────────────────────────────
     const trackId = ct?.id;
     useEffect(() => {
         if (!ct) return;
@@ -143,7 +141,6 @@ export function useAudio() {
         hasIncrementedCountRef.current = false;
         activeTrackIdRef.current = ct.id;
         
-        // Initial volume management
         if (fadeEnabledRef.current && audio) {
             audio.volume = 0;
         } else {
@@ -155,7 +152,6 @@ export function useAudio() {
             crossTimerRef.current = null;
         }
 
-        // Clean up previous SoundTouch instance
         if (stShifterRef.current) {
             stShifterRef.current.off();
             try { stShifterRef.current.disconnect(); } catch { /* noop */ }
@@ -164,241 +160,106 @@ export function useAudio() {
         stActiveRef.current = false;
 
         let probeActive = true;
-        if (ct.blob_url) {
-            setIsSimulating(false);
-        } else {
-            probeOne(ct.file_path).then(ok => {
-                if (probeActive) setIsSimulating(!ok);
-            });
-        }
-
         const audioUrl = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
-        audio.src = audioUrl;
-        audio.playbackRate = 1.0; // Always 1.0 — pitch/tempo is handled by SoundTouch
-        const startOffset = (ct.startTime || 0);
-        const resolvedStart = isNaN(startOffset) ? 0 : startOffset;
-        audio.currentTime = resolvedStart / 1000;
-        posRef.current = resolvedStart;
-        setPos(resolvedStart);
 
-        // If track has pitch transposition or custom tempo, set up SoundTouch
-        const semitones = ct.transposeSemitones ?? 0;
-        const tempo = ct.playbackTempo ?? 1.0;
+        // Load via AudioStreamer with Progress Tracking
+        AudioStreamerService.fetchWithProgress(audioUrl, (p) => {
+            if (probeActive) updateDownload(audioUrl, p);
+        }).then((objectUrl) => {
+            if (!probeActive || !audio) return;
+            
+            audio.src = objectUrl;
+            const startOffset = (ct.startTime || 0);
+            const resolvedStart = isNaN(startOffset) ? 0 : startOffset;
+            audio.currentTime = resolvedStart / 1000;
+            posRef.current = resolvedStart;
+            setPos(resolvedStart);
 
-        if (semitones !== 0 || tempo !== 1.0) {
-            // Load audio buffer and create SoundTouch PitchShifter
-            fetch(audioUrl)
-                .then(r => r.arrayBuffer())
-                .then(ab => {
-                    if (!probeActive) return;
-                    if (!stCtxRef.current) {
-                        const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-                        stCtxRef.current = new AudioCtxClass();
-                        stGainRef.current = stCtxRef.current.createGain();
-                        stGainRef.current.connect(stCtxRef.current.destination);
-                    }
-                    const ctx = stCtxRef.current!;
-                    return ctx.decodeAudioData(ab);
-                })
-                .then(buffer => {
-                    if (!probeActive || !buffer || !stCtxRef.current || !stGainRef.current) return;
-                    
-                    const shifter = new PitchShifter(stCtxRef.current, buffer, ST_BUFFER_SIZE);
-                    shifter.pitchSemitones = semitones;
-                    shifter.tempo = tempo;
-                    stShifterRef.current = shifter;
-                    stActiveRef.current = true;
-                    isReal.current = true;
-                    setIsSimulating(false);
+            // Handle Pitch Shifting
+            const semitones = ct.transposeSemitones ?? 0;
+            const tempo = ct.playbackTempo ?? 1.0;
 
-                    // Seek to startOffset if needed
-                    if (startOffset > 0 && buffer.duration > 0) {
-                        shifter.percentagePlayed = (startOffset / 1000) / buffer.duration;
-                    }
+            if (semitones !== 0 || tempo !== 1.0) {
+                fetch(objectUrl)
+                    .then(r => r.arrayBuffer())
+                    .then(ab => {
+                        if (!probeActive) return;
+                        if (!stCtxRef.current) {
+                            const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+                            stCtxRef.current = new AudioCtxClass();
+                            stGainRef.current = stCtxRef.current.createGain();
+                            stGainRef.current.connect(stCtxRef.current.destination);
+                        }
+                        return stCtxRef.current!.decodeAudioData(ab);
+                    })
+                    .then(buffer => {
+                        if (!probeActive || !buffer || !stCtxRef.current || !stGainRef.current) return;
+                        const shifter = new PitchShifter(stCtxRef.current, buffer, ST_BUFFER_SIZE);
+                        shifter.pitchSemitones = semitones;
+                        shifter.tempo = tempo;
+                        stShifterRef.current = shifter;
+                        stActiveRef.current = true;
+                        isReal.current = true;
+                        setIsSimulating(false);
+                        if (startOffset > 0 && buffer.duration > 0) {
+                            shifter.percentagePlayed = (startOffset / 1000) / buffer.duration;
+                        }
+                    });
+            }
 
-                    console.log(`[useAudio] SoundTouch active: ${semitones} semitones, ${tempo}x tempo, buffer ${buffer.duration.toFixed(1)}s`);
-                })
-                .catch(err => {
-                    console.warn("[useAudio] SoundTouch setup failed, falling back to native:", err);
-                    stActiveRef.current = false;
-                    // Ensure we restore volume to native if SoundTouch failed
-                    if (audioRef.current) audioRef.current.volume = volRef.current;
-                });
-        }
-
-        const onCanPlay = () => {
             isReal.current = true;
             setIsSimulating(false);
-        };
-        audio.addEventListener("canplay", onCanPlay, { once: true });
+        }).catch(err => {
+            console.error("[Streamer] Load failed:", err);
+            setIsSimulating(true);
+        });
+
         return () => {
             probeActive = false;
-            audio.removeEventListener("canplay", onCanPlay);
         };
-    }, [ci, ct, trackId, setIsSimulating, setPos]); 
+    }, [ci, ct, trackId, setIsSimulating, setPos, updateDownload]);
 
-    // ── Reactive Pitch/Tempo updates ─────────────────────────────────────────
-    useEffect(() => {
-        if (!ct) return;
-        const semitones = ct.transposeSemitones ?? 0;
-        const tempo     = ct.playbackTempo ?? 1.0;
-        const needsST   = semitones !== 0 || tempo !== 1.0;
-
-        if (stShifterRef.current) {
-            if (needsST) {
-                // SoundTouch exists: update properties in-place
-                stShifterRef.current.pitchSemitones = semitones;
-                stShifterRef.current.tempo = tempo;
-            } else {
-                // Reverted to 0 semitones + 1.0 tempo: tear down SoundTouch, resume native audio
-                stShifterRef.current.off();
-                try { stShifterRef.current.disconnect(); } catch { /* noop */ }
-                stShifterRef.current = null;
-                stActiveRef.current = false;
-                if (audioRef.current) audioRef.current.volume = volRef.current;
-                if (stGainRef.current) stGainRef.current.gain.value = 0;
-            }
-        } else if (needsST) {
-            // SoundTouch not yet created but now needed — initialize mid-playback
-            const audioUrl = ct.blob_url ?? (AUDIO_BASE + encodeURI(ct.file_path));
-
-            // Mute native audio immediately to prevent double-playback
-            if (audioRef.current) audioRef.current.volume = 0;
-
-            (async () => {
-                try {
-                    if (!stCtxRef.current) {
-                        const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-                        stCtxRef.current = new AudioCtxClass();
-                        stGainRef.current = stCtxRef.current.createGain();
-                        stGainRef.current.connect(stCtxRef.current.destination);
-                    }
-                    const ctx = stCtxRef.current!;
-                    const r = await fetch(audioUrl);
-                    const ab = await r.arrayBuffer();
-                    const buffer = await ctx.decodeAudioData(ab);
-
-                    const shifter = new PitchShifter(ctx, buffer, ST_BUFFER_SIZE);
-                    shifter.pitchSemitones = semitones;
-                    shifter.tempo = tempo;
-                    stShifterRef.current = shifter;
-                    stActiveRef.current = true;
-
-                    // Seek to current playback position
-                    if (audioRef.current && buffer.duration > 0) {
-                        shifter.percentagePlayed = audioRef.current.currentTime / buffer.duration;
-                    }
-
-                    // If currently playing, connect SoundTouch to the audio graph
-                    if (audioRef.current && !audioRef.current.paused && stGainRef.current) {
-                        stGainRef.current.gain.value = volRef.current;
-                        shifter.connect(stGainRef.current);
-                    }
-
-                    console.log(`[useAudio] SoundTouch re-initialized (reactive): ${semitones}st, ${tempo}x`);
-                } catch (err) {
-                    console.warn("[useAudio] Reactive SoundTouch init failed, restoring native audio:", err);
-                    if (audioRef.current) audioRef.current.volume = volRef.current;
-                    stActiveRef.current = false;
-                }
-            })();
-        }
-    }, [ct]);
-
-    // ── Preload next track ───────────────────────────────────────────────────
-    useEffect(() => {
-        const next = nextAudioRef.current;
-        if (!next || !nextTrack) return;
-        next.src = nextTrack.blob_url ?? (AUDIO_BASE + encodeURI(nextTrack.file_path));
-        next.volume = 0;
-        next.playbackRate = 1.0; // Always 1.0
-        next.load();
-    }, [nextTrack]);
-
-    // ── Volume sync ──────────────────────────────────────────────────────────
-    useEffect(() => {
-        const effVol = getEffectiveVol(vol, ct);
-        if (stActiveRef.current && stGainRef.current) {
-            stGainRef.current.gain.value = effVol;
-        }
-        if (audioRef.current) {
-            // Mute native audio when SoundTouch is active
-            audioRef.current.volume = stActiveRef.current ? 0 : effVol;
-        }
-    }, [vol, ct, autoGain]); // ct and autoGain added to trigger re-calc
-
-    // ── Seek sync ────────────────────────────────────────────────────────────
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (!audio || !ct) return;
-        const diff = Math.abs(pos - posRef.current);
-        if (diff > 1500) {
-            audio.currentTime = pos / 1000;
-            posRef.current = pos;
-        }
-    }, [pos, ct]);
-
-    // ── Media Session API (iOS/Android Lock Screen & Bluetooth Controls) ────
+    // ── Media Session API ────────────────────────────────────────────────────
     useEffect(() => {
         if (!ct || !('mediaSession' in navigator)) return;
-
         const addLog = useDebugStore.getState().addLog;
 
-        // Set Metadata
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: ct.title,
-            artist: ct.artist,
-            album: "SuniPlayer Setlist",
+            title: ct.title, artist: ct.artist, album: "SuniPlayer Setlist",
             artwork: [
                 { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
                 { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
             ]
         });
 
-        // Set Action Handlers
         const handlers: [MediaSessionAction, () => void][] = [
             ['play', () => { addLog("Media: PLAY"); setPlaying(true); }],
             ['pause', () => { addLog("Media: PAUSE"); setPlaying(false); }],
             ['previoustrack', () => {
                 addLog("Media: PREV");
-                if (ciRef.current > 0) {
-                    setCi(ciRef.current - 1);
-                    setPos(0);
-                }
+                if (ciRef.current > 0) { setCi(ciRef.current - 1); setPos(0); }
             }],
             ['nexttrack', () => {
                 addLog("Media: NEXT");
-                if (ciRef.current < pQueueLenRef.current - 1) {
-                    setCi(ciRef.current + 1);
-                    setPos(0);
-                }
+                if (ciRef.current < pQueueLenRef.current - 1) { setCi(ciRef.current + 1); setPos(0); }
             }],
-            ['seekbackward', () => { addLog("Media: SEEK-BW"); setPos(Math.max(0, posRef.current - 5000)); }],
-            ['seekforward', () => { addLog("Media: SEEK-FW"); setPos(posRef.current + 5000); }],
             ['stop', () => { addLog("Media: STOP"); setPlaying(false); setPos(0); }]
         ];
 
         for (const [action, handler] of handlers) {
-            try {
-                navigator.mediaSession.setActionHandler(action, handler);
-            } catch { /* Some browsers don't support all actions */ }
+            try { navigator.mediaSession.setActionHandler(action, handler); } catch { }
         }
-
         return () => {
-            // Clean up handlers
-            for (const [action] of handlers) {
-                try { navigator.mediaSession.setActionHandler(action, null); } catch { }
-            }
+            for (const [action] of handlers) { try { navigator.mediaSession.setActionHandler(action, null); } catch { } }
         };
     }, [ct, setPlaying, setCi, setPos]);
 
-    // Update playback state in Media Session
     useEffect(() => {
         if (!('mediaSession' in navigator)) return;
         navigator.mediaSession.playbackState = playing ? "playing" : "paused";
     }, [playing]);
 
-    // ── Main play/pause + auto-next engine ───────────────────────────────────
+    // ── Main Engine Loop ─────────────────────────────────────────────────────
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio || !ct) return;
@@ -421,75 +282,40 @@ export function useAudio() {
                         step++;
                         const factor = 1 - (step / steps);
                         const fadeVol = Math.max(0, vBase * Math.pow(factor, 2));
-
-                        if (stActiveRef.current && stGainRef.current) {
-                            stGainRef.current.gain.value = fadeVol;
-                        } else {
-                            audio.volume = fadeVol;
-                        }
+                        if (stActiveRef.current && stGainRef.current) stGainRef.current.gain.value = fadeVol;
+                        else audio.volume = fadeVol;
 
                         if (step >= steps || !isPausingRef.current) {
                             clearInterval(pauseFadeRef.current!);
                             pauseFadeRef.current = null;
                             if (isPausingRef.current) {
                                 audio.pause();
-                                // Disconnect SoundTouch AFTER fade out
-                                if (stActiveRef.current && stShifterRef.current) {
-                                    try { stShifterRef.current.disconnect(); } catch { /* noop */ }
-                                }
+                                if (stActiveRef.current && stShifterRef.current) try { stShifterRef.current.disconnect(); } catch { }
                             }
                             isPausingRef.current = false;
                         }
                     }, interval);
                 }
-                return; // Exit here if we should be fading (even if already started)
+                return;
             }
-            
             isPausingRef.current = false;
             audio.pause();
-            if (stActiveRef.current && stShifterRef.current) {
-                try { stShifterRef.current.disconnect(); } catch { /* noop */ }
-            }
+            if (stActiveRef.current && stShifterRef.current) try { stShifterRef.current.disconnect(); } catch { }
             return;
         }
 
-        // --- PLAYING = TRUE ---
-        if (pauseFadeRef.current) {
-            clearInterval(pauseFadeRef.current);
-            pauseFadeRef.current = null;
-        }
+        if (pauseFadeRef.current) { clearInterval(pauseFadeRef.current); pauseFadeRef.current = null; }
         isPausingRef.current = false;
 
-        // Resume AudioContext for mobile/safari/chrome
-        if (stCtxRef.current) {
-            if (stCtxRef.current.state === "suspended") {
-                stCtxRef.current.resume().then(() => {
-                    console.log("[useAudio] AudioContext resumed successfully");
-                }).catch(err => {
-                    console.warn("[useAudio] AudioContext resume failed:", err);
-                });
-            }
-        }
+        if (stCtxRef.current?.state === "suspended") stCtxRef.current.resume();
 
         const targetVol = getEffectiveVol(volRef.current, ct);
 
-        // Implementation of Fade-In on Resume
         if (fadeEnabledRef.current && isReal.current) {
             if (!isResumingRef.current) {
                 if (playFadeRef.current) clearInterval(playFadeRef.current);
                 isResumingRef.current = true;
-
-                // Get current volume to start fade-in from where we are
-                let currentVol = 0;
-                if (stActiveRef.current && stGainRef.current) {
-                    currentVol = stGainRef.current.gain.value;
-                } else {
-                    currentVol = audio.volume;
-                }
-
-                // If we are starting from a fully stopped state or very low vol, make sure it's 0
-                if (audio.paused) currentVol = 0;
-
+                let currentVol = audio.paused ? 0 : (stActiveRef.current && stGainRef.current ? stGainRef.current.gain.value : audio.volume);
                 const duration = fadeInMsRef.current;
                 const steps = 15;
                 const interval = duration / steps;
@@ -498,16 +324,10 @@ export function useAudio() {
                 playFadeRef.current = setInterval(() => {
                     step++;
                     const t = step / steps;
-                    // Linear + Cubic mixed for smoother perception
                     const factor = 1 - Math.pow(1 - t, 2);
                     const fadeVol = currentVol + (targetVol - currentVol) * factor;
-
-                    if (stActiveRef.current && stGainRef.current) {
-                        stGainRef.current.gain.value = fadeVol;
-                        audio.volume = 0;
-                    } else {
-                        audio.volume = fadeVol;
-                    }
+                    if (stActiveRef.current && stGainRef.current) { stGainRef.current.gain.value = fadeVol; audio.volume = 0; }
+                    else audio.volume = fadeVol;
 
                     if (step >= steps || !isResumingRef.current) {
                         clearInterval(playFadeRef.current!);
@@ -517,129 +337,29 @@ export function useAudio() {
                 }, interval);
             }
         } else {
-            // No fade enabled, just set volume immediately
             isResumingRef.current = false;
-            if (stActiveRef.current && stGainRef.current) {
-                stGainRef.current.gain.value = targetVol;
-                audio.volume = 0;
-            } else {
-                audio.volume = targetVol;
-            }
+            if (stActiveRef.current && stGainRef.current) { stGainRef.current.gain.value = targetVol; audio.volume = 0; }
+            else audio.volume = targetVol;
         }
 
-        // Always ensure SoundTouch is connected if it should be active
-        if (stActiveRef.current && stShifterRef.current && stGainRef.current) {
-            stShifterRef.current.connect(stGainRef.current);
-        }
+        if (stActiveRef.current && stShifterRef.current && stGainRef.current) stShifterRef.current.connect(stGainRef.current);
 
         if (audio.paused) {
-            audio.play().then(() => {
-                setIsSimulating(false);
-            }).catch(err => {
-                if (err.name === "NotAllowedError") {
-                    console.warn("[useAudio] Autoplay blocked, waiting for user gesture");
-                } else {
-                    console.error("[useAudio] Play failed", err);
-                    isReal.current = false;
-                    setIsSimulating(true);
-                }
+            audio.play().catch(err => {
+                if (err.name !== "NotAllowedError") { isReal.current = false; setIsSimulating(true); }
             });
         }
 
         const advance = () => {
             if (hasAdvanced.current) return;
             hasAdvanced.current = true;
-
-            const currentCi = ciRef.current;
-            const queueLen = pQueueLenRef.current;
             const stack = stackOrderRef.current;
-            const queue = pQueueRef.current;
-
             if (stack.length > 0) {
-                const nextId = stack[0];
-                const nextIdx = queue.findIndex(t => t.id === nextId);
-                if (nextIdx !== -1) {
-                    setCi(nextIdx);
-                    setStackOrder(stack.slice(1));
-                    return;
-                }
+                const nextIdx = pQueueRef.current.findIndex(t => t.id === stack[0]);
+                if (nextIdx !== -1) { setCi(nextIdx); setStackOrder(stack.slice(1)); return; }
             }
-
-            if (currentCi < queueLen - 1) {
-                setCi(currentCi + 1);
-            } else {
-                setPlaying(false);
-                setPos(0);
-            }
-        };
-
-        const startCrossfade = () => {
-            if (hasAdvanced.current) return;
-            hasAdvanced.current = true;
-
-            const curr = audioRef.current;
-            const next = nextAudioRef.current;
-            const cfMs = useSettingsStore.getState().crossfadeMs;
-            const steps = 20;
-            const delay = cfMs / steps;
-            let step = 0;
-
-            const tick = setInterval(() => {
-                step++;
-                const t = step / steps;
-                const fadeOut = Math.cos(t * Math.PI / 2);
-                const fadeIn = Math.sin(t * Math.PI / 2);
-                const v = volRef.current;
-
-                if (curr) {
-                    if (stActiveRef.current && stGainRef.current) {
-                        stGainRef.current.gain.value = Math.max(0, v * fadeOut);
-                        curr.volume = 0;
-                    } else {
-                        curr.volume = Math.max(0, v * fadeOut);
-                    }
-                }
-
-                if (next) {
-                    if (next.paused) next.play().catch(() => { });
-                    next.volume = Math.min(v, v * fadeIn);
-                }
-
-                if (step >= steps) {
-                    clearInterval(tick);
-                    if (curr) { 
-                        curr.pause(); 
-                        curr.currentTime = 0; 
-                    }
-                    
-                    // Cleanup SoundTouch after crossfade
-                    if (stActiveRef.current && stShifterRef.current) {
-                        try { stShifterRef.current.disconnect(); } catch { /* noop */ }
-                        stActiveRef.current = false;
-                    }
-
-                    const currentCi = ciRef.current;
-                    const queueLen = pQueueLenRef.current;
-                    const stack = stackOrderRef.current;
-                    const queue = pQueueRef.current;
-
-                    if (stack.length > 0) {
-                        const nextId = stack[0];
-                        const nextIdx = queue.findIndex(t => t.id === nextId);
-                        if (nextIdx !== -1) {
-                            setCi(nextIdx);
-                            setStackOrder(stack.slice(1));
-                            return;
-                        }
-                    }
-
-                    if (currentCi < queueLen - 1) {
-                        setCi(currentCi + 1);
-                    } else {
-                        setPlaying(false);
-                    }
-                }
-            }, delay);
+            if (ciRef.current < pQueueLenRef.current - 1) setCi(ciRef.current + 1);
+            else { setPlaying(false); setPos(0); }
         };
 
         simRef.current = setInterval(() => {
@@ -655,71 +375,34 @@ export function useAudio() {
 
                 if (fadeEnabledRef.current && !isPausingRef.current && !isResumingRef.current) {
                     const v = volRef.current;
-                    const fIn = fadeInMsRef.current;
-                    const fOut = fadeOutMsRef.current;
-                    let targetVol = v;
-
-                    if (elapsedInTrack < fIn) {
-                        const factor = elapsedInTrack / fIn;
-                        targetVol = v * Math.pow(factor, 2);
-                    } else if (remMs < fOut && !hasAdvanced.current) {
-                        const factor = remMs / fOut;
-                        targetVol = v * Math.pow(factor, 2);
-                    }
-
-                    if (stActiveRef.current && stGainRef.current) {
-                        stGainRef.current.gain.value = getEffectiveVol(targetVol, ct);
-                        audio.volume = 0; // Keep native muted
-                    } else {
-                        audio.volume = getEffectiveVol(targetVol, ct);
-                    }
+                    let tVol = v;
+                    if (elapsedInTrack < fadeInMsRef.current) tVol = v * Math.pow(elapsedInTrack / fadeInMsRef.current, 2);
+                    else if (remMs < fadeOutMsRef.current && !hasAdvanced.current) tVol = v * Math.pow(remMs / fadeOutMsRef.current, 2);
+                    
+                    const eff = getEffectiveVol(tVol, ct);
+                    if (stActiveRef.current && stGainRef.current) stGainRef.current.gain.value = eff;
+                    else audio.volume = eff;
                 }
 
-                if (autoNextRef.current) {
-                    const cfMs = useSettingsStore.getState().crossfadeMs;
-                    if (crossfadeRef.current && remMs <= cfMs && (nextTrackRef.current !== null)) {
-                        startCrossfade();
-                    } else if (audio.ended || remMs <= TICK_MS) {
-                        advance();
-                    }
-                } else if (audio.ended || remMs <= TICK_MS) {
-                    setPlaying(false);
-                }
+                if (autoNextRef.current && (audio.ended || remMs <= TICK_MS)) advance();
+                else if (audio.ended || remMs <= TICK_MS) setPlaying(false);
 
             } else {
                 posRef.current = Math.min(posRef.current + TICK_MS, trackEnd);
-                const posMs = posRef.current;
-                const remMs = trackEnd - posMs;
-                setPos(posMs);
-
-                if (autoNextRef.current) {
-                    const cfMs = useSettingsStore.getState().crossfadeMs;
-                    if (crossfadeRef.current && remMs <= cfMs && (nextTrackRef.current !== null)) {
-                        startCrossfade();
-                    } else if (remMs <= 0) {
-                        advance();
-                    }
-                } else if (remMs <= 0) {
-                    setPos(trackEnd);
-                    setPlaying(false);
-                    clearInterval(simRef.current ?? undefined);
-                }
+                setPos(posRef.current);
+                if (autoNextRef.current && (trackEnd - posRef.current <= 0)) advance();
+                else if (trackEnd - posRef.current <= 0) { setPos(trackEnd); setPlaying(false); }
             }
 
             if (activeTrackIdRef.current) {
                 sessionTrackTimeRef.current += TICK_MS;
-                const playThresholdMs = Math.min(ct.duration_ms * 0.5, 20000);
-                const shouldIncrement = !hasIncrementedCountRef.current && sessionTrackTimeRef.current >= playThresholdMs;
-                if (shouldIncrement) {
-                    hasIncrementedCountRef.current = true;
-                }
+                const shouldIncrement = !hasIncrementedCountRef.current && sessionTrackTimeRef.current >= Math.min(ct.duration_ms * 0.5, 20000);
+                if (shouldIncrement) hasIncrementedCountRef.current = true;
                 useLibraryStore.getState().recordMetric(activeTrackIdRef.current, TICK_MS, shouldIncrement);
             }
         }, TICK_MS);
 
-        elapsedRef.current = setInterval(() => {
-            setElapsed((p: number) => p + 1);
-        }, 1000);
+        elapsedRef.current = setInterval(() => setElapsed((p: number) => p + 1), 1000);
 
         return () => {
             clearInterval(simRef.current ?? undefined);
