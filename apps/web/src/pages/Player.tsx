@@ -193,9 +193,14 @@ export const Player: React.FC = () => {
 
     return (
         <div style={{
-            height: "100%", width: "100%",
-            display: "flex", backgroundColor: THEME.colors.bg,
-            color: THEME.colors.text.primary, overflow: "hidden"
+            height: "100%", 
+            width: "100%",
+            display: "flex", 
+            backgroundColor: THEME.colors.bg,
+            color: THEME.colors.text.primary, 
+            overflow: "hidden", // Mantener el marco fijo
+            position: "absolute", // Ocupar todo el AppViewport
+            inset: 0
         }}>
             {showUnlockModal && <LiveUnlockModal onConfirm={() => { setMode("edit"); setShowUnlockModal(false); }} onCancel={() => setShowUnlockModal(false)} />}
 
@@ -203,15 +208,17 @@ export const Player: React.FC = () => {
             {useColumns && (
                 <aside style={{ 
                     width: "320px", 
+                    flexShrink: 0, // No permitir que se encoja
                     borderRight: `1px solid ${THEME.colors.border}`, 
                     padding: "24px", 
                     display: "flex", 
                     flexDirection: "column", 
                     gap: 24,
                     backgroundColor: "rgba(0,0,0,0.12)", 
-                    overflowY: "auto", // Habilitar scroll
-                    height: "100%",    // Altura completa
-                    WebkitOverflowScrolling: "touch"
+                    overflowY: "auto", 
+                    height: "100%",
+                    WebkitOverflowScrolling: "touch",
+                    scrollbarWidth: "none" // Ocultar scrollbars técnicos
                 }}>
                     <h2 style={{ fontSize: 11, fontWeight: 900, color: THEME.colors.brand.cyan, letterSpacing: 2, flexShrink: 0 }}>SHOW MONITOR</h2>
                     <SetStatusPanel 

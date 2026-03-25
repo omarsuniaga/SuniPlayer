@@ -24,7 +24,7 @@ export const AppShell: React.FC = () => {
         <div className={`app-shell ${isLive ? 'mode-live' : ''}`} style={{
             position: "relative",
             width: "100vw",
-            height: "100vh",
+            height: "100vh", // Forzar altura total del dispositivo
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
@@ -35,17 +35,19 @@ export const AppShell: React.FC = () => {
             <ShowRecoveryManager />
             <Navbar />
             
-            <div style={{ 
+            {/* Contenedor central restrictivo */}
+            <main style={{ 
                 flex: 1, 
-                display: "flex", 
-                flexDirection: "column", 
+                position: "relative",
                 width: "100%",
                 maxWidth: isLargeScreen ? "1600px" : "100%",
                 margin: "0 auto",
-                position: "relative"
+                overflow: "hidden", // Crucial: obliga al hijo (AppViewport) a manejar el scroll
+                display: "flex",
+                flexDirection: "column"
             }}>
                 <AppViewport />
-            </div>
+            </main>
 
             <BottomNav />
             <SettingsPanel />
