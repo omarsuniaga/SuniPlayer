@@ -11,7 +11,7 @@ import { TRACKS } from "../data/constants.ts";
 import { analyzeTrack } from "../services/audioProbe.ts";
 
 export const Library: React.FC = () => {
-    const { customTracks, _selectedFolderName, clearCustomTracks, trackOverrides } = useLibraryStore() as any;
+    const { customTracks, clearCustomTracks, trackOverrides } = useLibraryStore();
     const [importOpen, setImportOpen] = useState(customTracks.length === 0);
     const [showCatalog, setShowCatalog] = useState(customTracks.length === 0);
     const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
@@ -104,7 +104,7 @@ export const Library: React.FC = () => {
                     </div>
                 ) : (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-                        {customTracks.map((track) => (
+                        {customTracks.map((track: Track) => (
                             <div key={track.id} style={{ 
                                 backgroundColor: THEME.colors.panel, borderRadius: THEME.radius.lg,
                                 border: `1px solid ${THEME.colors.border}`, padding: 14,
