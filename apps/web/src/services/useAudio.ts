@@ -89,11 +89,13 @@ export function useAudio() {
     const fadeInMsRef = useRef(fadeInMs);
     const fadeOutMsRef = useRef(fadeOutMs);
     const crossfadeRef = useRef(crossfade);
+    const crossfadeMsRef = useRef(crossfadeMs);
 
     fadeEnabledRef.current = fadeEnabled;
     fadeInMsRef.current = fadeInMs;
     fadeOutMsRef.current = fadeOutMs;
     crossfadeRef.current = crossfade;
+    crossfadeMsRef.current = crossfadeMs;
 
     const autoGainRef = useRef(autoGain);
     autoGainRef.current = autoGain;

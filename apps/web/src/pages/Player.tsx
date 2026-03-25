@@ -3,6 +3,7 @@ import { useProjectStore, setTrackTrim, updateTrackMetadata } from "../store/use
 import { useBuilderStore } from "../store/useBuilderStore";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
+import { useLibraryStore } from "../store/useLibraryStore";
 import { THEME } from "../data/theme.ts";
 import catalogTracks from "../data/tracks.json";
 import { mc as mcHelper } from "../services/uiUtils.ts";
