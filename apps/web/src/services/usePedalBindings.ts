@@ -34,16 +34,17 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 /**
  * Handles a keyboard event and dispatches the corresponding pedal action.
- * Exported for testing purposes.
+ * Reads directly from stores to avoid stale closures.
  */
 export function handlePedalEvent(
     event: KeyboardEvent, 
-    learningAction: PedalAction | null,
-    setPedalBinding: (action: PedalAction, binding: { key: string, label: string }) => void,
-    setLearningAction: (action: PedalAction | null) => void,
     addLog: (msg: string) => void,
     setLastEvent: (ev: string) => void
 ) {
+    const { learningAction, setPedalBinding, setLearningAction, pedalBindings } = useSettingsStore.getState();
+    const playerStore = usePlayerStore.getState();
+    const { ci, pQueue, vol, setCi, setPlaying, setVol, setPos } = playerStore;
+
     // Log to debug store for iPad visibility
     setLastEvent(`${event.type}: ${event.key}`);
     
@@ -54,11 +55,11 @@ export function handlePedalEvent(
         event.preventDefault();
         event.stopPropagation();
         
-        // Only capture on keydown to avoid double-triggers
         if (event.type === "keydown") {
             if (event.key === "Escape") {
                 setLearningAction(null);
             } else {
+                console.log(`[Pedal] Mapping ${learningAction} to ${event.key}`);
                 addLog(`Mapeado: ${learningAction} -> ${event.key}`);
                 setPedalBinding(learningAction, {
                     key: event.key,
@@ -71,12 +72,10 @@ export function handlePedalEvent(
     }
 
     // ── Normal mode — find matching binding ──────────────────────────
-    // Only respond to keydown for actions
     if (event.type !== "keydown") return;
 
-    const bindings = useSettingsStore.getState().pedalBindings;
     const matchedAction = (
-        Object.entries(bindings) as [PedalAction, { key: string }][]
+        Object.entries(pedalBindings) as [PedalAction, { key: string }][]
     ).find(([, b]) => b.key === event.key)?.[0];
 
     if (!matchedAction) return;
@@ -84,41 +83,34 @@ export function handlePedalEvent(
     event.preventDefault();
     event.stopPropagation();
 
-    const { ci: currentCi, pQueue: currentQueue, vol: currentVol } =
-        usePlayerStore.getState();
-
-    const setCi = usePlayerStore.getState().setCi;
-    const setPlaying = usePlayerStore.getState().setPlaying;
-    const setVol = usePlayerStore.getState().setVol;
-    const setPos = usePlayerStore.getState().setPos;
-
     addLog(`Acción: ${matchedAction}`);
+    console.log(`[Pedal] Action triggered: ${matchedAction}`);
 
     switch (matchedAction) {
         case "next":
-            if (currentCi < currentQueue.length - 1) {
-                setCi(currentCi + 1);
+            if (ci < pQueue.length - 1) {
+                setCi(ci + 1);
                 setPos(0);
             }
             break;
         case "prev":
-            if (currentCi > 0) {
-                setCi(currentCi - 1);
+            if (ci > 0) {
+                setCi(ci - 1);
                 setPos(0);
             }
             break;
         case "play_pause":
-            setPlaying((prev: boolean) => !prev);
+            setPlaying(!usePlayerStore.getState().playing);
             break;
         case "stop":
             setPlaying(false);
             setPos(0);
             break;
         case "vol_up":
-            setVol(Math.min(currentVol + 0.05, 1));
+            setVol(Math.min(vol + 0.05, 1));
             break;
         case "vol_down":
-            setVol(Math.max(currentVol - 0.05, 0));
+            setVol(Math.max(vol - 0.05, 0));
             break;
     }
 }
@@ -127,23 +119,12 @@ export function handlePedalEvent(
  * usePedalBindings — mount once globally in AppViewport.
  */
 export function usePedalBindings() {
-    const setPedalBinding = useSettingsStore((s) => s.setPedalBinding);
-    const setLearningAction = useSettingsStore((s) => s.setLearningAction);
-    
     const setLastEvent = useDebugStore(s => s.setLastEvent);
     const addLog = useDebugStore(s => s.addLog);
 
     useEffect(() => {
         const handleKeyEvent = (event: KeyboardEvent) => {
-            const learningAction = useSettingsStore.getState().learningAction;
-            handlePedalEvent(
-                event, 
-                learningAction, 
-                setPedalBinding, 
-                setLearningAction, 
-                addLog, 
-                setLastEvent
-            );
+            handlePedalEvent(event, addLog, setLastEvent);
         };
 
         window.addEventListener("keydown", handleKeyEvent, { capture: true });
