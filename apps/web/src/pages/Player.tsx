@@ -5,8 +5,7 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { THEME } from "../data/theme.ts";
 import catalogTracks from "../data/tracks.json";
-import { Wave } from "../components/common/Wave.tsx";
-import { fmt, fmtM, mc } from "../services/uiUtils.ts";
+import { mc, mc as mcHelper } from "../services/uiUtils.ts";
 import { sumTrackDurationMs } from "../utils/trackMetrics.ts";
 import { TrackTrimmer } from "../components/common/TrackTrimmer";
 import { TrackProfileModal } from "../components/common/TrackProfileModal";
@@ -15,7 +14,14 @@ import { SheetMusicViewer } from "../components/common/SheetMusicViewer";
 import { Dashboard } from "../components/player/Dashboard";
 import { LiveUnlockModal } from "../components/player/LiveUnlockModal";
 import { getWaveformData } from "../services/waveformService";
-import { MarkerLayer } from "../components/common/MarkerLayer";
+
+// Sub-components
+import { PlayerHeader } from "../features/player/components/PlayerHeader";
+import { VisualizerSection } from "../features/player/components/VisualizerSection";
+import { PlaybackControls } from "../features/player/components/PlaybackControls";
+import { VolumeControl } from "../features/player/components/VolumeControl";
+import { SetStatusPanel } from "../features/player/components/SetStatusPanel";
+import { SetlistSidebar } from "../features/player/components/SetlistSidebar";
 
 // ── Player Page ───────────────────────────────────────────────────────────────
 export const Player: React.FC = () => {
@@ -66,7 +72,6 @@ export const Player: React.FC = () => {
     const setCurveExpanded = useSettingsStore(s => s.setCurveExpanded);
 
     const curve = useBuilderStore(s => s.curve);
-
     const currentSetMetadata = usePlayerStore(s => s.currentSetMetadata);
 
     // ── UI State ──
@@ -96,21 +101,14 @@ export const Player: React.FC = () => {
     const isLive = mode === "live";
 
     // ── Logic ──
-    const mCol = mc(ct?.mood);
-    const tCol = playing ? mCol : THEME.colors.text.muted;
+    const mCol = mcHelper(ct?.mood);
     const durMs = ct?.duration_ms || 1;
     const rem = Math.max(0, durMs - pos);
     const tPct = Math.min(1, pos / durMs);
     const prog = pos / durMs;
     const qTot = sumTrackDurationMs(pQueue);
-    const curvePlayheadPct = qTot > 0 ? (sumTrackDurationMs(pQueue.slice(0, ci)) + pos) / qTot : 0;
-
-    const currentMarkers = ct?.markers ?? [];
-
-    const handleMarkersChange = useCallback((markers: typeof currentMarkers) => {
-        if (!ct) return;
-        updateTrackMetadata(ct.id, { markers });
-    }, [ct]);
+    const currentProgressMs = sumTrackDurationMs(pQueue.slice(0, ci)) + pos;
+    const curvePlayheadPct = qTot > 0 ? currentProgressMs / qTot : 0;
 
     const [currentWave, setCurrentWave] = useState<number[]>([]);
     const isLoadingWave = Boolean(ct) && currentWave.length === 0;
@@ -192,50 +190,12 @@ export const Player: React.FC = () => {
                     )}
 
                     {/* 1. SECCIÓN CABECERA */}
-                    <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                                <h1 style={{ fontSize: performanceMode ? 48 : 36, fontWeight: 900, margin: 0, letterSpacing: "-0.03em", lineHeight: 1.1 }}>{ct?.title || "--"}</h1>
-                                    <div style={{ display: "flex", gap: 8 }}>
-                                        <button onClick={() => setProfileTrack(ct)} title="Perfil de Canción" style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.colors.text.muted, cursor: "pointer", transition: "all 0.2s" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
-                                        {ct?.sheetMusic && ct.sheetMusic.length > 0 && (
-                                            <button onClick={() => setViewingSheetTrack(ct)} title="Ver Partitura" style={{ background: "rgba(139,92,246,0.1)", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.colors.brand.violet, cursor: "pointer", transition: "all 0.2s" }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></button>
-                                        )}
-                                    </div>
-                            </div>
-                            <p style={{ fontSize: performanceMode ? 22 : 18, color: THEME.colors.text.muted, margin: "4px 0 16px" }}>{ct?.artist || "--"}</p>
-
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                {ct && (
-                                    <>
-                                        <span style={{ fontSize: performanceMode ? 12 : 10, padding: "4px 10px", borderRadius: 4, background: THEME.colors.brand.cyan + "15", color: THEME.colors.brand.cyan, fontWeight: 800 }}>{ct.bpm} BPM</span>
-                                        <span style={{ fontSize: performanceMode ? 12 : 10, padding: "4px 10px", borderRadius: 4, background: THEME.colors.brand.violet + "15", color: THEME.colors.brand.violet, fontWeight: 800 }}>{ct.key}</span>
-                                        <span style={{ fontSize: performanceMode ? 12 : 10, padding: "4px 10px", borderRadius: 4, background: mc(ct.mood) + "15", color: mc(ct.mood), fontWeight: 800 }}>{ct.mood}</span>
-                                    </>
-                                )}
-                            </div>
-
-                            {currentSetMetadata && currentSetMetadata.totalSetsInShow > 1 && (
-                                <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.brand.violet}15`, border: `1px solid ${THEME.colors.brand.violet}30` }}>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.brand.violet} strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
-                                    <span style={{ fontSize: 11, fontWeight: 700, color: THEME.colors.brand.violet }}>
-                                        {currentSetMetadata.setLabel} / {currentSetMetadata.totalSetsInShow}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        <div style={{ position: "relative", width: performanceMode ? 120 : 90, height: performanceMode ? 120 : 90, flexShrink: 0 }}>
-                            <svg width={performanceMode ? 120 : 90} height={performanceMode ? 120 : 90} viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)" }}>
-                                <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="6" />
-                                <circle cx="50" cy="50" r="44" fill="none" stroke={tCol} strokeWidth="6" strokeDasharray="276.5" strokeDashoffset={276.5 * (1 - tPct)} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.5s linear" }} />
-                            </svg>
-                            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                                <span style={{ fontSize: performanceMode ? 24 : 18, fontWeight: 900, fontFamily: THEME.fonts.mono }}>{fmt(rem)}</span>
-                                <span style={{ fontSize: 8, opacity: 0.4, textTransform: "uppercase" }}>restante</span>
-                            </div>
-                        </div>
-                    </header>
+                    <PlayerHeader 
+                        track={ct} performanceMode={performanceMode} playing={playing} 
+                        pos={pos} rem={rem} tPct={tPct} currentSetMetadata={currentSetMetadata}
+                        onProfileClick={() => setProfileTrack(ct)} 
+                        onSheetMusicClick={() => setViewingSheetTrack(ct)}
+                    />
 
                     {/* 2. BOTONES SUPERPODERES */}
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -269,212 +229,49 @@ export const Player: React.FC = () => {
                     />
 
                     {/* 4. VISUALIZADOR */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: performanceMode ? 24 : 12 }}>
-                        <MarkerLayer
-                            markers={currentMarkers}
-                            posMs={pos}
-                            durationMs={durMs}
-                            isLive={isLive}
-                            onMarkersChange={handleMarkersChange}
-                            onSeek={(newPosMs) => { if (!isLive && ct) setPos(newPosMs); }}
-                        >
-                            <div style={{
-                                height: performanceMode ? 240 : 160, backgroundColor: "rgba(255,255,255,0.01)",
-                                border: `1px solid ${isLive ? THEME.colors.brand.cyan + "20" : THEME.colors.border}`,
-                                borderRadius: THEME.radius.xl, position: "relative",
-                                opacity: isLoadingWave ? 0.4 : 1, transition: "all 0.3s",
-                            }}>
-                                <Wave data={currentWave.length > 0 ? currentWave : Array(100).fill(0.15)} progress={prog} color={mCol} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} totalMs={durMs} />
-                                <div style={{ position: "absolute", top: 0, bottom: 0, left: `${prog * 100}%`, width: 3, background: mCol, boxShadow: `0 0 20px ${mCol}`, zIndex: 5 }} />
-                                {isLive && playing && (
-                                    <div style={{ position: "absolute", top: 12, left: 12, padding: "6px 14px", borderRadius: 6, background: THEME.colors.brand.cyan + "30", border: `1px solid ${THEME.colors.brand.cyan}50`, color: THEME.colors.brand.cyan, fontSize: 10, fontWeight: 900 }}>LIVE MODE PROTECTED</div>
-                                )}
-                            </div>
-                        </MarkerLayer>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: performanceMode ? 16 : 13, fontFamily: THEME.fonts.mono, opacity: 0.5 }}>
-                            <span>{fmt(pos)}</span>
-                            <span>-{fmt(rem)}</span>
-                        </div>
-                    </div>
+                    <VisualizerSection 
+                        track={ct} performanceMode={performanceMode} isLive={isLive} playing={playing}
+                        pos={pos} rem={rem} durMs={durMs} prog={prog} mCol={mCol}
+                        currentWave={currentWave} isLoadingWave={isLoadingWave}
+                        fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs}
+                        onMarkersChange={(markers) => ct && updateTrackMetadata(ct.id, { markers })}
+                        onSeek={(newPosMs) => { if (!isLive && ct) setPos(newPosMs); }}
+                    />
 
                     {/* 5. REPRODUCTOR CONTROLES */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: performanceMode ? 60 : 32 }}>
-                        {/* Botón Stop — Bloqueado en Live Mode */}
-                        <button 
-                            onClick={() => { if (!isLive) { setPlaying(false); setPos(0); } }} 
-                            title={isLive ? "Stop bloqueado en Live Mode" : "Detener"}
-                            style={{ 
-                                background: "none", 
-                                border: "none", 
-                                opacity: isLive ? 0.15 : (playing || pos > 0) ? 0.9 : 0.2, 
-                                cursor: isLive ? "not-allowed" : "pointer",
-                                transform: performanceMode ? "scale(1.3)" : "none",
-                                transition: "all 0.3s",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center"
-                            }}
-                        >
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-                                <rect x="6" y="6" width="12" height="12" rx="1" />
-                            </svg>
-                        </button>
-
-                        <button onClick={() => { if (!isLive && ci > 0) { setCi(ci - 1); setPos(0); } }} style={{ background: "none", border: "none", opacity: isLive ? 0.15 : ci > 0 ? 0.9 : 0.2, cursor: isLive ? "not-allowed" : "pointer", transform: performanceMode ? "scale(1.5)" : "none", transition: "transform 0.3s" }}><svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" /></svg></button>
-                        
-                        <button onClick={() => setPlaying(!playing)} style={{ width: performanceMode ? 120 : 88, height: performanceMode ? 120 : 88, borderRadius: "50%", border: "none", background: THEME.gradients.brand, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: playing ? `0 0 40px ${mCol}50` : "0 10px 30px rgba(0,0,0,0.5)", transition: "all 0.3s" }}>{playing ? <svg width={performanceMode ? 48 : 36} height={performanceMode ? 48 : 36} viewBox="0 0 24 24" fill="white"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg> : <svg width={performanceMode ? 48 : 36} height={performanceMode ? 48 : 36} viewBox="0 0 24 24" fill="white" style={{ marginLeft: performanceMode ? 8 : 6 }}><path d="M8 5v14l11-7z" /></svg>}</button>
-                        
-                        <button onClick={() => { if (!isLive && ci < pQueue.length - 1) { setCi(ci + 1); setPos(0); } }} style={{ background: "none", border: "none", opacity: isLive ? 0.15 : ci < pQueue.length - 1 ? 0.9 : 0.2, cursor: isLive ? "not-allowed" : "pointer", transform: performanceMode ? "scale(1.5)" : "none", transition: "transform 0.3s" }}><svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></svg></button>
-                    </div>
+                    <PlaybackControls 
+                        playing={playing} isLive={isLive} ci={ci} queueLen={pQueue.length} 
+                        pos={pos} performanceMode={performanceMode} mCol={mCol}
+                        onPlayPause={() => setPlaying(!playing)}
+                        onPrev={() => { setCi(ci - 1); setPos(0); }}
+                        onNext={() => { setCi(ci + 1); setPos(0); }}
+                        onStop={() => { setPlaying(false); setPos(0); }}
+                    />
 
                     {/* 6. VOLUMEN */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "0 10px" }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" /></svg>
-                        <div style={{ flex: 1, position: "relative", height: performanceMode ? 32 : 10 }}>
-                            <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.06)", borderRadius: performanceMode ? 16 : 5 }} />
-                            <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${vol * 100}%`, background: THEME.gradients.brand, borderRadius: performanceMode ? 16 : 5, boxShadow: `0 0 10px ${mCol}30` }} />
-                            <input type="range" min="0" max="100" value={vol * 100} onChange={e => setVol(parseInt(e.target.value) / 100)} title="Control de volumen maestro" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0, cursor: "pointer" }} />
-                        </div>
-                        <span style={{ fontSize: performanceMode ? 24 : 16, fontWeight: 900, fontFamily: THEME.fonts.mono, color: mCol, width: 60 }}>{Math.round(vol * 100)}%</span>
-                    </div>
+                    <VolumeControl 
+                        vol={vol} mCol={mCol} performanceMode={performanceMode}
+                        onVolumeChange={setVol}
+                    />
 
                     {/* 7. SET STATS */}
-                    <div style={{ marginTop: "auto", padding: performanceMode ? "32px" : "24px", borderRadius: THEME.radius.xl, backgroundColor: THEME.colors.surface, border: `1px solid ${isLive ? THEME.colors.brand.cyan + "25" : THEME.colors.border}`, display: "flex", flexDirection: "column", gap: 20 }}>
-                        <div style={{ width: "100%" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    <span style={{ fontSize: 9, opacity: 0.5, fontWeight: 900, letterSpacing: 1.5 }}>SET ELAPSED</span>
-                                    <span style={{ fontSize: performanceMode ? 24 : 18, fontWeight: 900, color: THEME.colors.brand.cyan, fontFamily: THEME.fonts.mono }}>{fmtM(elapsed * 1000)}</span>
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                                    <span style={{ fontSize: 9, opacity: 0.5, fontWeight: 900, letterSpacing: 1.5 }}>TOTAL REMAINING</span>
-                                    <span style={{ fontSize: performanceMode ? 24 : 18, fontWeight: 900, color: mCol, fontFamily: THEME.fonts.mono }}>{fmtM(Math.max(0, qTot - (sumTrackDurationMs(pQueue.slice(0, ci)) + pos)))}</span>
-                                </div>
-                            </div>
-                            <div style={{ height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
-                                <div style={{ height: "100%", width: `${Math.min(100, (sumTrackDurationMs(pQueue.slice(0, ci)) + pos) / (qTot || 1) * 100)}%`, background: THEME.gradients.brand, transition: "width 0.5s" }} />
-                            </div>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.4 }}>Total Set: {fmtM(qTot)}</span>
-                            <button onClick={handleModeToggle} style={{ padding: "10px 24px", borderRadius: THEME.radius.full, background: isLive ? THEME.colors.brand.cyan + "20" : "rgba(255,255,255,0.05)", border: `1px solid ${isLive ? THEME.colors.brand.cyan : "rgba(255,255,255,0.1)"}`, color: isLive ? THEME.colors.brand.cyan : THEME.colors.text.muted, fontSize: 12, fontWeight: 900, cursor: "pointer" }}>{isLive ? "EXIT LIVE" : "ENTER LIVE"}</button>
-                        </div>
-                    </div>
+                    <SetStatusPanel 
+                        isLive={isLive} performanceMode={performanceMode}
+                        elapsed={elapsed} qTot={qTot} currentProgressMs={currentProgressMs}
+                        onModeToggle={handleModeToggle} mCol={mCol}
+                    />
 
                 </main>
             </div>
 
             {/* Queue Sidebar */}
-            {showQueue && isMobile && (
-                <div 
-                    onClick={() => setShowQueue(false)} 
-                    style={{ 
-                        position: "fixed", 
-                        inset: 0, 
-                        backgroundColor: "rgba(0,0,0,0.8)", 
-                        backdropFilter: "blur(8px)", 
-                        zIndex: 2000 // Aumentado
-                    }} 
-                />
-            )}
-            <aside style={{
-                position: isMobile ? "fixed" : "relative",
-                right: 0, top: 0, bottom: 0,
-                width: showQueue ? (isMobile ? "85vw" : "360px") : 0, 
-                transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                backgroundColor: isMobile ? THEME.colors.bg : THEME.colors.panel, 
-                borderLeft: `1px solid ${THEME.colors.border}`,
-                display: "flex", flexDirection: "column", 
-                overflow: "hidden",
-                zIndex: 2001, // Por encima del overlay
-                boxShadow: isMobile && showQueue ? "-20px 0 50px rgba(0,0,0,0.5)" : "none"
-            }}>
-                <div style={{ width: isMobile ? "85vw" : 360, maxWidth: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-                    <div style={{ 
-                        padding: isMobile ? "32px 24px" : "24px", 
-                        borderBottom: `1px solid ${THEME.colors.border}`, 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center",
-                        background: "rgba(255,255,255,0.02)"
-                    }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                            <h2 style={{ fontSize: isMobile ? 16 : 13, fontWeight: 900, margin: 0, opacity: 0.8, color: THEME.colors.brand.cyan }}>SETLIST QUEUE</h2>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: THEME.colors.text.muted }}>{pQueue.length} Tracks</span>
-                        </div>
-                        <button 
-                            onClick={() => setShowQueue(false)} 
-                            style={{ 
-                                background: isMobile ? "rgba(255,255,255,0.05)" : "none", 
-                                border: "none", 
-                                borderRadius: isMobile ? "50%" : 0,
-                                width: isMobile ? 44 : "auto",
-                                height: isMobile ? 44 : "auto",
-                                color: THEME.colors.text.muted, 
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                transition: "all 0.2s"
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.color = "white"}
-                        >
-                            <svg width={isMobile ? "24" : "18"} height={isMobile ? "24" : "18"} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div style={{ flex: 1, overflowY: "auto", padding: "12px", WebkitOverflowScrolling: "touch" }}>
-                        {pQueue.map((t, i) => {
-                            const stackIdx = stackOrder.indexOf(t.id);
-                            const isActive = ci === i;
-                            return (
-                                <div 
-                                    key={t.id} 
-                                    onClick={(e) => {
-                                        e.stopPropagation(); // Evitar que el clic llegue al fondo
-                                        handleQueueClick(t);
-                                    }} 
-                                    draggable={!isLive} 
-                                    onDragStart={(e) => { e.dataTransfer.setData("idx", i.toString()); }} 
-                                    onDragOver={e => e.preventDefault()} 
-                                    onDrop={e => onDrop(parseInt(e.dataTransfer.getData("idx")), i)} 
-                                    style={{
-                                        padding: isMobile ? "18px 20px" : "14px", 
-                                        borderRadius: THEME.radius.md, 
-                                        marginBottom: 8, 
-                                        cursor: "pointer",
-                                        background: isActive ? `${mCol}15` : "rgba(255,255,255,0.03)",
-                                        border: `1px solid ${isActive ? mCol + "40" : "transparent"}`,
-                                        display: "flex", 
-                                        gap: 14, 
-                                        alignItems: "center", 
-                                        transition: "all 0.2s",
-                                        userSelect: "none"
-                                    }}
-                                >
-                                    <span style={{ fontFamily: THEME.fonts.mono, fontSize: 11, opacity: 0.3, minWidth: 24 }}>{String(i + 1).padStart(2, '0')}</span>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: isMobile ? 15 : 14, fontWeight: 700, color: isActive ? "white" : THEME.colors.text.primary }}>{t.title}</div>
-                                        <div style={{ fontSize: 11, color: THEME.colors.text.muted }}>{t.artist}</div>
-                                    </div>
-                                    {isLive && stackIdx !== -1 && (
-                                        <div style={{ backgroundColor: THEME.colors.brand.cyan, color: "black", width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>{stackIdx + 1}</div>
-                                    )}
-                                    {isActive && playing && (
-                                        <div style={{ display: "flex", gap: 3, height: 16, alignItems: "flex-end" }}>
-                                            <div style={{ width: 3, height: "60%", background: mCol }} />
-                                            <div style={{ width: 3, height: "100%", background: mCol }} />
-                                            <div style={{ width: 3, height: "40%", background: mCol }} />
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </aside>
+            <SetlistSidebar 
+                showQueue={showQueue} isMobile={isMobile} pQueue={pQueue}
+                ci={ci} playing={playing} isLive={isLive} stackOrder={stackOrder} mCol={mCol}
+                onQueueClick={handleQueueClick}
+                onClose={() => setShowQueue(false)}
+                onDrop={onDrop}
+            />
 
             {trimmingTrack && <TrackTrimmer track={trimmingTrack} onSave={(s, e) => { setTrackTrim(trimmingTrack.id, s, e); setTrimmingTrack(null); }} onCancel={() => setTrimmingTrack(null)} />}
             {profileTrack && <TrackProfileModal track={profileTrack} onSave={(u) => { updateTrackMetadata(profileTrack.id, u); setProfileTrack(null); }} onCancel={() => setProfileTrack(null)} />}
