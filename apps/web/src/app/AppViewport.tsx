@@ -83,7 +83,7 @@ export const AppViewport: React.FC = () => {
                     background: 'transparent',
                     color: 'transparent',
                     outline: 'none',
-                    zIndex: 9999,
+                    zIndex: -1, // Cambiado de 9999 a -1 para no bloquear clics
                     pointerEvents: 'none',
                     fontSize: '16px', // iOS requirement to avoid auto-zoom
                     opacity: 0.01 // Minimal opacity sometimes helps more than 0

@@ -110,6 +110,22 @@ export const PedalConfig: React.FC = () => {
                 />
             </div>
 
+            {/* Listening banner */}
+            {learningAction && (
+                <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "12px 16px", backgroundColor: `${THEME.colors.brand.cyan}12`,
+                    border: `1px solid ${THEME.colors.brand.cyan}40`, borderRadius: THEME.radius.md,
+                    marginBottom: 12
+                }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#EF4444", boxShadow: "0 0 6px #EF4444", animation: "pedalPulse 1s infinite" }} />
+                        <span style={{ fontSize: 13, color: THEME.colors.text.primary }}>Asignando <strong>{learningAction}</strong>... Pisa el pedal</span>
+                    </div>
+                    <button onClick={() => setLearningAction(null)} style={{ background: "none", border: "none", color: THEME.colors.text.muted, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>Cancelar</button>
+                </div>
+            )}
+
             <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "0 0 12px" }}>
                 Conecta tu pedalera y asigna cada pedal. Si usas iPad, pulsa el botón para activar la señal.
             </p>
@@ -117,16 +133,24 @@ export const PedalConfig: React.FC = () => {
             {PEDAL_ACTIONS.map(({ action, label }) => {
                 const binding = pedalBindings[action];
                 const isLearning = learningAction === action;
-                const isDimmed = learningAction !== null && !isLearning;
 
                 return (
-                    <div key={action} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px solid ${THEME.colors.border}`, opacity: isDimmed ? 0.35 : 1 }}>
+                    <div key={action} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: `1px solid ${THEME.colors.border}` }}>
                         <span style={{ fontSize: 14, fontWeight: 600, color: THEME.colors.text.primary, flex: 1 }}>{label}</span>
                         <div style={{ padding: "4px 10px", backgroundColor: binding ? `${THEME.colors.brand.cyan}15` : "rgba(255,255,255,0.04)", border: `1px solid ${binding ? THEME.colors.brand.cyan + "40" : THEME.colors.border}`, borderRadius: THEME.radius.sm, fontSize: 12, fontFamily: THEME.fonts.mono, color: binding ? THEME.colors.brand.cyan : THEME.colors.text.muted, minWidth: 90, textAlign: "center", marginRight: 8 }}>
                             {binding ? binding.label : "sin asignar"}
                         </div>
-                        <button onClick={() => { if (!isDimmed) { setLearningAction(action); forceiPadFocus(); } }} disabled={isDimmed} style={{ padding: "6px 12px", borderRadius: THEME.radius.sm, border: `1px solid ${isLearning ? THEME.colors.brand.cyan : THEME.colors.border}`, backgroundColor: isLearning ? `${THEME.colors.brand.cyan}20` : "transparent", color: isLearning ? THEME.colors.brand.cyan : THEME.colors.text.muted, cursor: isDimmed ? "default" : "pointer", fontSize: 12, fontWeight: 700, minWidth: 72 }}>
-                            {binding ? "Cambiar" : "Aprender"}
+                        <button 
+                            onClick={() => { setLearningAction(action); forceiPadFocus(); }} 
+                            style={{ 
+                                padding: "6px 12px", borderRadius: THEME.radius.sm, 
+                                border: `1px solid ${isLearning ? THEME.colors.brand.cyan : THEME.colors.border}`, 
+                                backgroundColor: isLearning ? `${THEME.colors.brand.cyan}20` : "transparent", 
+                                color: isLearning ? THEME.colors.brand.cyan : THEME.colors.text.muted, 
+                                cursor: "pointer", fontSize: 12, fontWeight: 700, minWidth: 72 
+                            }}
+                        >
+                            {isLearning ? "Oído..." : (binding ? "Cambiar" : "Aprender")}
                         </button>
                     </div>
                 );
@@ -137,6 +161,13 @@ export const PedalConfig: React.FC = () => {
                     Borrar todo
                 </button>
             </div>
+
+            <style>{`
+                @keyframes pedalPulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.4; }
+                }
+            `}</style>
         </div>
     );
 };
