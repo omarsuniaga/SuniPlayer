@@ -40,5 +40,14 @@ export const THEME = {
         lg: "10px",
         xl: "12px",
         full: "99px",
+    },
+    breakpoints: {
+        mobile: 768,
+        tablet: 1024,
+        desktop: 1440,
     }
 } as const;
+
+export const mq = (bp: keyof typeof THEME.breakpoints) => 
+    `@media (min-width: ${THEME.breakpoints[bp]}px)`;
+

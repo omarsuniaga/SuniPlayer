@@ -12,6 +12,13 @@ import { useProjectStore } from "../store/useProjectStore";
 
 export const AppShell: React.FC = () => {
     const isLive = useProjectStore(s => s.mode === "live");
+    const [isLargeScreen, setIsLargeScreen] = React.useState(window.innerWidth >= 1024);
+
+    React.useEffect(() => {
+        const handleResize = () => setIsLargeScreen(window.innerWidth >= 1024);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     return (
         <div className={`app-shell ${isLive ? 'mode-live' : ''}`} style={{
@@ -21,12 +28,25 @@ export const AppShell: React.FC = () => {
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            transition: "box-shadow 0.5s ease"
+            transition: "box-shadow 0.5s ease",
+            backgroundColor: THEME.colors.bg
         }}>
             <AppAtmosphere />
             <ShowRecoveryManager />
             <Navbar />
-            <AppViewport />
+            
+            <div style={{ 
+                flex: 1, 
+                display: "flex", 
+                flexDirection: "column", 
+                width: "100%",
+                maxWidth: isLargeScreen ? "1600px" : "100%",
+                margin: "0 auto",
+                position: "relative"
+            }}>
+                <AppViewport />
+            </div>
+
             <BottomNav />
             <SettingsPanel />
 

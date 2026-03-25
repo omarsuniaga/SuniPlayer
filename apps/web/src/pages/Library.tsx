@@ -135,7 +135,11 @@ export const Library: React.FC = () => {
                         </button>
                     </div>
                 ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+                    <div style={{ 
+                        display: "grid", 
+                        gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 360px), 1fr))", 
+                        gap: "20px" 
+                    }}>
                         {customTracks.map((track: Track) => (
                             <div key={track.id} style={{ 
                                 backgroundColor: THEME.colors.panel, borderRadius: THEME.radius.lg,
