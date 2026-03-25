@@ -33,6 +33,7 @@ export function useAudio() {
 
     const autoNext = useSettingsStore(s => s.autoNext);
     const crossfade = useSettingsStore(s => s.crossfade);
+    const crossfadeMs = useSettingsStore(s => s.crossfadeMs);
     const fadeEnabled = useSettingsStore(s => s.fadeEnabled);
     const fadeInMs = useSettingsStore(s => s.fadeInMs);
     const fadeOutMs = useSettingsStore(s => s.fadeOutMs);

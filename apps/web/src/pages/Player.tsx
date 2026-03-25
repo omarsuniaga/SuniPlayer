@@ -25,6 +25,7 @@ import { SetStatusPanel } from "../features/player/components/SetStatusPanel";
 import { SetlistSidebar } from "../features/player/components/SetlistSidebar";
 import { ShowControl } from "../features/player/components/ShowControl";
 
+// ── Player Page ───────────────────────────────────────────────────────────────
 export const Player: React.FC = () => {
     // ── Store Selectors ──
     const pQueue = useProjectStore(s => s.pQueue);
@@ -37,9 +38,11 @@ export const Player: React.FC = () => {
     const setVol = useProjectStore(s => s.setVol);
     const setMode = useProjectStore(s => s.setMode);
     const setPQueue = useProjectStore(s => s.setPQueue);
+
     const vol = useProjectStore(s => s.vol);
     const mode = useProjectStore(s => s.mode);
     const elapsed = useProjectStore(s => s.elapsed);
+
     const fadeEnabled = useProjectStore(s => s.fadeEnabled);
     const setFadeEnabled = useProjectStore(s => s.setFadeEnabled);
     const crossfade = useProjectStore(s => s.crossfade);
@@ -50,6 +53,7 @@ export const Player: React.FC = () => {
     const setFadeInMs = useProjectStore(s => s.setFadeInMs);
     const fadeOutMs = useSettingsStore(s => s.fadeOutMs);
     const setFadeOutMs = useProjectStore(s => s.setFadeOutMs);
+
     const splMeterEnabled = useProjectStore(s => s.splMeterEnabled);
     const setSplMeterEnabled = useProjectStore(s => s.setSplMeterEnabled);
     const splMeterTarget = useProjectStore(s => s.splMeterTarget);
@@ -62,11 +66,13 @@ export const Player: React.FC = () => {
     const isSimulating = useProjectStore(s => s.isSimulating);
     const stackOrder = useProjectStore(s => s.stackOrder);
     const setStackOrder = useProjectStore(s => s.setStackOrder);
+
     const performanceMode = useSettingsStore(s => s.performanceMode);
     const curveVisible = useSettingsStore(s => s.curveVisible);
     const setCurveVisible = useSettingsStore(s => s.setCurveVisible);
     const curveExpanded = useSettingsStore(s => s.curveExpanded);
     const setCurveExpanded = useSettingsStore(s => s.setCurveExpanded);
+
     const curve = useBuilderStore(s => s.curve);
     const currentSetMetadata = usePlayerStore(s => s.currentSetMetadata);
 
@@ -82,14 +88,20 @@ export const Player: React.FC = () => {
         isDesktop: window.innerWidth >= 1200
     });
 
+    // Auto-load queue prioritizing user tracks
     useEffect(() => {
         if (pQueue.length === 0) {
             const { customTracks } = useLibraryStore.getState();
-            if (customTracks.length > 0) setPQueue(customTracks);
-            else setPQueue(catalogTracks as Track[]);
+            if (customTracks.length > 0) {
+                setPQueue(customTracks);
+            } else {
+                setPQueue(catalogTracks as Track[]);
+            }
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Dynamic resize tracking
     useEffect(() => {
         const handleResize = () => {
             const w = window.innerWidth;
@@ -106,6 +118,8 @@ export const Player: React.FC = () => {
 
     const ct = pQueue[ci];
     const isLive = mode === "live";
+
+    // ── Logic ──
     const mCol = mcHelper(ct?.mood);
     const durMs = ct?.duration_ms || 1;
     const rem = Math.max(0, durMs - pos);
@@ -120,24 +134,46 @@ export const Player: React.FC = () => {
 
     useEffect(() => {
         if (!ct) return;
+
         let cancelled = false;
         const url = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
-        getWaveformData(url, ct.id).then((waveform) => {
-            if (!cancelled) setCurrentWave(waveform);
-        });
-        return () => { cancelled = true; setCurrentWave([]); };
+        getWaveformData(url, ct.id)
+            .then((waveform) => {
+                if (!cancelled) {
+                    setCurrentWave(waveform);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+            setCurrentWave([]);
+        };
     }, [ct]);
 
-    const handleModeToggle = () => isLive ? setShowUnlockModal(true) : setMode("live");
+    // ── Handlers ──
+    const handleModeToggle = () => {
+        if (isLive) setShowUnlockModal(true);
+        else setMode("live");
+    };
 
     const handleQueueClick = (track: Track) => {
         if (isLive) {
             if (ct?.id === track.id) return;
-            setStackOrder(prev => prev.includes(track.id) ? prev.filter(id => id !== track.id) : [...prev, track.id]);
+            setStackOrder(prev => {
+                if (prev.includes(track.id)) {
+                    return prev.filter(id => id !== track.id);
+                } else {
+                    return [...prev, track.id];
+                }
+            });
             return;
         }
         const idx = pQueue.findIndex(t => t.id === track.id);
-        if (idx !== -1) { setCi(idx); setPos(0); setStackOrder([]); }
+        if (idx !== -1) {
+            setCi(idx);
+            setPos(0);
+            setStackOrder([]);
+        }
     };
 
     const onDrop = (dragIdx: number, targetIndex: number) => {
