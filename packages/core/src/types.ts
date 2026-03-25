@@ -1,3 +1,9 @@
+export interface TrackMarker {
+    id: string;       // uuid, generated at creation time
+    posMs: number;    // position in milliseconds within the track
+    comment: string;  // max 140 characters
+}
+
 export interface Track {
     id: string;
     title: string;
@@ -13,6 +19,7 @@ export interface Track {
     analysis_cached: boolean;
     blob_url?: string;   // Object URL for user-imported files (session-only)
     notes?: string;      // Performance notes (e.g. "intro larga", "pedir aplauso")
+    markers?: TrackMarker[];
     isCustom?: boolean;  // true = imported by user, not from built-in catalog
     targetKey?: string;  // desired performance key after transposition
     transposeSemitones?: number; // saved semitone shift relative to key
@@ -39,6 +46,7 @@ export interface Curve {
     desc: string;
 }
 
+/** @deprecated Use Show instead. Kept for backward compatibility during migration. */
 export interface SetHistoryItem {
     id: string;
     name: string;
@@ -48,4 +56,19 @@ export interface SetHistoryItem {
     venue: string;
     curve: string;
     date: string;
+}
+
+export interface SetEntry {
+    id: string;
+    label: string;           // "Set 1", "Set 2", etc.
+    tracks: Track[];
+    durationMs: number;
+    builtAt: string;         // ISO date string
+}
+
+export interface Show {
+    id: string;
+    name: string;            // editable, auto-generated e.g. "Show 24 Mar"
+    createdAt: string;       // ISO date string
+    sets: SetEntry[];
 }

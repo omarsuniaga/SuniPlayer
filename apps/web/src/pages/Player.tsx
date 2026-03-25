@@ -118,7 +118,8 @@ export const Player: React.FC = () => {
 
         let cancelled = false;
         const url = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
-        getWaveformData(url)
+        // Pass ct.id to enable IndexedDB caching
+        getWaveformData(url, ct.id)
             .then((waveform) => {
                 if (!cancelled) {
                     setCurrentWave(waveform);
