@@ -41,7 +41,7 @@ export const SetStatusPanel: React.FC<SetStatusPanelProps> = ({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.4 }}>Total Set: {fmtM(qTot)}</span>
-                <span style={{ fontSize: 9, opacity: 0.2, fontWeight: 800 }}>V1.2.0-MODULAR-PWA</span>
+                <span style={{ fontSize: 9, opacity: 0.2, fontWeight: 800 }}>V1.2.1-FORCE-REFRESH</span>
             </div>
             <button 
                 onClick={onModeToggle} 
