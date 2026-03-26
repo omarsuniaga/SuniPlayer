@@ -19,13 +19,20 @@ import { AudioStreamerService } from "./AudioStreamerService.ts";
 const TICK_MS = 100;
 
 export function useAudio() {
-    const { 
+    const {
         pQueue, ci, playing, vol, mode, stackOrder, pos,
-        setPos, setCi, setPlaying, setElapsed, setStackOrder 
+        setPos, setCi, setPlaying, setElapsed, setStackOrder
     } = usePlayerStore(); // Usamos los stores atómicos directamente
 
     const { crossfade, crossfadeMs, autoGain, fadeEnabled, fadeInMs, fadeOutMs } = useSettingsStore();
     const updateDownload = useDownloadStore(s => s.updateProgress);
+
+    // Diagnostic logging
+    useEffect(() => {
+        if (playing && pQueue[ci]) {
+            console.log(`[useAudio] ▶️ Play requested for track: ${pQueue[ci].title}, mode: ${mode}`);
+        }
+    }, [playing, ci, pQueue]);
 
     const channelARef = useRef<HTMLAudioElement | null>(null);
     const channelBRef = useRef<HTMLAudioElement | null>(null);
@@ -41,6 +48,7 @@ export function useAudio() {
     useEffect(() => {
         channelARef.current = new Audio();
         channelBRef.current = new Audio();
+        console.log("[useAudio] 🎧 Audio channels initialized (A/B)");
         return () => {
             channelARef.current?.pause();
             channelBRef.current?.pause();
@@ -65,8 +73,9 @@ export function useAudio() {
         
         if (type === "in") {
             applyVol(audio, track, 0);
+            console.log(`[useAudio] 🔊 Attempting fade-in play for: ${track?.title}`);
             audio.play().catch((err) => {
-                console.error("[useAudio] Fade-in play failed:", err?.message ?? err);
+                console.error("[useAudio] 🔴 Fade-in play failed:", err?.message ?? err, "error:", err);
             });
         }
 
@@ -106,6 +115,7 @@ export function useAudio() {
                     audio.src = objectUrl;
                     audio.load();
                     audio.currentTime = (ct.startTime || 0) / 1000;
+                    console.log(`[useAudio] 📦 Audio loaded: ${ct.title}, channel: ${activeChannel.current}, startTime: ${ct.startTime || 0}ms`);
 
                     // Persistir la URL fresca en el store para evitar re-fetch de IDB en cada play
                     if (objectUrl !== url) {
@@ -122,8 +132,9 @@ export function useAudio() {
                         if (fadeEnabled) runFade(audio, ct, "in", fadeInMs);
                         else {
                             applyVol(audio, ct);
+                            console.log(`[useAudio] ▶️ Attempting direct play for: ${ct.title}`);
                             audio.play().catch((err) => {
-                                console.error("[useAudio] Direct play failed:", err?.message ?? err);
+                                console.error("[useAudio] 🔴 Direct play failed:", err?.message ?? err, "error:", err);
                                 setPlaying(false);
                             });
                         }
