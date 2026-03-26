@@ -1,5 +1,6 @@
 import { analyzeAudio, AnalysisResults } from "./analysisService.ts";
-import { fileAccess, storage } from "../platform/index";
+import { fileAccess } from "../platform/index";
+import { dbStorage as storage } from "../platform/browser/IDBStorage";
 
 interface AudioContextWindow extends Window {
     webkitAudioContext?: typeof AudioContext;

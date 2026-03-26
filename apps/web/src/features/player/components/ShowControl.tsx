@@ -38,7 +38,7 @@ export const ShowControl: React.FC<ShowControlProps> = ({
                 color: active ? THEME.colors.brand.cyan : THEME.colors.text.muted,
                 cursor: "pointer",
                 transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                minWidth: "70px"
+                minWidth: "60px"
             }}
         >
             <div style={{ opacity: active ? 1 : 0.5 }}>{icon}</div>
@@ -47,7 +47,7 @@ export const ShowControl: React.FC<ShowControlProps> = ({
     );
 
     return (
-        <div style={{ 
+        <div className="show-control-wrapper" style={{ 
             display: "flex", 
             gap: 10, 
             width: "100%", 
@@ -84,9 +84,10 @@ export const ShowControl: React.FC<ShowControlProps> = ({
                 />
             )}
             
-            <div style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />
+            <div className="nav-separator" style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />
             
             <button 
+                className="desktop-only-queue-btn"
                 onClick={onToggleQueue}
                 style={{
                     width: "48px",
@@ -102,6 +103,13 @@ export const ShowControl: React.FC<ShowControlProps> = ({
             >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
             </button>
+
+            <style>{`
+                @media (max-width: 768px) {
+                    .desktop-only-queue-btn { display: none !important; }
+                    .nav-separator { display: none !important; }
+                }
+            `}</style>
         </div>
     );
 };

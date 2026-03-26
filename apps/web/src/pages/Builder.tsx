@@ -49,22 +49,18 @@ export const Builder: React.FC = () => {
     };
     const onGenDragEnd = () => { dragIdx.current = null; setDropTarget(null); };
 
+    const repertoire = useLibraryStore(st => st.repertoire);
     const trackOverrides = useLibraryStore(st => st.trackOverrides || {});
 
     const filtered = useMemo(() => {
-        // Hydrate TRACKS with overrides
-        const hydratedTracks = TRACKS.map(t => ({
-            ...t,
-            ...(trackOverrides[t.id] || {})
-        }));
-
-        return hydratedTracks.filter((t) => {
+        // Usar el Repertorio curado por el músico como fuente de verdad en el Builder
+        return repertoire.filter((t) => {
             if (s.search && !t.title.toLowerCase().includes(s.search.toLowerCase()) && !t.artist.toLowerCase().includes(s.search.toLowerCase())) return false;
             if (s.fMood && t.mood !== s.fMood) return false;
             if (s.genSet.find((gs) => gs.id === t.id)) return false;
             return true;
         });
-    }, [s.search, s.fMood, s.genSet, trackOverrides]);
+    }, [s.search, s.fMood, s.genSet, repertoire]);
 
     const addTrackToGeneratedSet = (track: typeof filtered[number]) => {
         s.setGenSet((previous) => [...previous, track]);

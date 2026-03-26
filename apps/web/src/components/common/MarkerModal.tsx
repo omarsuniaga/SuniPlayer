@@ -73,7 +73,7 @@ export const MarkerModal: React.FC<MarkerModalProps> = ({
         >
             <div
                 style={{
-                    backgroundColor: THEME.colors.panel,
+                    backgroundColor: "#0D1117",
                     border: `1px solid ${THEME.colors.border}`,
                     borderRadius: THEME.radius.xl,
                     padding: 24,

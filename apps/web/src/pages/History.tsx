@@ -4,6 +4,7 @@ import { usePlayerStore } from "../store/usePlayerStore";
 import { useBuilderStore } from "../store/useBuilderStore";
 import { THEME } from "../data/theme.ts";
 import type { SetEntry, Show, Track } from "../types";
+import { StatsDashboard } from "../features/history/ui/StatsDashboard";
 
 export const History: React.FC = () => {
     const history = useHistoryStore(s => s.history);
@@ -27,30 +28,31 @@ export const History: React.FC = () => {
         <div style={{ flex: 1, padding: "32px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 24 }} className="main-content">
             <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
                 <div>
-                    <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em" }}>Session History</h2>
-                    <p style={{ color: THEME.colors.text.muted, fontSize: 14, marginTop: 4 }}>Your recently generated and saved sets</p>
+                    <h2 style={{ fontSize: 32, fontWeight: 800, margin: 0, letterSpacing: "-0.03em" }}>Historial de Shows</h2>
+                    <p style={{ color: THEME.colors.text.muted, fontSize: 16, marginTop: 4 }}>Reportes y estadísticas de tus sesiones en vivo</p>
                 </div>
                 {history.length > 0 && (
                     <button
-                        onClick={clearHistory}
+                        onClick={() => confirm("¿Seguro que querés borrar todo el historial?") && clearHistory()}
                         style={{
-                            padding: "8px 16px",
+                            padding: "10px 20px",
                             borderRadius: THEME.radius.md,
-                            border: `1px solid ${THEME.colors.status.error}30`,
-                            backgroundColor: `${THEME.colors.status.error}10`,
+                            border: `1px solid ${THEME.colors.status.error}40`,
+                            backgroundColor: "transparent",
                             color: THEME.colors.status.error,
-                            fontSize: 12,
-                            fontWeight: 600,
+                            fontSize: 13,
+                            fontWeight: 700,
                             cursor: "pointer",
                             transition: "all 0.2s",
                         }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = `${THEME.colors.status.error}20`}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = `${THEME.colors.status.error}10`}
                     >
-                        Clear All
+                        Limpiar Todo
                     </button>
                 )}
             </header>
+
+            {/* Panel de Estadísticas */}
+            <StatsDashboard />
 
             {history.length === 0 ? (
                 <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${THEME.colors.border}`, borderRadius: THEME.radius.xl, color: THEME.colors.text.muted }}>

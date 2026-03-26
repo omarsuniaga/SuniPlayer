@@ -1,22 +1,5 @@
 // src/platform/index.ts
 
-/**
- * Platform entry point — swap these implementations to target iOS or React Native.
- *
- * To add an iOS target:
- *   1. Create src/platform/ios/NativeAudioEngine.ts implementing IAudioEngine
- *   2. Create src/platform/ios/SQLiteStorage.ts implementing IStorage
- *   3. Create src/platform/ios/NativeFileAccess.ts implementing IFileAccess
- *   4. Replace the three imports below with the iOS versions
- *
- * All business logic (Zustand stores, setBuilderService, types.ts) imports
- * NOTHING from this file — it is only used by services and React hooks.
- *
- * Instances are created lazily (on first access) so that importing this
- * module at the top level does not trigger AudioContext construction during
- * test environment setup, where window.AudioContext may not yet exist.
- */
-
 import { BrowserAudioEngine } from './browser/BrowserAudioEngine';
 import { IDBStorage } from './browser/IDBStorage';
 import { BlobFileAccess } from './browser/BlobFileAccess';
@@ -25,56 +8,18 @@ export type { IAudioEngine, AudioLoadOptions } from './interfaces/IAudioEngine';
 export type { IStorage, AnalysisData } from './interfaces/IStorage';
 export type { IFileAccess, ImportedFile, FileSource } from './interfaces/IFileAccess';
 
-let _audioEngine: InstanceType<typeof BrowserAudioEngine> | null = null;
-let _storage: InstanceType<typeof IDBStorage> | null = null;
-let _fileAccess: InstanceType<typeof BlobFileAccess> | null = null;
+// Instancias únicas (Singletons)
+const _audioEngine = new BrowserAudioEngine();
+const _storage = new IDBStorage();
+const _fileAccess = new BlobFileAccess();
 
-export function getAudioEngine(): InstanceType<typeof BrowserAudioEngine> {
-    if (!_audioEngine) _audioEngine = new BrowserAudioEngine();
-    return _audioEngine;
-}
+// Exportamos las instancias directamente. 
+// Al ser objetos reales, no perdemos el contexto 'this'.
+export const audioEngine = _audioEngine;
+export const storage = _storage;
+export const fileAccess = _fileAccess;
 
-export function getStorage(): InstanceType<typeof IDBStorage> {
-    if (!_storage) _storage = new IDBStorage();
-    return _storage;
-}
-
-export function getFileAccess(): InstanceType<typeof BlobFileAccess> {
-    if (!_fileAccess) _fileAccess = new BlobFileAccess();
-    return _fileAccess;
-}
-
-// Convenience singleton references — accessed via getter to stay lazy.
-
-/**
- * Convenience alias. TypeScript does not enforce the interface contract on property
- * access through this Proxy (uses `as any` internally). Prefer `getAudioEngine()`
- * when compile-time type safety is required.
- */
-export const audioEngine = new Proxy({} as InstanceType<typeof BrowserAudioEngine>, {
-    get(_target, prop) {
-        return Reflect.get(getAudioEngine(), prop);
-    },
-});
-
-/**
- * Convenience alias. TypeScript does not enforce the interface contract on property
- * access through this Proxy (uses `as any` internally). Prefer `getStorage()`
- * when compile-time type safety is required.
- */
-export const storage = new Proxy({} as InstanceType<typeof IDBStorage>, {
-    get(_target, prop) {
-        return Reflect.get(getStorage(), prop);
-    },
-});
-
-/**
- * Convenience alias. TypeScript does not enforce the interface contract on property
- * access through this Proxy (uses `as any` internally). Prefer `getFileAccess()`
- * when compile-time type safety is required.
- */
-export const fileAccess = new Proxy({} as InstanceType<typeof BlobFileAccess>, {
-    get(_target, prop) {
-        return Reflect.get(getFileAccess(), prop);
-    },
-});
+// Mantener los getters por compatibilidad si algún componente los usa
+export function getAudioEngine() { return _audioEngine; }
+export function getStorage() { return _storage; }
+export function getFileAccess() { return _fileAccess; }

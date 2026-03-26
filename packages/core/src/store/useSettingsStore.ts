@@ -7,7 +7,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { getStorage } from './storage';
 
 // ── Pedal Bindings ────────────────────────────────────────────────────────────
-export type PedalAction = 'next' | 'prev' | 'play_pause' | 'vol_up' | 'vol_down'
+export type PedalAction = 'next' | 'prev' | 'play_pause' | 'stop' | 'vol_up' | 'vol_down'
 
 export interface PedalBinding {
     key: string    // event.key value: "ArrowRight", "Space", " ", "PageDown", etc.
@@ -62,6 +62,17 @@ interface SettingsState {
     setSplMeterTarget: (v: "studio" | "small" | "hall" | "open") => void;
     splMeterExpanded: boolean;
     setSplMeterExpanded: (v: boolean) => void;
+
+    // Energy Curve panel
+    curveVisible: boolean;
+    setCurveVisible: (v: boolean) => void;
+    curveExpanded: boolean;
+    setCurveExpanded: (v: boolean) => void;
+
+    // Set duration presets (persisted)
+    durationPresets: number[];
+    addDurationPreset: (min: number) => void;
+    removeDurationPreset: (min: number) => void;
 
     // Pedal bindings
     pedalBindings: PedalBindings;
@@ -121,6 +132,19 @@ export const useSettingsStore = create<SettingsState>()(
             splMeterExpanded: true,
             setSplMeterExpanded: (splMeterExpanded) => set({ splMeterExpanded }),
 
+            curveVisible: true,
+            setCurveVisible: (curveVisible) => set({ curveVisible }),
+            curveExpanded: true,
+            setCurveExpanded: (curveExpanded) => set({ curveExpanded }),
+
+            durationPresets: [30, 45, 60, 90, 120],
+            addDurationPreset: (min) => set((state) => ({ 
+                durationPresets: [...new Set([...state.durationPresets, min])].sort((a, b) => a - b) 
+            })),
+            removeDurationPreset: (min) => set((state) => ({ 
+                durationPresets: state.durationPresets.filter(p => p !== min) 
+            })),
+
             pedalBindings: {},
             setPedalBinding: (action, binding) =>
                 set((state) => ({
@@ -159,8 +183,11 @@ export const useSettingsStore = create<SettingsState>()(
                 splMeterEnabled: state.splMeterEnabled,
                 splMeterTarget: state.splMeterTarget,
                 splMeterExpanded: state.splMeterExpanded,
+                curveVisible: state.curveVisible,
+                curveExpanded: state.curveExpanded,
                 bpmMin: state.bpmMin,
                 bpmMax: state.bpmMax,
+                durationPresets: state.durationPresets,
                 pedalBindings: state.pedalBindings,
             }),
         }

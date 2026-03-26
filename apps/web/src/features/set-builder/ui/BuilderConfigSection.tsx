@@ -4,7 +4,9 @@ import { CURVES, VENUES } from "../../../data/constants";
 import { THEME } from "../../../data/theme";
 import { EnergyCurveChart } from "../../../components/common/EnergyCurveChart";
 import type { CurveType } from "../../../components/common/EnergyCurveChart";
-import type { Show } from "../../../types";
+import type { Show, Track } from "../../../types";
+import { useSettingsStore } from "../../../store/useSettingsStore";
+import { useLibraryStore } from "../../../store/useLibraryStore";
 
 interface BuilderConfigSectionProps {
     targetMin: number;
@@ -34,39 +36,102 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
     onNewShow,
     onAddSet,
 }) => {
+    const { durationPresets, addDurationPreset, removeDurationPreset } = useSettingsStore();
+    const customTracks = useLibraryStore(s => s.customTracks);
+    
+    // Calculate total library capacity in minutes
+    const totalLibMs = customTracks.reduce((sum: number, t: Track) => sum + t.duration_ms, 0);
+    const totalLibMin = Math.floor(totalLibMs / 60000);
+
+    const [isAdding, setIsAdding] = React.useState(false);
+    const [customVal, setCustomVal] = React.useState("");
+
+    const handleAdd = () => {
+        const val = parseInt(customVal);
+        if (!isNaN(val) && val > 0) {
+            addDurationPreset(val);
+            onTargetMinChange(val);
+            setCustomVal("");
+            setIsAdding(false);
+        }
+    };
+
     // Determine which action button to render
     const hasShow = !!currentShow;
     const hasGeneratedSet = genSetLength > 0;
     const activeSetLabel = currentShow ? currentShow.sets[currentShow.sets.length - 1].label : "Set";
     const nextSetNum = currentShow ? currentShow.sets.length + 1 : 2;
+
     return (
         <>
             <section>
-                <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Set Configuration</h2>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Set Configuration</h2>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: THEME.colors.text.muted }}>
+                        LIB CAPACITY: <span style={{ color: totalLibMin < targetMin ? THEME.colors.status.warning : THEME.colors.brand.cyan }}>{totalLibMin} min</span>
+                    </span>
+                </div>
+
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                     <div>
-                        <label style={{ fontSize: 10, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Duration</label>
-                        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }} className="duration-grid">
-                            {[30, 45, 60, 90, 120].map((minutes) => (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                            <label style={{ fontSize: 10, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Duration</label>
+                            {totalLibMin < targetMin && (
+                                <span style={{ fontSize: 10, color: THEME.colors.status.warning, fontWeight: 700 }}>⚠️ Insufficient music</span>
+                            )}
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} className="duration-grid">
+                            {durationPresets.map((minutes) => {
+                                const isInsufficient = minutes > totalLibMin;
+                                return (
                                 <button
                                     key={minutes}
                                     onClick={() => onTargetMinChange(minutes)}
+                                    onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        if (confirm(`Remove ${minutes}m preset?`)) removeDurationPreset(minutes);
+                                    }}
                                     style={{
                                         padding: "10px 16px",
                                         borderRadius: THEME.radius.md,
                                         cursor: "pointer",
-                                        border: `1px solid ${targetMin === minutes ? THEME.colors.brand.cyan : THEME.colors.border}`,
+                                        border: `1px solid ${targetMin === minutes ? THEME.colors.brand.cyan : (isInsufficient ? THEME.colors.border + "40" : THEME.colors.border)}`,
                                         backgroundColor: targetMin === minutes ? "rgba(6,182,212,0.1)" : THEME.colors.surface,
-                                        color: targetMin === minutes ? THEME.colors.brand.cyan : THEME.colors.text.secondary,
+                                        color: targetMin === minutes ? THEME.colors.brand.cyan : (isInsufficient ? THEME.colors.text.muted : THEME.colors.text.secondary),
                                         fontWeight: 600,
                                         fontSize: 14,
                                         fontFamily: THEME.fonts.mono,
                                         transition: "all 0.2s",
+                                        opacity: isInsufficient ? 0.6 : 1,
+                                        textDecoration: isInsufficient ? "line-through" : "none"
                                     }}
+                                    title={isInsufficient ? "Not enough music in library" : ""}
                                 >
                                     {minutes}m
                                 </button>
-                            ))}
+                            )})}
+                            
+                            {isAdding ? (
+                                <div style={{ display: "flex", gap: 4 }}>
+                                    <input 
+                                        type="number" 
+                                        value={customVal}
+                                        autoFocus
+                                        onChange={e => setCustomVal(e.target.value)}
+                                        onKeyDown={e => e.key === "Enter" && handleAdd()}
+                                        placeholder="Min"
+                                        style={{ width: 60, padding: "8px", borderRadius: THEME.radius.sm, border: `1px solid ${THEME.colors.brand.cyan}`, backgroundColor: THEME.colors.surface, color: "white", textAlign: "center", fontSize: 14 }}
+                                    />
+                                    <button onClick={handleAdd} style={{ padding: "8px 12px", borderRadius: THEME.radius.sm, border: "none", background: THEME.colors.brand.cyan, color: "black", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>OK</button>
+                                </div>
+                            ) : (
+                                <button 
+                                    onClick={() => setIsAdding(true)}
+                                    style={{ padding: "10px 16px", borderRadius: THEME.radius.md, cursor: "pointer", border: `1px dashed ${THEME.colors.border}`, backgroundColor: "transparent", color: THEME.colors.text.muted, fontSize: 14, fontWeight: 600 }}
+                                >
+                                    +
+                                </button>
+                            )}
                         </div>
                     </div>
 

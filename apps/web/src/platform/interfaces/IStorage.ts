@@ -21,4 +21,10 @@ export interface IStorage {
     saveAnalysis(trackId: string, data: Partial<AnalysisData>): Promise<void>;
     getWaveform(trackId: string): Promise<number[] | null>;
     saveWaveform(trackId: string, data: number[]): Promise<void>;
+
+    /** Raw audio persistence (Binary storage) */
+    saveAudioFile(trackId: string, file: Blob): Promise<void>;
+    getAudioFile(trackId: string): Promise<Blob | null>;
+    deleteAudioFile(trackId: string): Promise<void>;
+    getAllStoredTrackIds(): Promise<string[]>;
 }

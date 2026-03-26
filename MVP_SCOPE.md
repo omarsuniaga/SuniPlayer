@@ -6,13 +6,18 @@
 ---
 
 ## 🎯 Objetivo del MVP
-Lanzar una herramienta funcional que permita a un músico en vivo cargar su repertorio, generar un setlist que cumpla con un tiempo específico y reproducirlo con un cronómetro de apoyo.
+Lanzar una herramienta funcional que permita a un músico en vivo cargar su repertorio, generar un setlist que cumpla con un tiempo específico y reproducirlo con un cronómetro de apoyo, disponible tanto en **Web (PWA)** como en **Nativo (iOS/Android)**.
 
 ---
 
 ## ✅ Funcionalidades Incluidas (In-Scope)
 
-### 1. Biblioteca Musical (Local)
+### 1. Multiplataforma
+- Aplicación Web (React + Vite) optimizada como PWA.
+- Aplicación Nativa (React Native + Expo) para iPad/iPhone y dispositivos Android.
+- Lógica de dominio compartida mediante `@suniplayer/core`.
+
+### 2. Biblioteca Musical (Local)
 - Carga de metadatos básicos (Título, Artista, BPM, Key, Mood, Energía).
 - Búsqueda y filtrado por Mood.
 
@@ -38,9 +43,9 @@ Lanzar una herramienta funcional que permita a un músico en vivo cargar su repe
 ---
 
 ## ❌ Funcionalidades Excluidas (Out-of-Scope para MVP)
-- **Audio Pro:** Pitch shifting, Time stretching, Crossfade avanzado (se usará el motor nativo del navegador).
+- **Audio Pro:** Pitch shifting, Time stretching, Crossfade avanzado (se usará el motor nativo del navegador o del dispositivo).
 - **IA Avanzada:** Clasificación automática de audio, detección de beats en tiempo real.
-- **Nativo:** Versiones Desktop (Electron) o Mobile (Capacitor).
+- **Nativo:** Versiones Desktop (Electron).
 - **Nube:** Sincronización entre dispositivos, cuentas de usuario.
 - **Hardware:** Soporte para controladores MIDI.
 

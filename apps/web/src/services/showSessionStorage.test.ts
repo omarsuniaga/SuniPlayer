@@ -8,6 +8,7 @@ import { useHistoryStore } from "../store/useHistoryStore";
 import { useLibraryStore } from "../store/useLibraryStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useSettingsStore } from "../store/useSettingsStore";
+import { configureStorage } from "@suniplayer/core";
 
 const baseTrack: Track = {
     id: "custom-1",
@@ -27,6 +28,7 @@ const baseTrack: Track = {
 };
 
 const resetStores = () => {
+    configureStorage(localStorage);
     useBuilderStore.setState(useBuilderStore.getInitialState(), true);
     usePlayerStore.setState(usePlayerStore.getInitialState(), true);
     useHistoryStore.setState(useHistoryStore.getInitialState(), true);
@@ -66,5 +68,31 @@ describe("showSessionStorage", () => {
         expect(usePlayerStore.getState().mode).toBe("live");
         expect(usePlayerStore.getState().pos).toBe(54321);
         expect(useBuilderStore.getState().view).toBe("player");
+    });
+
+    it("skips malformed history entries instead of crashing during snapshot capture", () => {
+        resetStores();
+        useHistoryStore.setState({
+            history: [
+                {
+                    id: "show-1",
+                    name: "Broken show",
+                    createdAt: "2026-03-25T00:00:00.000Z",
+                    sets: [
+                        {
+                            id: "set-1",
+                            label: "Set 1",
+                            durationMs: 0,
+                            builtAt: "2026-03-25T00:00:00.000Z",
+                        } as any,
+                    ],
+                } as any,
+            ],
+        });
+
+        const snapshot = buildShowSessionSnapshot();
+
+        expect(snapshot.history.history).toHaveLength(1);
+        expect(snapshot.history.history[0].sets[0].tracks).toEqual([]);
     });
 });

@@ -29,11 +29,6 @@ export async function getWaveformData(url: string, trackId?: string, samples = 1
         }
 
         audioContext = new AudioContextCtor();
-        
-        // Some browsers suspend the context until a user gesture; resume just in case
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
 
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         

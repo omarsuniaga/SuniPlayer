@@ -1,7 +1,7 @@
 import React from "react";
-import { THEME } from "../../../data/theme.ts";
-import { Track } from "../../../types";
-import { fmt, mc } from "../../../services/uiUtils.ts";
+import { Track } from "@suniplayer/core";
+import { THEME } from "../../../data/theme";
+import { fmt } from "../../../services/uiUtils";
 
 interface PlayerHeaderProps {
     track: Track | null;
@@ -9,74 +9,103 @@ interface PlayerHeaderProps {
     playing: boolean;
     rem: number;
     tPct: number;
-    currentSetMetadata: any;
+    currentSetMetadata: { setLabel: string; totalSetsInShow: number } | null;
     onProfileClick: () => void;
     onSheetMusicClick: () => void;
 }
 
 export const PlayerHeader: React.FC<PlayerHeaderProps> = ({
-    track, performanceMode, playing, rem, tPct, currentSetMetadata,
+    track, performanceMode, playing, currentSetMetadata,
     onProfileClick, onSheetMusicClick
 }) => {
-    const mCol = mc(track?.mood || "default");
-    const tCol = playing ? mCol : THEME.colors.text.muted;
+    if (!track) return null;
 
     return (
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 20 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <h1 style={{ fontSize: performanceMode ? 48 : 36, fontWeight: 900, margin: 0, letterSpacing: "-0.03em", lineHeight: 1.1 }}>{track?.title || "--"}</h1>
-                    <div style={{ display: "flex", gap: 8 }}>
-                        <button 
-                            onClick={onProfileClick} 
-                            title="Perfil de Canción" 
-                            style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.colors.text.muted, cursor: "pointer", transition: "all 0.2s" }}
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        </button>
-                        {track?.sheetMusic && track.sheetMusic.length > 0 && (
-                            <button 
-                                onClick={onSheetMusicClick} 
-                                title="Ver Partitura" 
-                                style={{ background: "rgba(139,92,246,0.1)", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", color: THEME.colors.brand.violet, cursor: "pointer", transition: "all 0.2s" }}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                            </button>
-                        )}
-                    </div>
-                </div>
-                <p style={{ fontSize: performanceMode ? 22 : 18, color: THEME.colors.text.muted, margin: "4px 0 16px" }}>{track?.artist || "--"}</p>
-
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {track && (
-                        <>
-                            <span style={{ fontSize: performanceMode ? 12 : 10, padding: "4px 10px", borderRadius: 4, background: THEME.colors.brand.cyan + "15", color: THEME.colors.brand.cyan, fontWeight: 800 }}>{track.bpm} BPM</span>
-                            <span style={{ fontSize: performanceMode ? 12 : 10, padding: "4px 10px", borderRadius: 4, background: THEME.colors.brand.violet + "15", color: THEME.colors.brand.violet, fontWeight: 800 }}>{track.key}</span>
-                            <span style={{ fontSize: performanceMode ? 12 : 10, padding: "4px 10px", borderRadius: 4, background: mc(track.mood) + "15", color: mc(track.mood), fontWeight: 800 }}>{track.mood}</span>
-                        </>
+        <div style={{ 
+            display: "flex", 
+            flexDirection: "column", 
+            gap: 8,
+            paddingBottom: "20px",
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            fontFamily: "'DM Sans', sans-serif",
+            position: "relative"
+        }}>
+            {/* Upper Badge Layer */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {currentSetMetadata ? (
+                        <div style={{ 
+                            padding: "3px 10px", borderRadius: 6, 
+                            backgroundColor: "rgba(139, 92, 246, 0.15)", 
+                            fontSize: 10, fontWeight: 900, color: THEME.colors.brand.violet,
+                            fontFamily: "'JetBrains Mono', monospace",
+                            letterSpacing: 1,
+                            border: "1px solid rgba(139, 92, 246, 0.2)"
+                        }}>
+                            {currentSetMetadata.setLabel.toUpperCase()} • {currentSetMetadata.totalSetsInShow} SETS
+                        </div>
+                    ) : (
+                        <div style={{ 
+                            padding: "3px 10px", borderRadius: 6, 
+                            backgroundColor: "rgba(255,255,255,0.05)", 
+                            fontSize: 10, fontWeight: 800, color: THEME.colors.text.muted,
+                            letterSpacing: 1
+                        }}>
+                            SINGLE SESSION
+                        </div>
                     )}
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.2)", letterSpacing: 2 }}>|</span>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.brand.cyan, letterSpacing: 1 }}>
+                        {playing ? "BROADCASTING" : "STANDBY"}
+                    </span>
                 </div>
 
-                {currentSetMetadata && currentSetMetadata.totalSetsInShow > 1 && (
-                    <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.brand.violet}15`, border: `1px solid ${THEME.colors.brand.violet}30` }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.brand.violet} strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: THEME.colors.brand.violet }}>
-                            {currentSetMetadata.setLabel} / {currentSetMetadata.totalSetsInShow}
-                        </span>
-                    </div>
-                )}
-            </div>
-
-            <div style={{ position: "relative", width: performanceMode ? 120 : 90, height: performanceMode ? 120 : 90, flexShrink: 0 }}>
-                <svg width={performanceMode ? 120 : 90} height={performanceMode ? 120 : 90} viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)" }}>
-                    <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="6" />
-                    <circle cx="50" cy="50" r="44" fill="none" stroke={tCol} strokeWidth="6" strokeDasharray="276.5" strokeDashoffset={276.5 * (1 - tPct)} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.5s linear" }} />
-                </svg>
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: performanceMode ? 24 : 18, fontWeight: 900, fontFamily: THEME.fonts.mono }}>{fmt(rem)}</span>
-                    <span style={{ fontSize: 8, opacity: 0.4, textTransform: "uppercase" }}>restante</span>
+                <div style={{ display: "flex", gap: 8 }}>
+                    {track.sheetMusic && track.sheetMusic.length > 0 && (
+                        <button 
+                            onClick={onSheetMusicClick}
+                            title="Ver Partitura"
+                            style={{ 
+                                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", 
+                                color: "white", width: "36px", height: "36px", borderRadius: "10px",
+                                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer"
+                            }}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        </button>
+                    )}
+                    <button 
+                        onClick={onProfileClick}
+                        title="Propiedades del Audio"
+                        style={{ 
+                            background: "rgba(6, 182, 212, 0.1)", border: "1px solid rgba(6, 182, 212, 0.2)", 
+                            color: THEME.colors.brand.cyan, width: "36px", height: "36px", borderRadius: "10px",
+                            display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer"
+                        }}
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
                 </div>
             </div>
-        </header>
+
+            {/* Main Title & Artist Layer */}
+            <div style={{ marginTop: 4 }}>
+                <h1 style={{ 
+                    fontSize: performanceMode ? 44 : 32, 
+                    fontWeight: 900, color: "white", margin: 0, 
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                    letterSpacing: "-0.04em",
+                    lineHeight: 1.1
+                }}>
+                    {track.title}
+                </h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 2 }}>
+                    <span style={{ fontSize: 18, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>{track.artist || "Artista Local"}</span>
+                    <div style={{ width: 4, height: 4, borderRadius: "50%", backgroundColor: THEME.colors.brand.cyan, boxShadow: `0 0 8px ${THEME.colors.brand.cyan}` }} />
+                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.colors.brand.cyan, fontFamily: "'JetBrains Mono', monospace" }}>{Math.round(track.bpm || 120)} BPM</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: THEME.colors.brand.violet, fontFamily: "'JetBrains Mono', monospace" }}>{track.key || "C"}</span>
+                </div>
+            </div>
+        </div>
     );
 };

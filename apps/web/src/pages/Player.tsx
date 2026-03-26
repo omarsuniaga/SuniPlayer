@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useProjectStore, setTrackTrim, updateTrackMetadata } from "../store/useProjectStore";
 import { useBuilderStore } from "../store/useBuilderStore";
 import { useSettingsStore } from "../store/useSettingsStore";
@@ -13,7 +13,6 @@ import { TrackProfileModal } from "../components/common/TrackProfileModal";
 import { Track } from "../types";
 import { SheetMusicViewer } from "../components/common/SheetMusicViewer";
 import { Dashboard } from "../components/player/Dashboard";
-import { LiveUnlockModal } from "../components/player/LiveUnlockModal";
 import { getWaveformData } from "../services/waveformService";
 
 // Sub-components
@@ -21,12 +20,14 @@ import { PlayerHeader } from "../features/player/components/PlayerHeader";
 import { VisualizerSection } from "../features/player/components/VisualizerSection";
 import { PlaybackControls } from "../features/player/components/PlaybackControls";
 import { VolumeControl } from "../features/player/components/VolumeControl";
-import { SetStatusPanel } from "../features/player/components/SetStatusPanel";
 import { SetlistSidebar } from "../features/player/components/SetlistSidebar";
 import { ShowControl } from "../features/player/components/ShowControl";
 
-// ── Player Page ───────────────────────────────────────────────────────────────
-export const Player: React.FC = () => {
+interface PlayerProps {
+    onModeToggle: () => void;
+}
+
+export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     // ── Store Selectors ──
     const pQueue = useProjectStore(s => s.pQueue);
     const ci = useProjectStore(s => s.ci);
@@ -36,13 +37,10 @@ export const Player: React.FC = () => {
     const setCi = useProjectStore(s => s.setCi);
     const setPlaying = useProjectStore(s => s.setPlaying);
     const setVol = useProjectStore(s => s.setVol);
-    const setMode = useProjectStore(s => s.setMode);
     const setPQueue = useProjectStore(s => s.setPQueue);
-
     const vol = useProjectStore(s => s.vol);
     const mode = useProjectStore(s => s.mode);
     const elapsed = useProjectStore(s => s.elapsed);
-
     const fadeEnabled = useProjectStore(s => s.fadeEnabled);
     const setFadeEnabled = useProjectStore(s => s.setFadeEnabled);
     const crossfade = useProjectStore(s => s.crossfade);
@@ -53,7 +51,6 @@ export const Player: React.FC = () => {
     const setFadeInMs = useProjectStore(s => s.setFadeInMs);
     const fadeOutMs = useSettingsStore(s => s.fadeOutMs);
     const setFadeOutMs = useProjectStore(s => s.setFadeOutMs);
-
     const splMeterEnabled = useProjectStore(s => s.splMeterEnabled);
     const setSplMeterEnabled = useProjectStore(s => s.setSplMeterEnabled);
     const splMeterTarget = useProjectStore(s => s.splMeterTarget);
@@ -66,50 +63,49 @@ export const Player: React.FC = () => {
     const isSimulating = useProjectStore(s => s.isSimulating);
     const stackOrder = useProjectStore(s => s.stackOrder);
     const setStackOrder = useProjectStore(s => s.setStackOrder);
-
     const performanceMode = useSettingsStore(s => s.performanceMode);
     const curveVisible = useSettingsStore(s => s.curveVisible);
     const setCurveVisible = useSettingsStore(s => s.setCurveVisible);
     const curveExpanded = useSettingsStore(s => s.curveExpanded);
     const setCurveExpanded = useSettingsStore(s => s.setCurveExpanded);
-
     const curve = useBuilderStore(s => s.curve);
     const currentSetMetadata = usePlayerStore(s => s.currentSetMetadata);
 
     // ── UI State ──
-    const [showUnlockModal, setShowUnlockModal] = useState(false);
     const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const [viewingSheetTrack, setViewingSheetTrack] = useState<Track | null>(null);
-    const [showQueue, setShowQueue] = useState(window.innerWidth > 1000);
+    const [showQueue, setShowQueue] = useState(window.innerWidth > 1200);
     const [screenSize, setScreenSize] = useState({
         isMobile: window.innerWidth < 768,
         isTablet: window.innerWidth >= 768 && window.innerWidth < 1200,
         isDesktop: window.innerWidth >= 1200
     });
 
-    // Auto-load queue prioritizing user tracks
+    // Gesture detection
+    const touchStart = useRef<number | null>(null);
+    const handleTouchStart = (e: React.TouchEvent) => { touchStart.current = e.touches[0].clientX; };
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (!touchStart.current) return;
+        const touchEnd = e.changedTouches[0].clientX;
+        const diff = touchStart.current - touchEnd;
+        if (diff > 70) setShowQueue(true);
+        if (diff < -70) setShowQueue(false);
+        touchStart.current = null;
+    };
+
+    // Auto-load queue
     useEffect(() => {
         if (pQueue.length === 0) {
             const { customTracks } = useLibraryStore.getState();
-            if (customTracks.length > 0) {
-                setPQueue(customTracks);
-            } else {
-                setPQueue(catalogTracks as Track[]);
-            }
+            setPQueue(customTracks.length > 0 ? customTracks : catalogTracks as Track[]);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Dynamic resize tracking
     useEffect(() => {
         const handleResize = () => {
             const w = window.innerWidth;
-            setScreenSize({
-                isMobile: w < 768,
-                isTablet: w >= 768 && w < 1200,
-                isDesktop: w >= 1200
-            });
+            setScreenSize({ isMobile: w < 768, isTablet: w >= 768 && w < 1200, isDesktop: w >= 1200 });
             if (w > 1200) setShowQueue(true);
         };
         window.addEventListener("resize", handleResize);
@@ -118,8 +114,6 @@ export const Player: React.FC = () => {
 
     const ct = pQueue[ci];
     const isLive = mode === "live";
-
-    // ── Logic ──
     const mCol = mcHelper(ct?.mood);
     const durMs = ct?.duration_ms || 1;
     const rem = Math.max(0, durMs - pos);
@@ -134,46 +128,19 @@ export const Player: React.FC = () => {
 
     useEffect(() => {
         if (!ct) return;
-
-        let cancelled = false;
         const url = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
-        getWaveformData(url, ct.id)
-            .then((waveform) => {
-                if (!cancelled) {
-                    setCurrentWave(waveform);
-                }
-            });
-
-        return () => {
-            cancelled = true;
-            setCurrentWave([]);
-        };
+        getWaveformData(url, ct.id).then(wave => setCurrentWave(wave));
+        return () => setCurrentWave([]);
     }, [ct]);
-
-    // ── Handlers ──
-    const handleModeToggle = () => {
-        if (isLive) setShowUnlockModal(true);
-        else setMode("live");
-    };
 
     const handleQueueClick = (track: Track) => {
         if (isLive) {
             if (ct?.id === track.id) return;
-            setStackOrder(prev => {
-                if (prev.includes(track.id)) {
-                    return prev.filter(id => id !== track.id);
-                } else {
-                    return [...prev, track.id];
-                }
-            });
+            setStackOrder(prev => prev.includes(track.id) ? prev.filter(id => id !== track.id) : [...prev, track.id]);
             return;
         }
         const idx = pQueue.findIndex(t => t.id === track.id);
-        if (idx !== -1) {
-            setCi(idx);
-            setPos(0);
-            setStackOrder([]);
-        }
+        if (idx !== -1) { setCi(idx); setPos(0); setStackOrder([]); }
     };
 
     const onDrop = (dragIdx: number, targetIndex: number) => {
@@ -188,68 +155,44 @@ export const Player: React.FC = () => {
         else if (ci < dragIdx && ci >= targetIndex) setCi(ci + 1);
     };
 
-    // ── Layout Rendering ──
     const useColumns = screenSize.isDesktop || (screenSize.isTablet && window.innerWidth > window.innerHeight);
 
     return (
-        <div style={{
-            height: "100%", 
-            width: "100%",
-            display: "flex", 
-            backgroundColor: THEME.colors.bg,
-            color: THEME.colors.text.primary, 
-            overflow: "hidden", // Mantener el marco fijo
-            position: "absolute", // Ocupar todo el AppViewport
-            inset: 0
-        }}>
-            {showUnlockModal && <LiveUnlockModal onConfirm={() => { setMode("edit"); setShowUnlockModal(false); }} onCancel={() => setShowUnlockModal(false)} />}
+        <div 
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            style={{ height: "100%", width: "100%", display: "flex", backgroundColor: THEME.colors.bg, color: THEME.colors.text.primary, overflow: "hidden", position: "absolute", inset: 0 }}
+        >
+            {/* Sutil indicador lateral para el swipe (solo en móvil) */}
+            {!useColumns && !showQueue && (
+                <div style={{ position: "fixed", right: 0, top: "40%", width: "4px", height: "60px", background: `${THEME.colors.brand.violet}40`, borderRadius: "4px 0 0 4px", zIndex: 1000 }} />
+            )}
 
-            {/* Left Column: Stats & Dashboard (Only on Desktop/Tablet Landscape) */}
+            {/* Left Column: Stats & Monitor (Solo en pantallas grandes) */}
             {useColumns && (
-                <aside style={{ 
-                    width: "320px", 
-                    flexShrink: 0, // No permitir que se encoja
-                    borderRight: `1px solid ${THEME.colors.border}`, 
-                    padding: "24px", 
-                    display: "flex", 
-                    flexDirection: "column", 
-                    gap: 24,
-                    backgroundColor: "rgba(0,0,0,0.12)", 
-                    overflowY: "auto", 
-                    height: "100%",
-                    WebkitOverflowScrolling: "touch",
-                    scrollbarWidth: "none" // Ocultar scrollbars técnicos
-                }}>
-                    <h2 style={{ fontSize: 11, fontWeight: 900, color: THEME.colors.brand.cyan, letterSpacing: 2, flexShrink: 0 }}>SHOW MONITOR</h2>
-                    <SetStatusPanel 
-                        isLive={isLive} performanceMode={performanceMode}
-                        elapsed={elapsed} qTot={qTot} currentProgressMs={currentProgressMs}
-                        onModeToggle={handleModeToggle} mCol={mCol}
-                    />
+                <aside style={{ width: "320px", flexShrink: 0, borderRight: `1px solid ${THEME.colors.border}`, padding: "24px", display: "flex", flexDirection: "column", gap: 24, backgroundColor: "rgba(0,0,0,0.12)", overflowY: "auto", height: "100%", scrollbarWidth: "none" }}>
+                    <h2 style={{ fontSize: 11, fontWeight: 900, color: THEME.colors.brand.violet, letterSpacing: 2, flexShrink: 0 }}>SHOW MONITOR</h2>
+                    
+                    {/* El tiempo ELAPSED y REMAINING ahora vive en el Navbar */}
+                    
                     <div style={{ flexShrink: 0 }}>
-                        <Dashboard
-                            fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={true} setFadeExpanded={() => {}}
-                            crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={true} setCrossExpanded={() => {}}
-                            splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={true} setSplMeterExpanded={() => {}}
-                            curve={curve} curvePlayheadPct={curvePlayheadPct} curveVisible={curveVisible} curveExpanded={true} setCurveExpanded={() => {}}
-                        />
+                        <Dashboard fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={true} setFadeExpanded={() => {}} crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={true} setCrossExpanded={() => {}} splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={true} setSplMeterExpanded={() => {}} curve={curve} curvePlayheadPct={curvePlayheadPct} curveVisible={curveVisible} curveExpanded={true} setCurveExpanded={() => {}} />
                     </div>
                 </aside>
             )}
 
-            {/* Central Column: Main Player */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", height: "100%" }}>
                 <main style={{ 
                     flex: 1, 
                     display: "flex", 
                     flexDirection: "column", 
                     padding: screenSize.isMobile ? "16px" : "32px", 
-                    overflowY: "auto", // Habilitar scroll
-                    gap: performanceMode ? 40 : 32,
+                    overflowY: "auto", 
+                    gap: 32, 
                     maxWidth: useColumns ? "900px" : "100%", 
                     margin: "0 auto", 
                     width: "100%",
-                    WebkitOverflowScrolling: "touch"
+                    WebkitOverflowScrolling: "touch" 
                 }}>
                     {isSimulating && playing && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.status.warning}10`, border: `1px solid ${THEME.colors.status.warning}30` }}>
@@ -258,74 +201,29 @@ export const Player: React.FC = () => {
                         </div>
                     )}
 
-                    <PlayerHeader 
-                        track={ct} performanceMode={performanceMode} playing={playing} 
-                        rem={rem} tPct={tPct} currentSetMetadata={currentSetMetadata}
-                        onProfileClick={() => setProfileTrack(ct)} 
-                        onSheetMusicClick={() => setViewingSheetTrack(ct)}
-                    />
+                    <PlayerHeader track={ct} performanceMode={performanceMode} playing={playing} rem={rem} tPct={tPct} currentSetMetadata={currentSetMetadata} onProfileClick={() => setProfileTrack(ct)} onSheetMusicClick={() => setViewingSheetTrack(ct)} />
 
-                    <ShowControl 
-                        crossfade={crossfade} setCrossfade={setCrossfade}
-                        fadeEnabled={fadeEnabled} setFadeEnabled={setFadeEnabled}
-                        splMeterEnabled={splMeterEnabled} setSplMeterEnabled={setSplMeterEnabled}
-                        curveVisible={curveVisible} setCurveVisible={setCurveVisible}
-                        hasCurve={Boolean(curve)}
-                        onToggleQueue={() => setShowQueue(!showQueue)}
-                    />
+                    <VisualizerSection track={ct} performanceMode={performanceMode} isLive={isLive} playing={playing} pos={pos} rem={rem} durMs={durMs} prog={prog} mCol={mCol} currentWave={currentWave} isLoadingWave={isLoadingWave} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} onMarkersChange={(markers) => ct && updateTrackMetadata(ct.id, { markers })} onSeek={(newPosMs) => { if (!isLive && ct) setPos(newPosMs); }} />
 
-                    {!useColumns && (
-                        <Dashboard
-                            fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={fadeExpanded} setFadeExpanded={setFadeExpanded}
-                            crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={crossExpanded} setCrossExpanded={setCrossExpanded}
-                            splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={splMeterExpanded} setSplMeterExpanded={setSplMeterExpanded}
-                            curve={curve} curvePlayheadPct={curvePlayheadPct} curveVisible={curveVisible} curveExpanded={curveExpanded} setCurveExpanded={setCurveExpanded}
-                        />
-                    )}
+                    <PlaybackControls playing={playing} isLive={isLive} ci={ci} queueLen={pQueue.length} pos={pos} performanceMode={performanceMode} mCol={mCol} onPlayPause={() => setPlaying(!playing)} onPrev={() => { setCi(ci - 1); setPos(0); }} onNext={() => { setCi(ci + 1); setPos(0); }} onStop={() => { setPlaying(false); setPos(0); }} />
 
-                    <VisualizerSection 
-                        track={ct} performanceMode={performanceMode} isLive={isLive} playing={playing}
-                        pos={pos} rem={rem} durMs={durMs} prog={prog} mCol={mCol}
-                        currentWave={currentWave} isLoadingWave={isLoadingWave}
-                        fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs}
-                        onMarkersChange={(markers) => ct && updateTrackMetadata(ct.id, { markers })}
-                        onSeek={(newPosMs) => { if (!isLive && ct) setPos(newPosMs); }}
-                    />
+                    <VolumeControl vol={vol} mCol={mCol} performanceMode={performanceMode} onVolumeChange={setVol} />
 
-                    <PlaybackControls 
-                        playing={playing} isLive={isLive} ci={ci} queueLen={pQueue.length} 
-                        pos={pos} performanceMode={performanceMode} mCol={mCol}
-                        onPlayPause={() => setPlaying(!playing)}
-                        onPrev={() => { setCi(ci - 1); setPos(0); }}
-                        onNext={() => { setCi(ci + 1); setPos(0); }}
-                        onStop={() => { setPlaying(false); setPos(0); }}
-                    />
+                    {/* ⚙️ CONTROLES DE EFECTOS (Debajo de los controles principales) */}
+                    <div style={{ marginTop: 16 }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.text.muted, letterSpacing: 1.5, marginBottom: 12, paddingLeft: 4 }}>SHOW SETTINGS & EFFECTS</div>
+                        <ShowControl crossfade={crossfade} setCrossfade={setCrossfade} fadeEnabled={fadeEnabled} setFadeEnabled={setFadeEnabled} splMeterEnabled={splMeterEnabled} setSplMeterEnabled={setSplMeterEnabled} curveVisible={curveVisible} setCurveVisible={setCurveVisible} hasCurve={Boolean(curve)} onToggleQueue={() => setShowQueue(!showQueue)} />
 
-                    <VolumeControl 
-                        vol={vol} mCol={mCol} performanceMode={performanceMode}
-                        onVolumeChange={setVol}
-                    />
-
-                    {!useColumns && (
-                        <SetStatusPanel 
-                            isLive={isLive} performanceMode={performanceMode}
-                            elapsed={elapsed} qTot={qTot} currentProgressMs={currentProgressMs}
-                            onModeToggle={handleModeToggle} mCol={mCol}
-                        />
-                    )}
+                        {!useColumns && (
+                            <div style={{ marginTop: 12 }}>
+                                <Dashboard fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={fadeExpanded} setFadeExpanded={setFadeExpanded} crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={crossExpanded} setCrossExpanded={setCrossExpanded} splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={splMeterExpanded} setSplMeterExpanded={setSplMeterExpanded} curve={curve} curvePlayheadPct={curvePlayheadPct} curveVisible={curveVisible} curveExpanded={curveExpanded} setCurveExpanded={setCurveExpanded} />
+                            </div>
+                        )}
+                    </div>
                 </main>
             </div>
 
-            {/* Right Column: Queue Sidebar */}
-            <SetlistSidebar 
-                showQueue={showQueue} 
-                isMobile={screenSize.isMobile} 
-                pQueue={pQueue}
-                ci={ci} playing={playing} isLive={isLive} stackOrder={stackOrder} mCol={mCol}
-                onQueueClick={handleQueueClick}
-                onClose={() => setShowQueue(false)}
-                onDrop={onDrop}
-            />
+            <SetlistSidebar showQueue={showQueue} isMobile={screenSize.isMobile} pQueue={pQueue} ci={ci} playing={playing} isLive={isLive} stackOrder={stackOrder} mCol={mCol} onQueueClick={handleQueueClick} onClose={() => setShowQueue(false)} onDrop={onDrop} />
 
             {trimmingTrack && <TrackTrimmer track={trimmingTrack} onSave={(s, e) => { setTrackTrim(trimmingTrack.id, s, e); setTrimmingTrack(null); }} onCancel={() => setTrimmingTrack(null)} />}
             {profileTrack && <TrackProfileModal track={profileTrack} onSave={(u) => { updateTrackMetadata(profileTrack.id, u); setProfileTrack(null); }} onCancel={() => setProfileTrack(null)} />}

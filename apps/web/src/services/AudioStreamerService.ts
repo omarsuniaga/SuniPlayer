@@ -1,5 +1,6 @@
 /**
- * AudioStreamerService — Gestión avanzada de descargas y buffering
+ * AudioStreamerService — Gestión optimizada de descargas.
+ * Eliminada dependencia de Cache API para evitar errores de entorno.
  */
 
 export interface DownloadProgress {
@@ -10,29 +11,42 @@ export interface DownloadProgress {
 }
 
 export class AudioStreamerService {
-    private static cacheName = "suniplayer-audio-v1";
-
     /**
-     * Descarga un audio con seguimiento de velocidad y lo guarda en caché
+     * Descarga un audio con seguimiento de velocidad.
+     * Si la URL es un blob muerto, intenta recuperarlo del storage local.
      */
     static async fetchWithProgress(
         url: string, 
-        onProgress: (p: DownloadProgress) => void
+        onProgress: (p: DownloadProgress) => void,
+        trackId?: string // Agregamos trackId para búsqueda en storage
     ): Promise<string> {
-        const cache = await caches.open(this.cacheName);
-        const cachedResponse = await cache.match(url);
-
-        if (cachedResponse) {
-            onProgress({ percentage: 100, speedKbps: 0, loadedBytes: 0, totalBytes: 0 });
-            const blob = await cachedResponse.blob();
-            return URL.createObjectURL(blob);
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                // Si el fetch funciona (URL viva), procesamos normalmente
+                return await this.processResponse(response, onProgress);
+            }
+        } catch (e) {
+            console.warn("[AudioStreamer] Fetch failed, attempting local recovery for:", trackId);
         }
 
-        const startTime = Date.now();
-        const response = await fetch(url);
-        
-        if (!response.body) throw new Error("No response body");
+        // 🛡️ RECUPERACIÓN LOCAL: Si falló el fetch o la URL era un blob muerto
+        if (trackId) {
+            const { storage } = await import("../platform/index");
+            const localBlob = await storage.getAudioFile(trackId);
+            if (localBlob) {
+                console.log("[AudioStreamer] 🛡️ Successfully recovered track from local storage:", trackId);
+                onProgress({ percentage: 100, speedKbps: 0, loadedBytes: localBlob.size, totalBytes: localBlob.size });
+                return URL.createObjectURL(localBlob);
+            }
+        }
 
+        throw new Error(`No se pudo cargar el audio: ${url}`);
+    }
+
+    private static async processResponse(response: Response, onProgress: (p: DownloadProgress) => void): Promise<string> {
+        const startTime = Date.now();
+        if (!response.body) throw new Error("No response body");
         const reader = response.body.getReader();
         const contentLength = +(response.headers.get('Content-Length') ?? 0);
         
@@ -42,14 +56,11 @@ export class AudioStreamerService {
         while(true) {
             const {done, value} = await reader.read();
             if (done) break;
-
             chunks.push(value);
             receivedLength += value.length;
-
             const now = Date.now();
             const durationSec = (now - startTime) / 1000;
-            const speedBytesPerSec = receivedLength / (durationSec || 1);
-            const speedKbps = (speedBytesPerSec * 8) / 1024;
+            const speedKbps = ((receivedLength / (durationSec || 1)) * 8) / 1024;
 
             onProgress({
                 percentage: contentLength ? (receivedLength / contentLength) * 100 : 0,
@@ -59,11 +70,7 @@ export class AudioStreamerService {
             });
         }
 
-        const fullBlob = new Blob(chunks as any[], { type: response.headers.get('Content-Type') ?? 'audio/mpeg' });
-        
-        // Guardar en caché para la próxima vez
-        await cache.put(url, new Response(fullBlob));
-
+        const fullBlob = new Blob(chunks, { type: response.headers.get('Content-Type') ?? 'audio/mpeg' });
         return URL.createObjectURL(fullBlob);
     }
 }

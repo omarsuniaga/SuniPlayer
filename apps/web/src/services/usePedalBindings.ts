@@ -80,20 +80,30 @@ export function handlePedalEvent(
 
     if (!matchedAction) return;
     
+    const isLive = playerStore.mode === "live";
+
     event.preventDefault();
     event.stopPropagation();
 
-    addLog(`Acción: ${matchedAction}`);
-    console.log(`[Pedal] Action triggered: ${matchedAction}`);
+    addLog(`Acción: ${matchedAction}${isLive ? " (LIVE)" : ""}`);
+    console.log(`[Pedal] Action triggered: ${matchedAction} (Live: ${isLive})`);
 
     switch (matchedAction) {
         case "next":
+            if (isLive) {
+                addLog("Pedal: NEXT bloqueado (LIVE)");
+                return;
+            }
             if (ci < pQueue.length - 1) {
                 setCi(ci + 1);
                 setPos(0);
             }
             break;
         case "prev":
+            if (isLive) {
+                addLog("Pedal: PREV bloqueado (LIVE)");
+                return;
+            }
             if (ci > 0) {
                 setCi(ci - 1);
                 setPos(0);

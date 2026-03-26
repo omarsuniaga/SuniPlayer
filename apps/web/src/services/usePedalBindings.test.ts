@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
-import { usePedalBindings } from "./usePedalBindings";
+import { handlePedalEvent } from "./usePedalBindings";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import type { Track } from "../types";
@@ -29,7 +28,7 @@ const fireKey = (key: string, target?: EventTarget) => {
     if (target) {
         Object.defineProperty(event, "target", { value: target, writable: false });
     }
-    window.dispatchEvent(event);
+    return event;
 };
 
 describe("usePedalBindings", () => {
@@ -41,9 +40,8 @@ describe("usePedalBindings", () => {
         useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
-        renderHook(() => usePedalBindings());
-
-        act(() => { fireKey("ArrowRight"); });
+        const event = fireKey("ArrowRight");
+        handlePedalEvent(event, vi.fn(), vi.fn());
 
         expect(usePlayerStore.getState().ci).toBe(1);
     });
@@ -52,9 +50,8 @@ describe("usePedalBindings", () => {
         useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1")], ci: 0 });
 
-        renderHook(() => usePedalBindings());
-
-        act(() => { fireKey("ArrowRight"); });
+        const event = fireKey("ArrowRight");
+        handlePedalEvent(event, vi.fn(), vi.fn());
 
         expect(usePlayerStore.getState().ci).toBe(0);
     });
@@ -63,9 +60,8 @@ describe("usePedalBindings", () => {
         useSettingsStore.getState().setPedalBinding("prev", { key: "ArrowLeft", label: "←" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
-        renderHook(() => usePedalBindings());
-
-        act(() => { fireKey("ArrowLeft"); });
+        const event = fireKey("ArrowLeft");
+        handlePedalEvent(event, vi.fn(), vi.fn());
 
         expect(usePlayerStore.getState().ci).toBe(0);
     });
@@ -74,12 +70,12 @@ describe("usePedalBindings", () => {
         useSettingsStore.getState().setPedalBinding("play_pause", { key: " ", label: "Espacio" });
         usePlayerStore.setState({ playing: false });
 
-        renderHook(() => usePedalBindings());
-
-        act(() => { fireKey(" "); });
+        let event = fireKey(" ");
+        handlePedalEvent(event, vi.fn(), vi.fn());
         expect(usePlayerStore.getState().playing).toBe(true);
 
-        act(() => { fireKey(" "); });
+        event = fireKey(" ");
+        handlePedalEvent(event, vi.fn(), vi.fn());
         expect(usePlayerStore.getState().playing).toBe(false);
     });
 
@@ -87,14 +83,9 @@ describe("usePedalBindings", () => {
         useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
-        renderHook(() => usePedalBindings());
-
         const input = document.createElement("input");
-        act(() => {
-            const event = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true });
-            Object.defineProperty(event, "target", { value: input, writable: false });
-            window.dispatchEvent(event);
-        });
+        const event = fireKey("ArrowRight", input);
+        handlePedalEvent(event, vi.fn(), vi.fn());
 
         expect(usePlayerStore.getState().ci).toBe(0); // unchanged
     });
@@ -102,9 +93,8 @@ describe("usePedalBindings", () => {
     it("learn mode: Escape cancels without saving", () => {
         useSettingsStore.getState().setLearningAction("next");
 
-        renderHook(() => usePedalBindings());
-
-        act(() => { fireKey("Escape"); });
+        const event = fireKey("Escape");
+        handlePedalEvent(event, vi.fn(), vi.fn());
 
         expect(useSettingsStore.getState().learningAction).toBeNull();
         expect(useSettingsStore.getState().pedalBindings.next).toBeUndefined();
@@ -113,9 +103,8 @@ describe("usePedalBindings", () => {
     it("learn mode: non-Escape key saves binding and clears learningAction", () => {
         useSettingsStore.getState().setLearningAction("vol_up");
 
-        renderHook(() => usePedalBindings());
-
-        act(() => { fireKey("PageUp"); });
+        const event = fireKey("PageUp");
+        handlePedalEvent(event, vi.fn(), vi.fn());
 
         expect(useSettingsStore.getState().learningAction).toBeNull();
         expect(useSettingsStore.getState().pedalBindings.vol_up).toEqual({
@@ -130,11 +119,8 @@ describe("usePedalBindings", () => {
         // Now learn 'prev' and press ArrowRight (same key)
         useSettingsStore.getState().setLearningAction("prev");
 
-        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-        renderHook(() => usePedalBindings());
-
-        act(() => { fireKey("ArrowRight"); });
+        const event = fireKey("ArrowRight");
+        handlePedalEvent(event, vi.fn(), vi.fn());
 
         // The binding should still be saved — conflict resolution is the UI's job
         expect(useSettingsStore.getState().pedalBindings.prev).toEqual({
@@ -144,7 +130,5 @@ describe("usePedalBindings", () => {
         // And the store should now have two actions sharing the same key
         // PedalConfig's useEffect will detect this and show the conflict UI
         expect(useSettingsStore.getState().pedalBindings.next?.key).toBe("ArrowRight");
-
-        warnSpy.mockRestore();
     });
 });

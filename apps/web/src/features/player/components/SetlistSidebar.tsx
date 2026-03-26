@@ -106,9 +106,27 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
                         {pQueue.map((t, i) => {
                             const stackIdx = stackOrder.indexOf(t.id);
                             const isActive = ci === i;
+                            const isInStack = stackIdx !== -1;
+                            
+                            // Visual prominence logic for Live Mode
+                            let opacity = 1;
+                            let background = isActive ? `${mCol}15` : "rgba(255,255,255,0.03)";
+                            let border = `1px solid ${isActive ? mCol + "40" : "transparent"}`;
+
+                            if (isLive) {
+                                if (!isActive && !isInStack) {
+                                    opacity = 0.4; // Dim unselected tracks
+                                }
+                                if (isInStack) {
+                                    background = `rgba(6, 182, 212, 0.08)`;
+                                    border = `1px solid ${THEME.colors.brand.cyan}40`;
+                                    opacity = 1;
+                                }
+                            }
+
                             return (
                                 <div 
-                                    key={t.id} 
+                                    key={`${t.instanceId || t.id}-${i}`} 
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onQueueClick(t);
@@ -122,28 +140,84 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
                                         borderRadius: THEME.radius.md, 
                                         marginBottom: 8, 
                                         cursor: "pointer",
-                                        background: isActive ? `${mCol}15` : "rgba(255,255,255,0.03)",
-                                        border: `1px solid ${isActive ? mCol + "40" : "transparent"}`,
+                                        background,
+                                        border,
                                         display: "flex", 
                                         gap: 14, 
                                         alignItems: "center", 
-                                        transition: "all 0.2s",
-                                        userSelect: "none"
+                                        transition: "all 0.3s ease",
+                                        userSelect: "none",
+                                        opacity,
+                                        position: "relative",
+                                        overflow: "hidden"
                                     }}
                                 >
-                                    <span style={{ fontFamily: THEME.fonts.mono, fontSize: 11, opacity: 0.3, minWidth: 24 }}>{String(i + 1).padStart(2, '0')}</span>
+                                    <span style={{ 
+                                        fontFamily: THEME.fonts.mono, 
+                                        fontSize: 11, 
+                                        opacity: isActive || isInStack ? 0.8 : 0.2, 
+                                        minWidth: 24,
+                                        color: isInStack ? THEME.colors.brand.cyan : "inherit"
+                                    }}>
+                                        {String(i + 1).padStart(2, '0')}
+                                    </span>
+
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: isMobile ? 15 : 14, fontWeight: 700, color: isActive ? "white" : THEME.colors.text.primary }}>{t.title}</div>
+                                        <div style={{ 
+                                            fontSize: isMobile ? 15 : 14, 
+                                            fontWeight: 700, 
+                                            color: isActive ? "white" : (isInStack ? THEME.colors.brand.cyan : THEME.colors.text.primary),
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis"
+                                        }}>
+                                            {t.title}
+                                        </div>
                                         <div style={{ fontSize: 11, color: THEME.colors.text.muted }}>{t.artist}</div>
                                     </div>
-                                    {isLive && stackIdx !== -1 && (
-                                        <div style={{ backgroundColor: THEME.colors.brand.cyan, color: "black", width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900 }}>{stackIdx + 1}</div>
+
+                                    {isLive && isInStack && (
+                                        <div style={{ 
+                                            display: "flex", 
+                                            flexDirection: "column", 
+                                            alignItems: "center", 
+                                            gap: 4 
+                                        }}>
+                                            {stackIdx === 0 && (
+                                                <span style={{ 
+                                                    fontSize: 8, 
+                                                    fontWeight: 900, 
+                                                    color: THEME.colors.brand.cyan, 
+                                                    textTransform: "uppercase",
+                                                    letterSpacing: 0.5,
+                                                    animation: "pulseText 1.5s infinite"
+                                                }}>
+                                                    NEXT
+                                                </span>
+                                            )}
+                                            <div style={{ 
+                                                backgroundColor: THEME.colors.brand.cyan, 
+                                                color: "black", 
+                                                width: 24, 
+                                                height: 24, 
+                                                borderRadius: "50%", 
+                                                display: "flex", 
+                                                alignItems: "center", 
+                                                justifyContent: "center", 
+                                                fontSize: 11, 
+                                                fontWeight: 900,
+                                                boxShadow: `0 0 12px ${THEME.colors.brand.cyan}40`
+                                            }}>
+                                                {stackIdx + 1}
+                                            </div>
+                                        </div>
                                     )}
+
                                     {isActive && playing && (
                                         <div style={{ display: "flex", gap: 3, height: 16, alignItems: "flex-end" }}>
-                                            <div style={{ width: 3, height: "60%", background: mCol }} />
-                                            <div style={{ width: 3, height: "100%", background: mCol }} />
-                                            <div style={{ width: 3, height: "40%", background: mCol }} />
+                                            <div style={{ width: 3, height: "60%", background: mCol, animation: "audioBar 0.6s infinite alternate" }} />
+                                            <div style={{ width: 3, height: "100%", background: mCol, animation: "audioBar 0.8s infinite alternate-reverse" }} />
+                                            <div style={{ width: 3, height: "40%", background: mCol, animation: "audioBar 0.5s infinite alternate" }} />
                                         </div>
                                     )}
                                 </div>
@@ -151,6 +225,18 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
                         })}
                     </div>
                 </div>
+
+                <style>{`
+                    @keyframes pulseText {
+                        0% { opacity: 0.4; transform: scale(0.95); }
+                        50% { opacity: 1; transform: scale(1.05); }
+                        100% { opacity: 0.4; transform: scale(0.95); }
+                    }
+                    @keyframes audioBar {
+                        from { height: 20%; }
+                        to { height: 100%; }
+                    }
+                `}</style>
             </aside>
         </>
     );

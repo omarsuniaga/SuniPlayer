@@ -12,7 +12,9 @@ export interface AnalysisResults {
     key: string;
     energy: number;
     waveform: number[];
-    gainOffset: number; // New: Recommended gain multiplier for normalization
+    gainOffset: number; 
+    startTime?: number; // New: Suggested start time in MS
+    endTime?: number;   // New: Suggested end time in MS
 }
 
 /**
@@ -29,8 +31,45 @@ export async function analyzeAudio(buffer: AudioBuffer): Promise<AnalysisResults
     const bpm = detectAdvancedBPM(buffer);
     const key = detectAdvancedKey(buffer);
     const waveform = generateWaveform(buffer, 100);
+    
+    // Auto-Trim Detection
+    const { startTime, endTime } = detectSilenceTrimming(buffer);
 
-    return { bpm, key, energy, waveform, gainOffset };
+    return { bpm, key, energy, waveform, gainOffset, startTime, endTime };
+}
+
+/**
+ * Detects the first and last non-silent samples to suggest trimming points.
+ * Uses a threshold of 0.005 (~ -46dB) to avoid catching background hiss.
+ */
+function detectSilenceTrimming(buffer: AudioBuffer, threshold = 0.005): { startTime: number, endTime: number } {
+    const data = buffer.getChannelData(0);
+    const sr = buffer.sampleRate;
+    
+    let first = 0;
+    let last = data.length - 1;
+
+    // Find start (look forward)
+    for (let i = 0; i < data.length; i += 100) { // Step 100 for speed
+        if (Math.abs(data[i]) > threshold) {
+            first = i;
+            break;
+        }
+    }
+
+    // Find end (look backward)
+    for (let i = data.length - 1; i >= 0; i -= 100) {
+        if (Math.abs(data[i]) > threshold) {
+            last = i;
+            break;
+        }
+    }
+
+    // Convert sample indices to Milliseconds
+    return {
+        startTime: Math.max(0, Math.floor((first / sr) * 1000) - 100), // Buffer 100ms before
+        endTime: Math.min(Math.floor(buffer.duration * 1000), Math.ceil((last / sr) * 1000) + 100) // Buffer 100ms after
+    };
 }
 
 /**

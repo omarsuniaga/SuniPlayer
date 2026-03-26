@@ -1,16 +1,18 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 
 import { History } from "../pages/History";
 import { Builder } from "../pages/Builder";
 import { Player } from "../pages/Player";
 import { Library } from "../pages/Library";
+import { usePlayerStore, useSettingsStore } from "@suniplayer/core";
 import { useProjectStore } from "../store/useProjectStore";
-import { usePlayerStore } from "../store/usePlayerStore";
 import { useAudio } from "../services/useAudio";
 import { usePedalBindings } from "../services/usePedalBindings";
 
 import { useDebugStore } from "../store/useDebugStore";
-import { Track } from "../types";
+import { SettingsPanel } from "../components/layout/SettingsPanel";
+import { LiveUnlockModal } from "../components/player/LiveUnlockModal";
+import { MiniPlayer } from "../components/player/MiniPlayer";
 
 const viewMap = {
     builder: Builder,
@@ -21,119 +23,76 @@ const viewMap = {
 
 export const AppViewport: React.FC = () => {
     const view = useProjectStore((state) => state.view);
+    const mode = useProjectStore((state) => state.mode);
+    const setMode = useProjectStore((state) => state.setMode);
+    const showSettings = useProjectStore((state) => state.showSettings);
+    const setShowSettings = useProjectStore((state) => state.setShowSettings);
+    const pQueue = usePlayerStore((state) => state.pQueue);
+    
+    const [showUnlockModal, setShowUnlockModal] = React.useState(false);
+    const isLive = mode === "live";
+
     const ActiveView = viewMap[view] ?? Player;
-    const hiddenInputRef = React.useRef<HTMLInputElement>(null);
     const setIsFocused = useDebugStore(s => s.setIsFocused);
 
     useAudio();
     usePedalBindings();
 
-    // Session Recovery: Restore blob URLs for custom tracks in the queue
-    React.useEffect(() => {
-        const restoreSession = async () => {
-            const { pQueue, setPQueue } = usePlayerStore.getState();
-            const { audioCache } = await import("../services/db");
-            
-            let changed = false;
-            const updatedQueue = await Promise.all(pQueue.map(async (track: Track) => {
-                if (track.isCustom && !track.blob_url) {
-                    const blob = await audioCache.getAudioFile(track.id);
-                    if (blob) {
-                        changed = true;
-                        return { ...track, blob_url: URL.createObjectURL(blob) };
-                    }
-                }
-                return track;
-            }));
+    // Interceptar el cambio de modo para seguridad global
+    const handleGlobalModeToggle = () => {
+        if (isLive) setShowUnlockModal(true);
+        else setMode("live");
+    };
 
-            if (changed) {
-                setPQueue(updatedQueue);
-                console.log("[Session] Recovered local audio URLs from DB");
-            }
-        };
-
-        restoreSession();
-    }, []);
-
-    // Background analysis check
-    React.useEffect(() => {
-        const interval = setInterval(() => {
-            import("../services/backgroundAnalysis").then(m => m.runBackgroundAnalysis());
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Maintain focus for pedal events (iPad keyboard emulation)
-    React.useEffect(() => {
-        const refocus = (e: MouseEvent | TouchEvent) => {
-            const target = e.target as HTMLElement;
-            if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-                hiddenInputRef.current?.focus();
-            }
-        };
-
+    // Maintain focus for pedal events
+    useEffect(() => {
         const onFocus = () => setIsFocused(true);
         const onBlur = () => setIsFocused(false);
-
-        window.addEventListener('click', refocus);
-        window.addEventListener('touchstart', refocus);
-        
-        const el = hiddenInputRef.current;
-        el?.addEventListener('focus', onFocus);
-        el?.addEventListener('blur', onBlur);
-        
-        // Initial focus
-        setTimeout(() => hiddenInputRef.current?.focus(), 1500);
-
+        window.addEventListener('focus', onFocus);
+        window.addEventListener('blur', onBlur);
         return () => {
-            window.removeEventListener('click', refocus);
-            window.removeEventListener('touchstart', refocus);
-            el?.removeEventListener('focus', onFocus);
-            el?.removeEventListener('blur', onBlur);
+            window.removeEventListener('focus', onFocus);
+            window.removeEventListener('blur', onBlur);
         };
     }, [setIsFocused]);
 
     return (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", zIndex: 1 }}>
-            {/* Last Resort Focus Anchor: Invisible Textarea covering screen area technically */}
-            <textarea 
-                id="suni-pedal-focus"
-                ref={hiddenInputRef as any}
-                inputMode="none"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck="false"
-                style={{ 
-                    position: 'fixed', 
-                    top: 0, left: 0, 
-                    width: '100%', height: '100%', 
-                    padding: 0, margin: 0,
-                    border: 'none',
-                    background: 'transparent',
-                    color: 'transparent',
-                    outline: 'none',
-                    zIndex: -1, // Cambiado de 9999 a -1 para no bloquear clics
-                    pointerEvents: 'none',
-                    fontSize: '16px', // iOS requirement to avoid auto-zoom
-                    opacity: 0.01 // Minimal opacity sometimes helps more than 0
-                }}
-                aria-hidden="true"
-            />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative", height: "100%" }}>
+            
+            {showUnlockModal && (
+                <LiveUnlockModal 
+                    onConfirm={() => { setMode("edit"); setShowUnlockModal(false); }} 
+                    onCancel={() => setShowUnlockModal(false)} 
+                />
+            )}
+
             <div 
                 key={view}
                 className="view-transition"
-                style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}
+                style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", height: "100%" }}
             >
-                <ActiveView />
+                <ActiveView onModeToggle={handleGlobalModeToggle} />
             </div>
+
+            {view !== "player" && pQueue.length > 0 && (
+                <MiniPlayer />
+            )}
+
+            {showSettings && (
+                <div style={{ position: "fixed", inset: 0, zIndex: 5000 }}>
+                    <SettingsPanel />
+                </div>
+            )}
 
             <style>{`
                 .view-transition {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
                     animation: viewFade 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
                 }
                 @keyframes viewFade {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
+                    from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
         </div>

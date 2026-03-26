@@ -1,45 +1,54 @@
+/**
+ * Core Storage Bridge — SuniPlayer
+ * Unifica Zustand persistence con operaciones de archivos binarios.
+ * Proporciona un fallback seguro a localStorage para persistencia básica de estado.
+ */
 import { StateStorage } from "zustand/middleware";
+import type { IStorage } from '../platform/interfaces/IStorage';
 
-let _storage: StateStorage | null = null;
+let _impl: IStorage | null = null;
 
-export function configureStorage(storage: StateStorage): void {
-  _storage = storage;
+/**
+ * Configura la implementación real del storage.
+ * Se debe llamar al arrancar la app (web o native).
+ */
+export function configureStorage(implementation: IStorage): void {
+  _impl = implementation;
 }
 
 /**
- * Returns a lazy proxy StateStorage.
- *
- * `createJSONStorage(() => getStorage())` calls getStorage() immediately at
- * store-creation time — before configureStorage() has been called (because the
- * stores are evaluated as a side-effect of importing '@suniplayer/core').
- *
- * Instead of throwing at creation time (which makes createJSONStorage return
- * undefined and disables persistence entirely), we return a stable proxy object
- * whose methods forward to _storage at call time, when configureStorage() has
- * already been called.
+ * lazyStorage es un objeto que cumple con IStorage y StateStorage.
+ * Delega las llamadas a la implementación configurada o usa localStorage como fallback.
  */
-const lazyStorage: StateStorage = {
-  getItem: (name) => {
-    if (!_storage) throw new Error(
-      "[suniplayer/core] Storage not configured. Call configureStorage() at app startup."
-    );
-    return _storage.getItem(name);
+const lazyStorage: IStorage & StateStorage = {
+  // --- Zustand StateStorage (Persistencia de JSON de estados) ---
+  getItem: (name: string) => {
+    const val = (_impl as any)?.getItem?.(name) || localStorage.getItem(name);
+    return val instanceof Promise ? val : Promise.resolve(val);
   },
-  setItem: (name, value) => {
-    if (!_storage) throw new Error(
-      "[suniplayer/core] Storage not configured. Call configureStorage() at app startup."
-    );
-    return _storage.setItem(name, value);
+  setItem: (name: string, value: string) => {
+    if ((_impl as any)?.setItem) return (_impl as any).setItem(name, value);
+    localStorage.setItem(name, value);
+    return Promise.resolve();
   },
-  removeItem: (name) => {
-    if (!_storage) throw new Error(
-      "[suniplayer/core] Storage not configured. Call configureStorage() at app startup."
-    );
-    return _storage.removeItem(name);
+  removeItem: (name: string) => {
+    if ((_impl as any)?.removeItem) return (_impl as any).removeItem(name);
+    localStorage.removeItem(name);
+    return Promise.resolve();
   },
+
+  // --- SuniPlayer IStorage (Archivos y Análisis) ---
+  getAnalysis: (id: string) => _impl ? _impl.getAnalysis(id) : Promise.resolve(null),
+  saveAnalysis: (id: string, data: any) => _impl ? _impl.saveAnalysis(id, data) : Promise.resolve(),
+  getWaveform: (id: string) => _impl ? _impl.getWaveform(id) : Promise.resolve(null),
+  saveWaveform: (id: string, data: number[]) => _impl ? _impl.saveWaveform(id, data) : Promise.resolve(),
+  
+  saveAudioFile: (id: string, file: Blob) => _impl ? _impl.saveAudioFile(id, file) : Promise.resolve(),
+  getAudioFile: (id: string) => _impl ? _impl.getAudioFile(id) : Promise.resolve(null),
+  deleteAudioFile: (id: string) => _impl ? _impl.deleteAudioFile(id) : Promise.resolve(),
+  getAllStoredTrackIds: () => _impl ? _impl.getAllStoredTrackIds() : Promise.resolve([]),
 };
 
-export function getStorage(): StateStorage {
-  // Return the proxy immediately — actual _storage is accessed lazily on first use.
+export function getStorage(): IStorage & StateStorage {
   return lazyStorage;
 }

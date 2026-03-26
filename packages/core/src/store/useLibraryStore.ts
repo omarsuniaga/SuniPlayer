@@ -21,16 +21,67 @@ interface LibraryState {
     setSelectedFolderName: (folderName: string | null) => void;
     setDirectoryHandle: (handle: unknown | null) => void;
     recordMetric: (id: string, playTimeMs: number, incrementCount?: boolean) => void;
+    hydrateFromStorage: () => Promise<void>;
+
+    // ── Repertoire Management ────────────────────────────────────────────────
+    repertoire: Track[];
+    addToRepertoire: (track: Track) => void;
+    removeFromRepertoire: (trackId: string) => void;
 }
 
 export const useLibraryStore = create<LibraryState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             customTracks: [],
+            repertoire: [], // La selección activa del músico
             trackOverrides: {},
             availableTags: ["Clásico", "Jazz", "Bossa", "Bolero", "Pop", "Balada", "Upbeat"],
             selectedFolderName: null,
             directoryHandle: null,
+
+            addToRepertoire: (track) => set((s) => ({ 
+                repertoire: [...s.repertoire.filter(t => t.id !== track.id), track] 
+            })),
+
+            removeFromRepertoire: (trackId) => set((s) => ({ 
+                repertoire: s.repertoire.filter(t => t.id !== trackId) 
+            })),
+
+            hydrateFromStorage: async () => {
+                const storage = getStorage();
+                const ids = await storage.getAllStoredTrackIds();
+                const hydratedTracks: Track[] = [];
+
+                for (const id of ids) {
+                    const blob = await storage.getAudioFile(id);
+                    const analysis = await storage.getAnalysis(id);
+                    
+                    if (blob && analysis) {
+                        const blobUrl = URL.createObjectURL(blob);
+                        // Merge metadata with stored analysis
+                        const track: Track = {
+                            id,
+                            title: id.split('/').pop()?.replace(/%20/g, ' ') || id,
+                            artist: "Local Storage",
+                            duration_ms: 0, // Will be updated by metadata probe
+                            file_path: id,
+                            blob_url: blobUrl,
+                            bpm: analysis.bpm,
+                            key: analysis.key,
+                            energy: analysis.energy,
+                            mood: "calm", // Default
+                            genre: "Unknown",
+                            ...get().trackOverrides[id]
+                        };
+                        hydratedTracks.push(track);
+                    }
+                }
+
+                if (hydratedTracks.length > 0) {
+                    set({ customTracks: hydratedTracks });
+                }
+            },
+
             addCustomTrack: (track) =>
                 set((state) => ({ customTracks: [...state.customTracks, track] })),
             updateTrack: (id, updates) =>
@@ -47,7 +98,14 @@ export const useLibraryStore = create<LibraryState>()(
                         trackOverrides: newOverrides
                     };
                 }),
-            clearCustomTracks: () => set({ customTracks: [], trackOverrides: {} }),
+            clearCustomTracks: async () => {
+                const storage = getStorage();
+                const ids = await storage.getAllStoredTrackIds();
+                for (const id of ids) {
+                    await storage.deleteAudioFile(id);
+                }
+                set({ customTracks: [], trackOverrides: {} });
+            },
             addTag: (tag) => set((s) => ({ 
                 availableTags: s.availableTags.includes(tag) ? s.availableTags : [...s.availableTags, tag] 
             })),
@@ -79,6 +137,7 @@ export const useLibraryStore = create<LibraryState>()(
             storage: createJSONStorage(() => getStorage()),
             partialize: (state) => ({
                 customTracks: state.customTracks,
+                repertoire: state.repertoire, // Guardar la selección curada
                 trackOverrides: state.trackOverrides,
                 availableTags: state.availableTags,
                 selectedFolderName: state.selectedFolderName,

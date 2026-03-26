@@ -204,11 +204,17 @@ export function updateTrackMetadata(trackId: string, updates: Partial<Track>) {
 export function doGen() {
     const { targetMin, curve, venue } = useBuilderStore.getState();
     const { bpmMin, bpmMax } = useSettingsStore.getState();
+    const { repertoire } = useLibraryStore.getState();
     const tSec = targetMin * 60;
     
-    // Apply overrides to catalog tracks BEFORE building the set if possible, 
-    // but building first then applying is safer for the algorithm's constraints.
-    const rawSet = buildSet(TRACKS, tSec, { curve, venue, bpmMin, bpmMax });
+    // Si no hay canciones en el repertorio, no podemos generar nada
+    if (repertoire.length === 0) {
+        alert("Primero seleccioná algunas canciones para tu Repertorio en la Biblioteca.");
+        return;
+    }
+
+    // Usar el Repertorio en lugar del catálogo estático TRACKS
+    const rawSet = buildSet(repertoire, tSec, { curve, venue, bpmMin, bpmMax });
     
     useBuilderStore.setState({
         genSet: applyOverrides(rawSet),
@@ -221,8 +227,11 @@ export function toPlayer() {
     const { playing } = usePlayerStore.getState();
     if (!genSet.length) return;
     
-    // Ensure all tracks in the set have latest overrides
-    const finalizedSet = applyOverrides(genSet);
+    // Ensure all tracks in the set have latest overrides and unique instance IDs
+    const finalizedSet = applyOverrides(genSet).map(t => ({
+        ...t,
+        instanceId: `inst_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    }));
     const tSec = targetMin * 60;
     
     if (playing) {
@@ -241,7 +250,10 @@ export function toPlayer() {
 export function appendToQueue(tracks: Track[]) {
     if (!tracks.length) return;
     const { pQueue, ci, tTarget } = usePlayerStore.getState();
-    const tracksWithOverrides = applyOverrides(tracks);
+    const tracksWithOverrides = applyOverrides(tracks).map(t => ({
+        ...t,
+        instanceId: `inst_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    }));
     
     if (pQueue.length === 0) {
         usePlayerStore.setState({

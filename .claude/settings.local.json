@@ -39,7 +39,12 @@
       "Bash(curl -s http://localhost:5174/src/components/layout/SettingsPanel.tsx)",
       "Bash(curl -s http://localhost:5174/src/store/useSettingsStore.ts)",
       "Bash(node -e \":*)",
-      "Bash(taskkill //F //IM node.exe)"
+      "Bash(taskkill //F //IM node.exe)",
+      "mcp__plugin_engram_engram__mem_session_summary",
+      "Bash(git push:*)",
+      "mcp__plugin_engram_engram__mem_context",
+      "mcp__plugin_engram_engram__mem_session_start",
+      "mcp__plugin_engram_engram__mem_save"
     ]
   }
 }

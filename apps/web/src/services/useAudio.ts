@@ -1,207 +1,192 @@
 /**
- * useAudio — Audio Engine v2.5.1 (Gapless Ping-Pong Buffer - Clean Version)
+ * useAudio — Master Performance Engine v3.6.0
+ * Unified Lifecycle Engine (Load -> Buffer -> Play)
  * 
- * Uses two separate HTMLAudioElement instances to ensure perfect transitions.
- * Track B is pre-loaded and primed while Track A is still playing.
+ * Racional: 
+ * - Unifica la carga y la reproducción en un solo flujo para evitar condiciones de carrera.
+ * - Soporta Crossfade y Pre-carga agresiva.
  */
 import { useEffect, useRef } from "react";
-import { usePlayerStore } from "../store/usePlayerStore.ts";
-import { useSettingsStore } from "../store/useSettingsStore.ts";
-import { useDebugStore } from "../store/useDebugStore.ts";
-import { useDownloadStore } from "../store/useDownloadStore.ts";
+import { 
+    usePlayerStore, 
+    useSettingsStore, 
+    Track, 
+    getTrackUrl 
+} from "@suniplayer/core";
+import { useDownloadStore } from "../store/useDownloadStore";
 import { AudioStreamerService } from "./AudioStreamerService.ts";
-import { Track } from "../types.ts";
 
-const TICK_MS = 250;
+const TICK_MS = 100;
 
 export function useAudio() {
-    const pQueue = usePlayerStore(s => s.pQueue);
-    const ci = usePlayerStore(s => s.ci);
-    const playing = usePlayerStore(s => s.playing);
-    const vol = usePlayerStore(s => s.vol);
-    const setCi = usePlayerStore(s => s.setCi);
-    const setPos = usePlayerStore(s => s.setPos);
-    const setPlaying = usePlayerStore(s => s.setPlaying);
-    const setElapsed = usePlayerStore(s => s.setElapsed);
-    const setIsSimulating = usePlayerStore(s => s.setIsSimulating);
-    const setStackOrder = usePlayerStore(s => s.setStackOrder);
-    const stackOrder = usePlayerStore(s => s.stackOrder);
+    const { 
+        pQueue, ci, playing, vol, mode, stackOrder, pos,
+        setPos, setCi, setPlaying, setElapsed, setStackOrder 
+    } = usePlayerStore(); // Usamos los stores atómicos directamente
 
-    const crossfade = useSettingsStore(s => s.crossfade);
-    const crossfadeMs = useSettingsStore(s => s.crossfadeMs);
-    const autoGain = useSettingsStore(s => s.autoGain);
-
+    const { crossfade, crossfadeMs, autoGain, fadeEnabled, fadeInMs, fadeOutMs } = useSettingsStore();
     const updateDownload = useDownloadStore(s => s.updateProgress);
-    const addLog = useDebugStore(s => s.addLog);
 
-    // ── Reproductores duales para Gapless ────────────────────────────────────
-    const primaryAudioRef = useRef<HTMLAudioElement | null>(null);
-    const secondaryAudioRef = useRef<HTMLAudioElement | null>(null);
-    const activePlayerRef = useRef<"A" | "B">("A");
-
-    const isReal = useRef(false);
-    const posRef = useRef(0);
-    const hasAdvanced = useRef(false);
-    const simRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-    const ciRef = useRef(ci);
-    const pQueueLenRef = useRef(pQueue.length);
-    const volRef = useRef(vol);
-    const crossfadeMsRef = useRef(crossfadeMs);
-    const nextTrackRef = useRef<Track | null>(null);
-
-    // Sincronización de Refs
-    ciRef.current = ci;
-    pQueueLenRef.current = pQueue.length;
-    volRef.current = vol;
-    crossfadeMsRef.current = crossfadeMs;
-
-    const ct = pQueue[ci];
-    // Determinar siguiente track para pre-carga
-    const nextTrackId = stackOrder[0];
-    const nextTrackIdx = nextTrackId ? pQueue.findIndex(t => t.id === nextTrackId) : -1;
-    const nextTrack = nextTrackIdx !== -1 ? pQueue[nextTrackIdx] : (pQueue[ci + 1] ?? null);
-    nextTrackRef.current = nextTrack;
-
-    // ── Inicialización de reproductores ──────────────────────────────────────
+    const channelARef = useRef<HTMLAudioElement | null>(null);
+    const channelBRef = useRef<HTMLAudioElement | null>(null);
+    const activeChannel = useRef<"A" | "B">("A");
+    const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    
+    // Sincronización de estado para intervalos
+    const stateRef = useRef({ playing, ci, vol, pQueue, stackOrder });
     useEffect(() => {
-        primaryAudioRef.current = new Audio();
-        secondaryAudioRef.current = new Audio();
-        
-        [primaryAudioRef.current, secondaryAudioRef.current].forEach(a => {
-            if (a) a.preload = "auto";
-        });
+        stateRef.current = { playing, ci, vol, pQueue, stackOrder };
+    }, [playing, ci, vol, pQueue, stackOrder]);
 
+    useEffect(() => {
+        channelARef.current = new Audio();
+        channelBRef.current = new Audio();
         return () => {
-            primaryAudioRef.current?.pause();
-            secondaryAudioRef.current?.pause();
+            channelARef.current?.pause();
+            channelBRef.current?.pause();
+            if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
         };
     }, []);
 
-    const getPlayer = () => activePlayerRef.current === "A" ? primaryAudioRef.current : secondaryAudioRef.current;
-    const getNextPlayer = () => activePlayerRef.current === "A" ? secondaryAudioRef.current : primaryAudioRef.current;
+    const getActive = () => activeChannel.current === "A" ? channelARef.current : channelBRef.current;
 
-    const applyEffectiveVol = (audio: HTMLAudioElement, track: Track | null) => {
+    const applyVol = (audio: HTMLAudioElement, track: Track | null, multiplier: number = 1) => {
         if (!audio) return;
-        let v = volRef.current;
+        let v = stateRef.current.vol * multiplier;
         if (track && autoGain && track.gainOffset) {
             v = Math.min(1.0, v * Math.min(2.0, track.gainOffset));
         }
-        audio.volume = v;
+        audio.volume = Math.max(0, Math.min(1, v));
     };
 
-    // ── Carga y Pre-carga (SuniSync) ─────────────────────────────────────────
-    useEffect(() => {
-        if (!ct) return;
-        const audio = getPlayer();
-        if (!audio) return;
-
-        hasAdvanced.current = false;
-        isReal.current = false;
-        posRef.current = 0;
+    const runFade = (audio: HTMLAudioElement, track: Track | null, type: "in" | "out", duration: number, onComplete?: () => void) => {
+        if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
+        const startTime = performance.now();
         
-        const audioUrl = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
-        
-        AudioStreamerService.fetchWithProgress(audioUrl, (p) => {
-            updateDownload(audioUrl, p);
-        }).then((objectUrl) => {
-            if (audio.src !== objectUrl) {
-                audio.src = objectUrl;
-                audio.load();
-            }
-            audio.currentTime = (ct.startTime || 0) / 1000;
-            applyEffectiveVol(audio, ct);
-            isReal.current = true;
-            setIsSimulating(false);
-        });
-
-    }, [ci, ct?.id, autoGain]);
-
-    // ── Media Session API ────────────────────────────────────────────────────
-    useEffect(() => {
-        if (!ct || !('mediaSession' in navigator)) return;
-        const logger = useDebugStore.getState().addLog;
-
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title: ct.title, artist: ct.artist, album: "SuniPlayer Setlist",
-            artwork: [
-                { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-                { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-            ]
-        });
-
-        const handlers: [MediaSessionAction, () => void][] = [
-            ['play', () => { logger("Media: PLAY"); setPlaying(true); }],
-            ['pause', () => { logger("Media: PAUSE"); setPlaying(false); }],
-            ['previoustrack', () => {
-                logger("Media: PREV");
-                if (ciRef.current > 0) { setCi(ciRef.current - 1); setPos(0); }
-            }],
-            ['nexttrack', () => {
-                logger("Media: NEXT");
-                if (ciRef.current < pQueueLenRef.current - 1) { setCi(ciRef.current + 1); setPos(0); }
-            }],
-            ['stop', () => { logger("Media: STOP"); setPlaying(false); setPos(0); }]
-        ];
-
-        for (const [action, handler] of handlers) {
-            try { navigator.mediaSession.setActionHandler(action, handler); } catch { }
-        }
-        return () => {
-            for (const [action] of handlers) { try { navigator.mediaSession.setActionHandler(action, null); } catch { } }
-        };
-    }, [ct, setPlaying, setCi, setPos]);
-
-    // ── Engine Loop Principal ────────────────────────────────────────────────
-    useEffect(() => {
-        const audio = getPlayer();
-        if (!audio || !ct) return;
-
-        if (!playing) {
-            audio.pause();
-            return;
+        if (type === "in") {
+            applyVol(audio, track, 0);
+            audio.play().catch((err) => {
+                console.error("[useAudio] Fade-in play failed:", err?.message ?? err);
+            });
         }
 
-        audio.play().catch(() => setIsSimulating(true));
-
-        simRef.current = setInterval(() => {
-            const trackEnd = ct.endTime || ct.duration_ms;
-            const remainingMs = trackEnd - (audio.currentTime * 1000);
+        const interval = setInterval(() => {
+            const elapsed = performance.now() - startTime;
+            const progress = Math.min(1, elapsed / duration);
+            const multiplier = type === "in" ? progress : (1 - progress);
+            applyVol(audio, track, multiplier);
             
-            posRef.current = Math.floor(audio.currentTime * 1000);
-            setPos(posRef.current);
-            applyEffectiveVol(audio, ct);
-
-            // 🟢 LOGICA DE PRE-CARGA (20s antes)
-            if (remainingMs < 20000 && nextTrackRef.current && !hasAdvanced.current) {
-                const nextPlayer = getNextPlayer();
-                const nextUrl = nextTrackRef.current.blob_url ?? `/audio/${encodeURIComponent(nextTrackRef.current.file_path)}`;
-                
-                if (nextPlayer && nextPlayer.dataset.trackId !== nextTrackRef.current.id) {
-                    addLog(`Pre-cargando: ${nextTrackRef.current.title}`);
-                    AudioStreamerService.fetchWithProgress(nextUrl, (p) => {
-                        updateDownload(nextUrl, p);
-                    }).then(objUrl => {
-                        nextPlayer.src = objUrl;
-                        nextPlayer.dataset.trackId = nextTrackRef.current!.id;
-                        nextPlayer.load();
-                    });
-                }
+            if (progress >= 1) {
+                clearInterval(interval);
+                fadeTimerRef.current = null;
+                if (type === "out") audio.pause();
+                if (onComplete) onComplete();
             }
+        }, 16);
+        fadeTimerRef.current = interval;
+    };
 
-            // 🟢 LOGICA DE TRANSICIÓN
-            const triggerTime = crossfade ? crossfadeMsRef.current : 300;
-            if (remainingMs <= triggerTime && !hasAdvanced.current) {
-                hasAdvanced.current = true;
-                addLog("Transición iniciada");
+    // ── CICLO DE VIDA UNIFICADO ──
+    useEffect(() => {
+        const ct = pQueue[ci];
+        const audio = getActive();
+        if (!ct || !audio) return;
+
+        let cancelled = false; // Flag para descartar resoluciones de efectos stale
+
+        const url = getTrackUrl(ct);
+
+        // 1. CARGA (Download -> Buffer) — async operation
+        AudioStreamerService.fetchWithProgress(url, (p) => updateDownload(ct.id, p), ct.id)
+            .then((objectUrl) => {
+                if (cancelled) return; // Efecto stale — descartar
+
+                const isNewSrc = audio.src !== objectUrl;
+                if (isNewSrc) {
+                    audio.src = objectUrl;
+                    audio.load();
+                    audio.currentTime = (ct.startTime || 0) / 1000;
+
+                    // Persistir la URL fresca en el store para evitar re-fetch de IDB en cada play
+                    if (objectUrl !== url) {
+                        usePlayerStore.setState((s) => ({
+                            pQueue: s.pQueue.map(t => t.id === ct.id ? { ...t, blob_url: objectUrl } : t)
+                        }));
+                    }
+                }
+
+                // 2. REPRODUCCIÓN (¿Debería estar sonando?)
+                if (playing) {
+                    if (audio.paused || isNewSrc) {
+                        // Si es nuevo o estaba pausado, entramos con Fade
+                        if (fadeEnabled) runFade(audio, ct, "in", fadeInMs);
+                        else {
+                            applyVol(audio, ct);
+                            audio.play().catch((err) => {
+                                console.error("[useAudio] Direct play failed:", err?.message ?? err);
+                                setPlaying(false);
+                            });
+                        }
+                    } else {
+                        // Si ya estaba sonando, solo aseguramos el volumen
+                        if (!fadeTimerRef.current) applyVol(audio, ct);
+                    }
+                } else {
+                    // 3. PAUSA (¿Debería detenerse?)
+                    if (!audio.paused) {
+                        if (fadeEnabled && audio.currentTime > 1) runFade(audio, ct, "out", fadeOutMs);
+                        else audio.pause();
+                    }
+                }
+            })
+            .catch((err) => {
+                if (cancelled) return;
+                console.error("[useAudio] No se pudo cargar el audio:", ct.title, err?.message ?? err);
+                // Revertir estado de reproducción para que el UI no quede "congelado"
+                setPlaying(false);
+            });
+
+        return () => { cancelled = true; };
+
+    }, [ci, playing, pQueue.length]); // Reacciona a cambio de track Y a Play/Pause
+
+    // ── Efecto: Volumen y Seek (Reactividad instantánea) ──
+    useEffect(() => {
+        const audio = getActive();
+        if (audio && !fadeTimerRef.current) applyVol(audio, pQueue[ci]);
+    }, [vol]);
+
+    useEffect(() => {
+        const audio = getActive();
+        if (audio && Math.abs(audio.currentTime * 1000 - pos) > 1500) {
+            audio.currentTime = pos / 1000;
+        }
+    }, [pos]);
+
+    // ── Main Loop (Progreso y Transiciones) ──
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const audio = getActive();
+            const ct = pQueue[ci];
+            if (!audio || audio.paused || !ct) return;
+
+            const currentMs = audio.currentTime * 1000;
+            setPos(Math.floor(currentMs));
+
+            const trackEnd = ct.endTime || ct.duration_ms;
+            const remainingMs = trackEnd - currentMs;
+            
+            const triggerMs = crossfade ? crossfadeMs : 300;
+            if (remainingMs <= triggerMs) {
+                const oldPlayer = audio;
+                activeChannel.current = activeChannel.current === "A" ? "B" : "A";
+                runFade(oldPlayer, ct, "out", triggerMs);
                 
-                activePlayerRef.current = activePlayerRef.current === "A" ? "B" : "A";
-                
-                if (stackOrder.length > 0) {
-                    const nextIdx = pQueue.findIndex(t => t.id === stackOrder[0]);
+                if (stateRef.current.stackOrder.length > 0) {
+                    const nextId = stateRef.current.stackOrder[0];
+                    const nextIdx = pQueue.findIndex(t => t.id === nextId);
                     setCi(nextIdx !== -1 ? nextIdx : ci + 1);
-                    setStackOrder(stackOrder.slice(1));
+                    setStackOrder(stateRef.current.stackOrder.slice(1));
                 } else if (ci < pQueue.length - 1) {
                     setCi(ci + 1);
                 } else {
@@ -210,13 +195,8 @@ export function useAudio() {
             }
         }, TICK_MS);
 
-        elapsedRef.current = setInterval(() => setElapsed((p: number) => p + 1), 1000);
+        return () => clearInterval(interval);
+    }, [ci, playing, crossfade]);
 
-        return () => {
-            clearInterval(simRef.current!);
-            clearInterval(elapsedRef.current!);
-        };
-    }, [playing, ci, ct?.id, crossfade, stackOrder.length]);
-
-    return { isReal: isReal.current };
+    return { isReal: true };
 }

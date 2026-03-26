@@ -1,24 +1,37 @@
-import React, { useState } from "react";
-import { useLibraryStore } from "../store/useLibraryStore";
-import { THEME } from "../data/theme.ts";
+import React, { useState, useRef } from "react";
+import { useLibraryStore, useProjectStore, Track } from "@suniplayer/core";
+import { THEME } from "../data/theme";
+import { TRACKS } from "../data/constants";
 import { ImportZone } from "../components/common/ImportZone";
 import { TrackRow } from "../components/common/TrackRow";
-import { useProjectStore } from "../store/useProjectStore";
 import { TrackTrimmer } from "../components/common/TrackTrimmer";
 import { TrackProfileModal } from "../components/common/TrackProfileModal";
-import { Track } from "../types";
-import { TRACKS } from "../data/constants.ts";
 import { analyzeTrack } from "../services/audioProbe.ts";
+import { usePreviewPlayer } from "../services/usePreviewPlayer.ts";
 
 export const Library: React.FC = () => {
-    const { customTracks, clearCustomTracks, trackOverrides } = useLibraryStore();
+    const { customTracks, repertoire, addToRepertoire, removeFromRepertoire, clearCustomTracks, trackOverrides } = useLibraryStore();
     const [importOpen, setImportOpen] = useState(customTracks.length === 0);
-    const [showCatalog, setShowCatalog] = useState(customTracks.length === 0);
-    const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
-    const { appendToQueue, updateTrackMetadata, setTrackTrim } = useProjectStore();
+    const { updateTrackMetadata } = useProjectStore();
+    const { previewTrackId, isPreviewPlaying, togglePreview } = usePreviewPlayer();
+    
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Auto-probe catalog tracks on mount
+    const handleButtonClick = () => {
+        if (fileInputRef.current) fileInputRef.current.click();
+        setImportOpen(true);
+    };
+
+    const toggleRepertoire = (track: Track) => {
+        const isInRepertoire = repertoire.some(t => t.id === track.id);
+        if (isInRepertoire) {
+            removeFromRepertoire(track.id);
+        } else {
+            addToRepertoire(track);
+        }
+    };
+
     React.useEffect(() => {
         TRACKS.forEach(t => {
             const url = `/audio/${encodeURIComponent(t.file_path)}`;
@@ -34,194 +47,218 @@ export const Library: React.FC = () => {
     }, []);
 
     return (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "32px", overflowY: "auto", gap: 24 }}>
-            {/* Header */}
-            <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ 
+            flex: 1, 
+            display: "flex", 
+            flexDirection: "column", 
+            padding: "32px", 
+            overflowY: "auto", // 🟢 SCROLL CRÍTICO
+            gap: 32, 
+            backgroundColor: "#0A0E14",
+            fontFamily: "'DM Sans', sans-serif",
+            height: "100%" 
+        }}>
+            <input 
+                ref={fileInputRef}
+                type="file" 
+                accept=".mp3,.wav,.m4a,.aac,.flac,audio/*" 
+                multiple 
+                style={{ display: "none" }}
+                onChange={() => setImportOpen(true)}
+            />
+
+            <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
                 <div>
-                    <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0, letterSpacing: "-0.03em" }}>Tu Música Local</h1>
-                    <p style={{ fontSize: 16, color: THEME.colors.text.muted, margin: "4px 0 0" }}>
-                        Archivos guardados permanentemente en este dispositivo
-                    </p>
+                    <h1 style={{ fontSize: 40, fontWeight: 900, margin: 0, letterSpacing: "-0.04em", color: "white" }}>Biblioteca Local</h1>
+                    <p style={{ fontSize: 16, color: THEME.colors.text.muted, marginTop: 6, fontWeight: 500 }}>Gestioná tu música offline para el escenario</p>
                 </div>
                 
                 <div style={{ display: "flex", gap: 12 }}>
                     {customTracks.length > 0 && (
                         <button
-                            onClick={clearCustomTracks}
-                            style={{
-                                padding: "10px 16px", borderRadius: THEME.radius.md,
-                                border: `1px solid ${THEME.colors.status.error}40`,
-                                backgroundColor: "transparent", color: THEME.colors.status.error,
-                                cursor: "pointer", fontSize: 13, fontWeight: 600,
+                            onClick={() => confirm("¿VACIAR DISCO? Esta acción borrará físicamente los audios del navegador.") && clearCustomTracks()}
+                            style={{ 
+                                padding: "12px 20px", borderRadius: 12, border: `1px solid ${THEME.colors.status.error}40`, 
+                                color: THEME.colors.status.error, background: "rgba(239, 68, 68, 0.05)", 
+                                cursor: "pointer", fontSize: 13, fontWeight: 700, transition: "all 0.2s" 
                             }}
                         >
-                            Limpiar Todo
+                            VACIAR DISCO
                         </button>
                     )}
                     <button
-                        onClick={() => setImportOpen(!importOpen)}
-                        style={{
-                            padding: "10px 24px", borderRadius: THEME.radius.md,
-                            border: "none", background: THEME.gradients.brand,
-                            color: "white", cursor: "pointer", fontSize: 14, fontWeight: 800,
-                            boxShadow: `0 8px 24px ${THEME.colors.brand.cyan}40`,
+                        className="btn-glow"
+                        onClick={handleButtonClick}
+                        style={{ 
+                            padding: "14px 28px", borderRadius: 12, background: THEME.gradients.brand, 
+                            color: "white", border: "none", fontWeight: 900, fontSize: 14, 
+                            cursor: "pointer", boxShadow: `0 10px 25px ${THEME.colors.brand.cyan}40`, 
+                            transition: "transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)" 
                         }}
                     >
-                        {importOpen ? "Cerrar" : "+ IMPORTAR MÚSICA"}
+                        {importOpen ? "+ AGREGAR MÁS" : "IMPORTAR MÚSICA"}
                     </button>
                 </div>
             </header>
 
-            {/* Import Area */}
             {importOpen && (
                 <div style={{ 
-                    backgroundColor: THEME.colors.surface, borderRadius: THEME.radius.xl, 
-                    border: `2px solid ${THEME.colors.brand.cyan}30`, overflow: "hidden",
-                    animation: "fadeIn 0.3s ease-out"
+                    backgroundColor: "#121820", borderRadius: 20, 
+                    border: `1px solid ${THEME.colors.brand.cyan}30`, overflow: "hidden", 
+                    animation: "slideDown 0.4s ease-out", backdropFilter: "blur(20px)" 
                 }}>
-                    <ImportZone onClose={() => setImportOpen(false)} />
+                    <ImportZone externalFiles={fileInputRef.current?.files} onClose={() => setImportOpen(false)} />
                 </div>
             )}
 
-            {/* 1. SECCIÓN: TUS ARCHIVOS (Prioridad) */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 8px" }}>
-                    <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: THEME.colors.brand.cyan }}>BIBLIOTECA PERSONAL ({customTracks.length})</h2>
-                </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 420px), 1fr))", gap: 20 }}>
+                {customTracks.length === 0 && !importOpen && (
+                    <div onClick={handleButtonClick} style={{ 
+                        gridColumn: "1/-1", padding: "100px 40px", textAlign: "center", 
+                        border: `2px dashed ${THEME.colors.border}`, borderRadius: 24, 
+                        cursor: "pointer", background: "rgba(255,255,255,0.01)", transition: "all 0.3s" 
+                    }}>
+                        <div style={{ fontSize: 50, marginBottom: 20 }}>💿</div>
+                        <h2 style={{ fontSize: 24, fontWeight: 800, color: "white", margin: "0 0 10px" }}>Tu biblioteca está lista para el show</h2>
+                        <p style={{ color: THEME.colors.text.muted, fontSize: 16, maxWidth: "450px", margin: "0 auto", lineHeight: 1.6 }}>Tocá acá para cargar tus archivos <strong>MP3 o WAV</strong>. Se guardarán de forma persistente como en una app nativa.</p>
+                    </div>
+                )}
 
-                {customTracks.length === 0 ? (
-                    <div 
-                        onClick={() => setImportOpen(true)}
-                        style={{ 
-                            flex: 1,
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: "80px 40px",
-                            textAlign: "center", 
-                            backgroundColor: "rgba(255,255,255,0.01)", 
-                            borderRadius: THEME.radius.xl,
-                            border: `2px dashed ${THEME.colors.border}`, 
-                            cursor: "pointer",
-                            gap: 20,
-                            animation: "fadeIn 0.6s ease-out"
-                        }}
-                    >
-                        <div style={{
-                            width: 80, height: 80, borderRadius: "50%",
-                            backgroundColor: `${THEME.colors.brand.cyan}10`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            color: THEME.colors.brand.cyan,
-                            marginBottom: 8
-                        }}>
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 18V5l12-2v13M6 15a3 3 0 1 0 0 6 3 3 0 000-6zm12-2a3 3 0 1 0 0 6 3 3 0 000-6z" /></svg>
-                        </div>
-                        <div>
-                            <h3 style={{ fontSize: 20, fontWeight: 800, margin: "0 0 8px", color: "white" }}>Tu biblioteca está lista</h3>
-                            <p style={{ color: THEME.colors.text.muted, fontSize: 15, margin: 0, maxWidth: 400, lineHeight: 1.6 }}>
-                                Importa tus archivos <strong>MP3 o WAV</strong> desde tu iPad para empezar a crear sets inteligentes.
-                            </p>
-                        </div>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setImportOpen(true);
-                            }}
-                            style={{
-                                marginTop: 12, padding: "12px 32px", borderRadius: THEME.radius.full,
-                                border: "none", background: THEME.colors.brand.cyan,
-                                color: "black", fontSize: 14, fontWeight: 900,
-                                boxShadow: `0 10px 30px ${THEME.colors.brand.cyan}40`,
-                                cursor: "pointer",
-                                position: "relative",
-                                zIndex: 5
+                {customTracks.map((track) => {
+                    const isSelected = previewTrackId === track.id;
+                    const isPlaying = isSelected && isPreviewPlaying;
+                    const isInRepertoire = repertoire.some(t => t.id === track.id);
+                    
+                    return (
+                        <div 
+                            key={track.id} 
+                            className="track-card"
+                            style={{ 
+                                backgroundColor: isSelected ? "rgba(6, 182, 212, 0.08)" : "#121820", 
+                                padding: "20px", borderRadius: 20, display: "flex", flexDirection: "column", gap: 16,
+                                border: `1px solid ${isSelected ? THEME.colors.brand.cyan : (isInRepertoire ? `${THEME.colors.brand.cyan}40` : THEME.colors.border)}`,
+                                boxShadow: isSelected ? `0 0 40px ${THEME.colors.brand.cyan}20` : "none",
+                                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                position: "relative", overflow: "hidden"
                             }}
                         >
-                            COMENZAR IMPORTACIÓN
-                        </button>
-                    </div>
-                ) : (
-                    <div style={{ 
-                        display: "grid", 
-                        gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 360px), 1fr))", 
-                        gap: "20px" 
-                    }}>
-                        {customTracks.map((track: Track) => (
-                            <div key={track.id} style={{ 
-                                backgroundColor: THEME.colors.panel, borderRadius: THEME.radius.lg,
-                                border: `1px solid ${THEME.colors.border}`, padding: 14,
-                                display: "flex", alignItems: "center", gap: 12, transition: "all 0.2s",
-                            }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <TrackRow track={track} small idx={0} onTrim={() => setTrimmingTrack(track)} onEdit={() => setProfileTrack(track)} />
+                            {/* Repertoire Status Indicator */}
+                            {isInRepertoire && (
+                                <div style={{ 
+                                    position: "absolute", top: 0, right: 0, width: 0, height: 0, 
+                                    borderStyle: "solid", borderWidth: "0 40px 40px 0", 
+                                    borderColor: `transparent ${THEME.colors.brand.cyan} transparent transparent`,
+                                    zIndex: 1
+                                }}>
+                                    <span style={{ position: "absolute", top: 6, right: -36, color: "black", fontSize: 10, fontWeight: 900 }}>✓</span>
                                 </div>
-                                <button
-                                    onClick={() => appendToQueue([track])}
-                                    style={{
-                                        width: 40, height: 40, borderRadius: THEME.radius.md,
-                                        border: "none", backgroundColor: `${THEME.colors.brand.cyan}15`,
-                                        color: THEME.colors.brand.cyan, cursor: "pointer",
-                                        display: "flex", alignItems: "center", justifyContent: "center"
+                            )}
+
+                            <div style={{ display: "flex", alignItems: "center", gap: 16, zIndex: 2 }}>
+                                <button 
+                                    onClick={() => togglePreview(track)}
+                                    style={{ 
+                                        width: 56, height: 56, borderRadius: "50%", border: "none", 
+                                        background: isPlaying ? THEME.colors.brand.cyan : "rgba(255,255,255,0.05)", 
+                                        color: isPlaying ? "black" : THEME.colors.brand.cyan, 
+                                        cursor: "pointer", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center",
+                                        transition: "all 0.2s", boxShadow: isPlaying ? `0 0 25px ${THEME.colors.brand.cyan}50` : "none"
                                     }}
                                 >
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+                                    {isPlaying ? "⏸" : "▶"}
+                                </button>
+                                
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 19, fontWeight: 800, color: "white", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{track.title}</div>
+                                    <div style={{ fontSize: 13, color: THEME.colors.text.muted, marginTop: 2, fontWeight: 600 }}>{track.artist || "Artista Local"}</div>
+                                </div>
+
+                                <button 
+                                    onClick={() => toggleRepertoire(track)} 
+                                    className="repertoire-btn"
+                                    style={{ 
+                                        width: 48, height: 48, borderRadius: 14, border: "none", 
+                                        background: isInRepertoire ? THEME.colors.brand.cyan : "rgba(255,255,255,0.05)", 
+                                        color: isInRepertoire ? "black" : "white", 
+                                        fontSize: 24, fontWeight: 900, cursor: "pointer",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        transition: "all 0.3s",
+                                        boxShadow: isInRepertoire ? `0 5px 15px ${THEME.colors.brand.cyan}30` : "none"
+                                    }}
+                                >
+                                    {isInRepertoire ? "✓" : "+"}
                                 </button>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </div>
 
-            {/* 2. SECCIÓN: CATÁLOGO DEMO (Secundario) */}
-            <div style={{ marginTop: 20 }}>
-                <button 
-                    onClick={() => setShowCatalog(!showCatalog)}
-                    style={{ background: "none", border: "none", color: THEME.colors.text.muted, fontSize: 12, cursor: "pointer", textDecoration: "underline", padding: 0 }}
-                >
-                    {showCatalog ? "Ocultar catálogo demo" : "Ver canciones demo de SuniPlayer"}
-                </button>
+                            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", zIndex: 2 }}>
+                                <div style={badgeStyle(`${THEME.colors.brand.cyan}12`, THEME.colors.brand.cyan)}>
+                                    <span style={{ fontSize: 9, opacity: 0.6, marginRight: 4, fontWeight: 600 }}>BPM</span>
+                                    {Math.round(track.bpm || 120)}
+                                </div>
+                                <div style={badgeStyle(`${THEME.colors.brand.violet}12`, THEME.colors.brand.violet)}>
+                                    <span style={{ fontSize: 9, opacity: 0.6, marginRight: 4, fontWeight: 600 }}>NRG</span>
+                                    {Math.round((track.energy || 0.5) * 100)}%
+                                </div>
+                                <div style={badgeStyle("rgba(255,255,255,0.04)", THEME.colors.text.muted)}>
+                                    {track.key || "C"}
+                                </div>
+                                <div style={{ flex: 1 }} />
+                                <button 
+                                    onClick={() => setProfileTrack(track)}
+                                    style={{ background: "none", border: "none", color: THEME.colors.text.muted, fontSize: 12, fontWeight: 800, cursor: "pointer", textDecoration: "underline", opacity: 0.7 }}
+                                >
+                                    EDITAR
+                                </button>
+                            </div>
 
-                {showCatalog && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
-                            {TRACKS.map((rawTrack) => {
-                                const override = trackOverrides[rawTrack.id] || {};
-                                const track = { ...rawTrack, ...override };
-                                return (
-                                    <div key={track.id} style={{ 
-                                        backgroundColor: "rgba(255,255,255,0.02)", borderRadius: THEME.radius.lg,
-                                        border: `1px solid ${THEME.colors.border}`, padding: 12,
-                                        display: "flex", alignItems: "center", gap: 12, opacity: 0.7
-                                    }}>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <TrackRow track={track} small idx={0} onEdit={() => setProfileTrack(track)} />
-                                        </div>
-                                        <button
-                                            onClick={() => appendToQueue([track])}
-                                            style={{
-                                                width: 36, height: 36, borderRadius: THEME.radius.md,
-                                                border: "none", backgroundColor: "rgba(255,255,255,0.05)",
-                                                color: THEME.colors.text.muted, cursor: "pointer",
-                                                display: "flex", alignItems: "center", justifyContent: "center"
-                                            }}
-                                        >
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
-                                        </button>
-                                    </div>
-                                );
-                            })}
+                            {isSelected && (
+                                <div style={{ position: "absolute", bottom: 0, left: 0, height: 4, background: THEME.colors.brand.cyan, width: isPlaying ? "100%" : "0%", transition: "width 0.3s linear" }} />
+                            )}
                         </div>
-                    </div>
-                )}
+                    );
+                })}
             </div>
 
-            {trimmingTrack && <TrackTrimmer track={trimmingTrack} onSave={(s, e) => { setTrackTrim(trimmingTrack.id, s, e); setTrimmingTrack(null); }} onCancel={() => setTrimmingTrack(null)} />}
             {profileTrack && <TrackProfileModal track={profileTrack} onSave={(u) => { updateTrackMetadata(profileTrack.id, u); setProfileTrack(null); }} onCancel={() => setProfileTrack(null)} />}
 
             <style>{`
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+                
+                .track-card:hover {
+                    transform: scale(1.01) translateY(-4px);
+                    background-color: #161d27 !important;
+                    box-shadow: 0 15px 45px rgba(0,0,0,0.4);
+                }
+
+                .repertoire-btn:hover {
+                    transform: scale(1.1);
+                }
+
+                .btn-glow:hover {
+                    filter: brightness(1.2);
+                    box-shadow: 0 0 30px ${THEME.colors.brand.cyan}60 !important;
+                }
+
+                @media (max-width: 640px) {
+                    h1 { font-size: 28px !important; }
+                    p.page-subtitle { font-size: 14px !important; }
+                    .main-import-btn { padding: 10px 16px !important; font-size: 12px !important; }
+                    .track-card { padding: 14px !important; gap: 12px !important; }
+                }
             `}</style>
         </div>
     );
 };
+
+const badgeStyle = (bg: string, col: string): React.CSSProperties => ({
+    padding: "6px 14px",
+    borderRadius: "10px",
+    backgroundColor: bg,
+    color: col,
+    fontSize: "13px",
+    fontWeight: 800,
+    display: "flex",
+    alignItems: "center",
+    fontFamily: "'JetBrains Mono', monospace",
+    letterSpacing: "-0.02em"
+});

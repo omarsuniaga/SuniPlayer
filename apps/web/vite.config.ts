@@ -9,6 +9,10 @@ export default defineConfig({
         __BUILD_DATE__: JSON.stringify(new Date().toLocaleDateString('es-ES', { timeZone: 'America/Caracas', year: 'numeric', month: '2-digit', day: '2-digit' }).split('/').reverse().join('-')),
         __BUILD_TIME__: JSON.stringify(new Date().toLocaleTimeString('es-ES', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: false })),
     },
+    server: {
+        host: true,
+        port: 5173,
+    },
     plugins: [
         react(),
         VitePWA({

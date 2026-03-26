@@ -1,60 +1,33 @@
-import React from "react";
-import { useProjectStore } from "../../store/useProjectStore";
-import { THEME } from "../../data/theme.ts";
+import React, { useState } from "react";
+import { useProjectStore, usePlayerStore, Track } from "@suniplayer/core";
+import { THEME } from "../../data/theme";
+import { fmt } from "../../services/uiUtils";
+import { LiveUnlockModal } from "../player/LiveUnlockModal";
+import { sumTrackDurationMs } from "../../utils/trackMetrics";
 
 export const Navbar: React.FC = () => {
-    const view = useProjectStore(s => s.view);
-    const setView = useProjectStore(s => s.setView);
     const pQueue = useProjectStore(s => s.pQueue);
+    const ci = useProjectStore(s => s.ci);
+    const pos = useProjectStore(s => s.pos);
     const playing = useProjectStore(s => s.playing);
     const setShowSettings = useProjectStore(s => s.setShowSettings);
+    
+    // Show Mode State & Actions
+    const mode = useProjectStore(s => s.mode);
+    const setMode = useProjectStore(s => s.setMode);
+    const elapsed = useProjectStore(s => s.elapsed);
+    const isShowMode = mode === "live";
+    
+    const [showUnlockModal, setShowUnlockModal] = useState(false);
 
-    const navBtn = (id: "builder" | "player" | "history" | "library", label: string, icon: React.ReactNode) => {
-        const active = view === id;
-        return (
-            <button
-                key={id}
-                onClick={() => setView(id)}
-                style={{
-                    padding: "8px 16px",
-                    borderRadius: THEME.radius.md,
-                    border: "none",
-                    cursor: "pointer",
-                    backgroundColor: active ? "rgba(6,182,212,0.12)" : "transparent",
-                    color: active ? THEME.colors.brand.cyan : THEME.colors.text.secondary,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    transition: "all 0.2s",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                }}
-                onMouseEnter={e => {
-                    if (!active) e.currentTarget.style.backgroundColor = THEME.colors.surfaceHover;
-                }}
-                onMouseLeave={e => {
-                    if (!active) e.currentTarget.style.backgroundColor = "transparent";
-                }}
-            >
-                {icon}
-                {label}
-                {id === "player" && pQueue.length > 0 && (
-                    <span
-                        style={{
-                            fontSize: 9,
-                            padding: "2px 6px",
-                            borderRadius: THEME.radius.full,
-                            backgroundColor: playing ? THEME.colors.brand.cyan : "rgba(255,255,255,0.15)",
-                            color: "white",
-                            fontWeight: 700,
-                            transition: "background-color 0.3s",
-                        }}
-                    >
-                        {pQueue.length}
-                    </span>
-                )}
-            </button>
-        );
+    // Cálculos de tiempo total
+    const qTot = sumTrackDurationMs(pQueue);
+    const currentProgressMs = sumTrackDurationMs(pQueue.slice(0, ci)) + pos;
+    const totalRemainingMs = Math.max(0, qTot - currentProgressMs);
+
+    const handleModeToggle = () => {
+        if (isShowMode) setShowUnlockModal(true);
+        else setMode("live");
     };
 
     return (
@@ -63,130 +36,111 @@ export const Navbar: React.FC = () => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "12px 24px",
-                backgroundColor: "rgba(10,10,15,0.8)",
-                borderBottom: `1px solid ${THEME.colors.border}`,
+                padding: "0 24px",
+                height: "64px",
+                backgroundColor: isShowMode ? "rgba(10, 0, 20, 0.95)" : "rgba(10,10,15,0.85)",
+                borderBottom: `1px solid ${isShowMode ? THEME.colors.brand.violet + "60" : THEME.colors.border}`,
                 position: "sticky",
                 top: 0,
-                zIndex: 100,
-                backdropFilter: "blur(16px)",
-                WebkitBackdropFilter: "blur(16px)",
-                flexShrink: 0,
+                zIndex: 1000,
+                backdropFilter: "blur(20px)",
+                transition: "all 0.5s ease"
             }}
         >
-            {/* ── Logo ── */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div
-                    style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: THEME.radius.md,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: THEME.gradients.brand,
-                        boxShadow: `0 4px 12px ${THEME.colors.brand.cyan}40`,
-                    }}
-                >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                    </svg>
-                </div>
-                <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.02em" }}>SuniPlayer</span>
+            {showUnlockModal && (
+                <LiveUnlockModal 
+                    onConfirm={() => { setMode("edit"); setShowUnlockModal(false); }} 
+                    onCancel={() => setShowUnlockModal(false)} 
+                />
+            )}
 
-                {/* Playing indicator bars — desktop only */}
-                {playing && (
-                    <div className="playing-bars" style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 15, marginLeft: 4 }}>
-                        {[0.55, 1, 0.7, 0.85, 0.45].map((h, i) => (
-                            <div
-                                key={i}
-                                style={{
-                                    width: 3,
-                                    height: `${h * 15}px`,
-                                    backgroundColor: THEME.colors.brand.cyan,
-                                    borderRadius: 2,
-                                    animation: `pulse ${0.55 + i * 0.1}s ease-in-out infinite alternate`,
-                                    opacity: 0.85,
-                                }}
-                            />
-                        ))}
+            {/* ── Left side: Logo & Timers ── */}
+            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                        width: 32, height: 32, borderRadius: THEME.radius.md,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: isShowMode ? THEME.colors.brand.violet : THEME.gradients.brand,
+                        boxShadow: isShowMode ? `0 0 15px ${THEME.colors.brand.violet}60` : `0 4px 12px ${THEME.colors.brand.cyan}40`,
+                    }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+                    </div>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: "white" }} className="nav-logo-text">SuniPlayer</span>
+                </div>
+
+                {/* ⏱️ DUAL SHOW TIMER */}
+                {pQueue.length > 0 && (
+                    <div style={{ 
+                        display: "flex", alignItems: "center", 
+                        backgroundColor: "rgba(255,255,255,0.03)",
+                        borderRadius: "10px",
+                        padding: "2px",
+                        border: `1px solid ${isShowMode ? THEME.colors.brand.violet + "40" : "rgba(255,255,255,0.05)"}`
+                    }}>
+                        {/* Elapsed */}
+                        <div style={{ padding: "4px 12px", textAlign: "center" }}>
+                            <div style={{ fontSize: 8, fontWeight: 800, color: THEME.colors.text.muted, letterSpacing: 0.5 }}>ELAPSED</div>
+                            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 800, color: isShowMode ? THEME.colors.brand.violet : THEME.colors.brand.cyan }}>
+                                {fmt(elapsed * 1000)}
+                            </div>
+                        </div>
+                        {/* Separator */}
+                        <div style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.1)" }} />
+                        {/* Remaining */}
+                        <div style={{ padding: "4px 12px", textAlign: "center" }}>
+                            <div style={{ fontSize: 8, fontWeight: 800, color: THEME.colors.text.muted, letterSpacing: 0.5 }}>REMAINING</div>
+                            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 800, color: "white" }}>
+                                {fmt(totalRemainingMs)}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* ── Desktop Nav (hidden on mobile, replaced by BottomNav) ── */}
-            <nav
-                className="desktop-nav"
-                style={{
-                    display: "flex",
-                    gap: 4,
-                    padding: 4,
-                    backgroundColor: "rgba(255,255,255,0.03)",
-                    borderRadius: THEME.radius.lg,
-                }}
-            >
-                {navBtn("player", "Player",
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z" />
-                    </svg>
-                )}
-                {navBtn("history", "History",
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                    </svg>
-                )}
-                {navBtn("builder", "Builder",
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" />
-                    </svg>
-                )}
-                {navBtn("library", "Library",
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M9 18V5l12-2v13" />
-                        <circle cx="6" cy="18" r="3" />
-                        <circle cx="18" cy="16" r="3" />
-                    </svg>
-                )}
-            </nav>
+            {/* ── Right side: Show Toggle & Settings ── */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <button
+                    onClick={handleModeToggle}
+                    className="mode-toggle-btn"
+                    style={{
+                        padding: "8px 16px",
+                        borderRadius: "10px",
+                        border: `1px solid ${isShowMode ? THEME.colors.brand.violet : "rgba(255,255,255,0.1)"}`,
+                        background: isShowMode ? THEME.colors.brand.violet : "rgba(255,255,255,0.02)",
+                        color: isShowMode ? "white" : THEME.colors.text.muted,
+                        cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 8,
+                        fontWeight: 900, fontSize: 11,
+                        transition: "all 0.3s ease"
+                    }}
+                >
+                    <div className={isShowMode ? "record-dot-active" : "record-dot"} />
+                    <span>{isShowMode ? "MODO SHOW" : "SHOW"}</span>
+                </button>
 
-            {/* ── Right side: Settings button (always visible, hamburger future use) ── */}
-            <button
-                className="settings-btn"
-                title="Configuración"
-                onClick={() => setShowSettings(true)}
-                style={{
-                    background: "none",
-                    border: `1px solid ${THEME.colors.border}`,
-                    borderRadius: THEME.radius.md,
-                    cursor: "pointer",
-                    color: THEME.colors.text.muted,
-                    padding: "6px 8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all 0.2s",
-                }}
-                onMouseEnter={e => {
-                    e.currentTarget.style.backgroundColor = THEME.colors.surfaceHover;
-                    e.currentTarget.style.color = THEME.colors.text.primary;
-                }}
-                onMouseLeave={e => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.color = THEME.colors.text.muted;
-                }}
-            >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-            </button>
+                <button
+                    className="settings-btn"
+                    onClick={() => setShowSettings(true)}
+                    style={{
+                        background: "none",
+                        border: `1px solid rgba(255,255,255,0.1)`,
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        color: THEME.colors.text.muted,
+                        width: "38px", height: "38px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+                </button>
+            </div>
 
-            {/* ── Responsive styles ── */}
             <style>{`
-                @media (max-width: 640px) {
-                    .desktop-nav   { display: none !important; }
-                    .playing-bars  { display: none !important; }
-                }
+                .record-dot { width: 8px; height: 8px; border-radius: 50%; background: #FF0000; opacity: 0.4; }
+                .record-dot-active { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: blink 1s infinite; }
+                @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+                @media (max-width: 850px) { .nav-logo-text { display: none; } }
+                @media (max-width: 640px) { .live-label { display: none; } }
             `}</style>
         </header>
     );
