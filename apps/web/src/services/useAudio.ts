@@ -38,6 +38,7 @@ export function useAudio() {
     const channelBRef = useRef<HTMLAudioElement | null>(null);
     const activeChannel = useRef<"A" | "B">("A");
     const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const playbackQueueRef = useRef<{ audio: HTMLAudioElement; track: Track; type: "fade" | "direct"; fadeInMs?: number } | null>(null);
     
     // Sincronización de estado para intervalos
     const stateRef = useRef({ playing, ci, vol, pQueue, stackOrder });
@@ -49,6 +50,29 @@ export function useAudio() {
         channelARef.current = new Audio();
         channelBRef.current = new Audio();
         console.log("[useAudio] 🎧 Audio channels initialized (A/B)");
+
+        // Setup event handlers for when audio is ready to play
+        const setupAudioHandlers = (audio: HTMLAudioElement) => {
+            audio.addEventListener("canplay", () => {
+                if (playbackQueueRef.current && playbackQueueRef.current.audio === audio) {
+                    const { track, type, fadeInMs } = playbackQueueRef.current;
+                    console.log(`[useAudio] 🟢 Audio ready to play: ${track.title}`);
+                    if (type === "fade" && fadeInMs) {
+                        runFade(audio, track, "in", fadeInMs);
+                    } else {
+                        applyVol(audio, track);
+                        audio.play().catch((err) => {
+                            console.error("[useAudio] 🔴 Play after canplay failed:", err?.message ?? err);
+                        });
+                    }
+                    playbackQueueRef.current = null;
+                }
+            });
+        };
+
+        if (channelARef.current) setupAudioHandlers(channelARef.current);
+        if (channelBRef.current) setupAudioHandlers(channelBRef.current);
+
         return () => {
             channelARef.current?.pause();
             channelBRef.current?.pause();
@@ -128,15 +152,29 @@ export function useAudio() {
                 // 2. REPRODUCCIÓN (¿Debería estar sonando?)
                 if (playing) {
                     if (audio.paused || isNewSrc) {
-                        // Si es nuevo o estaba pausado, entramos con Fade
-                        if (fadeEnabled) runFade(audio, ct, "in", fadeInMs);
-                        else {
-                            applyVol(audio, ct);
-                            console.log(`[useAudio] ▶️ Attempting direct play for: ${ct.title}`);
-                            audio.play().catch((err) => {
-                                console.error("[useAudio] 🔴 Direct play failed:", err?.message ?? err, "error:", err);
-                                setPlaying(false);
-                            });
+                        // Si es nuevo o estaba pausado, queue the playback for when ready
+                        console.log(`[useAudio] 📋 Queueing playback for: ${ct.title}, fadeEnabled: ${fadeEnabled}`);
+                        playbackQueueRef.current = {
+                            audio,
+                            track: ct,
+                            type: fadeEnabled ? "fade" : "direct",
+                            fadeInMs: fadeEnabled ? fadeInMs : undefined
+                        };
+
+                        // If audio is already ready (cached or quick load), trigger immediately
+                        if (audio.readyState >= 2) { // >= HAVE_CURRENT_DATA
+                            console.log(`[useAudio] ⚡ Audio already ready, triggering playback immediately`);
+                            const queue = playbackQueueRef.current;
+                            playbackQueueRef.current = null;
+                            if (queue.type === "fade") {
+                                runFade(queue.audio, queue.track, "in", queue.fadeInMs || fadeInMs);
+                            } else {
+                                applyVol(queue.audio, queue.track);
+                                queue.audio.play().catch((err) => {
+                                    console.error("[useAudio] 🔴 Immediate play failed:", err?.message ?? err);
+                                    setPlaying(false);
+                                });
+                            }
                         }
                     } else {
                         // Si ya estaba sonando, solo aseguramos el volumen
