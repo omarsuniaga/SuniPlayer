@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Track } from "../../types.ts";
 import { THEME } from "../../data/theme.ts";
 import { fmt, fmtFull } from "../../services/uiUtils.ts";
@@ -28,12 +29,15 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
     const setPlaying = usePlayerStore(s => s.setPlaying);
+    const mode = usePlayerStore(s => s.mode);
     const wasPlayingRef = useRef(false);
 
+    // En Live Mode la música no se interrumpe al abrir propiedades
     useEffect(() => {
+        if (mode === "live") return;
         wasPlayingRef.current = usePlayerStore.getState().playing;
         setPlaying(false);
-    }, []);
+    }, [mode, setPlaying]);
 
     const sourceKey = edit.key || track.key || "";
     const targetKey = edit.targetKey || sourceKey;
@@ -43,6 +47,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
 
     const handleSave = () => {
         getPitchEngine().stop();
+        if (wasPlayingRef.current) setPlaying(true);
         onSave({
             ...edit,
             targetKey,
@@ -201,29 +206,34 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
         }
     };
 
-    return (
+    return createPortal(
         <div style={{
-            position: "fixed", inset: 0, zIndex: 3000,
+            position: "fixed", inset: 0, zIndex: 9000,
             display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 20, backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)",
+            padding: "20px 12px",
+            backgroundColor: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)",
+            boxSizing: "border-box", overflowY: "auto",
             animation: "fadeIn 0.2s ease-out"
         }}>
             <div style={{
                 backgroundColor: "#0D1117",
                 border: `1px solid ${THEME.colors.borderLight}`,
                 borderRadius: THEME.radius.xl,
-                width: "min(500px, 95vw)",
-                maxHeight: "90vh",
+                width: "min(500px, 100%)",
+                maxHeight: "calc(100vh - 40px)",
                 overflow: "hidden",
+                minHeight: 0,
                 display: "flex", flexDirection: "column",
-                boxShadow: `0 30px 100px rgba(0,0,0,0.8)`,
-                animation: "scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+                boxShadow: `0 0 80px rgba(139,92,246,0.2), 0 30px 100px rgba(0,0,0,0.8)`,
+                animation: "scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                flexShrink: 0,
             }}>
                 {/* Header */}
-                <header style={{ 
-                    padding: "24px 28px", 
+                <header style={{
+                    padding: "20px 24px 0",
                     borderBottom: `1px solid ${THEME.colors.border}`,
-                    background: `linear-gradient(to bottom, rgba(139,92,246,0.05), transparent)`
+                    background: `linear-gradient(to bottom, rgba(139,92,246,0.05), transparent)`,
+                    flexShrink: 0,
                 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <div>
@@ -237,7 +247,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                     </div>
 
                     {/* Tabs */}
-                    <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
+                    <div style={{ display: "flex", gap: 24, marginTop: 16 }}>
                         {(["info", "notes", "audio", "sheet"] as const).map(tab => (
                             <button
                                 key={tab}
@@ -257,7 +267,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                 </header>
 
                 {/* Content */}
-                <div style={{ flex: 1, overflowY: "auto", padding: "28px" }}>
+                <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "20px 24px" }}>
                     {activeTab === "info" && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -629,7 +639,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                 </div>
 
                 {/* Footer */}
-                <footer style={{ padding: "20px 28px", borderTop: `1px solid ${THEME.colors.border}`, display: "flex", gap: 12, backgroundColor: "rgba(0,0,0,0.2)" }}>
+                <footer style={{ padding: "16px 24px", borderTop: `1px solid ${THEME.colors.border}`, display: "flex", gap: 12, backgroundColor: "rgba(0,0,0,0.2)", flexShrink: 0 }}>
                     <button
                         onClick={handleAutoAnalyze}
                         disabled={isAnalyzing}
@@ -680,7 +690,8 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                     to { opacity: 1; transform: scale(1) translateY(0); }
                 }
             `}</style>
-        </div>
+        </div>,
+        document.body
     );
 };
 
