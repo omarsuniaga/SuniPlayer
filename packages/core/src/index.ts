@@ -1,5 +1,5 @@
 // Types
-export type { Track, Venue, Curve, SetHistoryItem } from './types';
+export type { Track, Venue, Curve, SetHistoryItem, TrackMarker, Mood } from './types';
 
 // Stores
 export { useBuilderStore } from './store/useBuilderStore';
@@ -19,6 +19,7 @@ export { VENUES, CURVES, MOODS } from './data/constants';
 
 // Services
 export { buildSet } from './services/setBuilderService';
+export { AnalyticsService } from './services/AnalyticsService';
 // NOTE: setBuilderService uses an internal BuildOpts interface (not exported).
 // If a public BuildSetOptions type is needed, add it to setBuilderService.ts first.
 export { getEffectiveDuration } from './services/uiUtils';

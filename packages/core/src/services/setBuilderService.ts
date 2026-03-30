@@ -27,9 +27,13 @@ function scoreTransitions(tracks: Track[]): number {
     if (tracks.length < 2) return 0;
     let score = 0;
     for (let i = 1; i < tracks.length; i++) {
-        const bpmDiff = Math.abs(tracks[i].bpm - tracks[i - 1].bpm);
+        const currentBpm = tracks[i].bpm ?? 120;
+        const prevBpm = tracks[i - 1].bpm ?? 120;
+        const bpmDiff = Math.abs(currentBpm - prevBpm);
         score += bpmDiff > 40 ? -2 : bpmDiff < 15 ? 1 : 0;
-        const md = MOOD_DIST[tracks[i - 1].mood]?.[tracks[i].mood] ?? 1;
+        const prevMood = tracks[i - 1].mood ?? "calm";
+        const currentMood = tracks[i].mood ?? "calm";
+        const md = MOOD_DIST[prevMood]?.[currentMood] ?? 1;
         score += md === 0 ? 1 : md === 1 ? 0 : -(md * 0.5);
     }
     return score;
@@ -71,17 +75,21 @@ export function buildSet(
 
     // ── Pre-filter by BPM range ───────────────────────────────────────────────
     const bpmFiltered = (bpmMin !== undefined || bpmMax !== undefined)
-        ? repo.filter(t =>
-            (bpmMin === undefined || t.bpm >= bpmMin) &&
-            (bpmMax === undefined || t.bpm <= bpmMax)
-        )
+        ? repo.filter(t => {
+            const b = t.bpm ?? 120;
+            return (bpmMin === undefined || b >= bpmMin) &&
+                   (bpmMax === undefined || b <= bpmMax);
+        })
         : repo;
 
     // ── Pre-filter by venue energy range ─────────────────────────────────────
     let workRepo = bpmFiltered.length >= 3 ? bpmFiltered : repo;
     if (venue && VENUE_ENERGY[venue]) {
         const [eMin, eMax] = VENUE_ENERGY[venue];
-        const venueFiltered = workRepo.filter(t => t.energy >= eMin && t.energy <= eMax);
+        const venueFiltered = workRepo.filter(t => {
+            const e = t.energy ?? 0.5;
+            return e >= eMin && e <= eMax;
+        });
         // Only apply if enough tracks remain; otherwise fall back to BPM-filtered set
         workRepo = venueFiltered.length >= 3 ? venueFiltered : workRepo;
     }
@@ -163,13 +171,13 @@ function applyCurve(tracks: Track[], curve: string): Track[] {
 
     switch (curve) {
         case "ascending":
-            return [...tracks].sort((a, b) => a.energy - b.energy);
+            return [...tracks].sort((a, b) => (a.energy ?? 0.5) - (b.energy ?? 0.5));
 
         case "descending":
-            return [...tracks].sort((a, b) => b.energy - a.energy);
+            return [...tracks].sort((a, b) => (b.energy ?? 0.5) - (a.energy ?? 0.5));
 
         case "wave": {
-            const sorted = [...tracks].sort((a, b) => a.energy - b.energy);
+            const sorted = [...tracks].sort((a, b) => (a.energy ?? 0.5) - (b.energy ?? 0.5));
             const m = Math.ceil(sorted.length / 2);
             const low = sorted.slice(0, m);
             const high = sorted.slice(m).reverse();
@@ -190,8 +198,8 @@ function applyCurve(tracks: Track[], curve: string): Track[] {
             while (remaining.length > 0) {
                 const last = result[result.length - 1];
                 const nextIdx = remaining.reduce((bestI, t, i) => {
-                    const d = Math.abs(t.bpm - last.bpm);
-                    const bd = Math.abs(remaining[bestI].bpm - last.bpm);
+                    const d = Math.abs((t.bpm ?? 120) - (last.bpm ?? 120));
+                    const bd = Math.abs((remaining[bestI].bpm ?? 120) - (last.bpm ?? 120));
                     return d < bd ? i : bestI;
                 }, 0);
                 result.push(remaining.splice(nextIdx, 1)[0]);

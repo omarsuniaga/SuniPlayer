@@ -26,7 +26,8 @@ describe('SQLiteStorage', () => {
   });
 
   it('saves and retrieves analysis data', async () => {
-    mockDb.getFirstAsync.mockResolvedValueOnce({ id: 'track-1', bpm: 128, key: 'C', energy: 0.8, gainOffset: 1.0, timestamp: 123 });
+    const analysisRow = { id: 'track-1', bpm: 128, key: 'C', energy: 0.8, gainOffset: 1.0, timestamp: 123 };
+    mockDb.getFirstAsync.mockResolvedValue(analysisRow);
     await storage.saveAnalysis('track-1', { bpm: 128, key: 'C', energy: 0.8 });
     const result = await storage.getAnalysis('track-1');
     expect(result?.bpm).toBe(128);

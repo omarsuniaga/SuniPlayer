@@ -21,11 +21,14 @@ const TICK_MS = 100;
 export function useAudio() {
     const {
         pQueue, ci, playing, vol, mode, stackOrder, pos,
-        setPos, setCi, setPlaying, setElapsed, setStackOrder
+        setPos, setCi, setPlaying, setElapsed, setStackOrder,
+        trackStart, trackEnd, trackSkip
     } = usePlayerStore(); // Usamos los stores atómicos directamente
 
     const { crossfade, crossfadeMs, autoGain, fadeEnabled, fadeInMs, fadeOutMs } = useSettingsStore();
     const updateDownload = useDownloadStore(s => s.updateProgress);
+
+    const isInitialLoad = useRef(true);
 
     // Diagnostic logging
     useEffect(() => {
@@ -37,14 +40,54 @@ export function useAudio() {
     const channelARef = useRef<HTMLAudioElement | null>(null);
     const channelBRef = useRef<HTMLAudioElement | null>(null);
     const activeChannel = useRef<"A" | "B">("A");
-    const fadeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const fadeTimersRef = useRef<Map<HTMLAudioElement, ReturnType<typeof setInterval>>>(new Map());
     const playbackQueueRef = useRef<{ audio: HTMLAudioElement; track: Track; type: "fade" | "direct"; fadeInMs?: number } | null>(null);
     
     // Sincronización de estado para intervalos
-    const stateRef = useRef({ playing, ci, vol, pQueue, stackOrder });
+    const stateRef = useRef({ playing, ci, vol, pQueue, stackOrder, pos });
     useEffect(() => {
-        stateRef.current = { playing, ci, vol, pQueue, stackOrder };
-    }, [playing, ci, vol, pQueue, stackOrder]);
+        stateRef.current = { playing, ci, vol, pQueue, stackOrder, pos };
+    }, [playing, ci, vol, pQueue, stackOrder, pos]);
+
+    const getActive = () => activeChannel.current === "A" ? channelARef.current : channelBRef.current;
+
+    const applyVol = (audio: HTMLAudioElement, track: Track | null, multiplier: number = 1) => {
+        if (!audio) return;
+        let v = stateRef.current.vol * multiplier;
+        if (track && autoGain && track.gainOffset) {
+            v = Math.min(1.0, v * Math.min(2.0, track.gainOffset));
+        }
+        audio.volume = Math.max(0, Math.min(1, v));
+    };
+
+    const runFade = (audio: HTMLAudioElement, track: Track | null, type: "in" | "out", duration: number, onComplete?: () => void) => {
+        const existingTimer = fadeTimersRef.current.get(audio);
+        if (existingTimer) clearInterval(existingTimer);
+        const startTime = performance.now();
+
+        if (type === "in") {
+            applyVol(audio, track, 0);
+            console.log(`[useAudio] 🔊 Attempting fade-in play for: ${track?.title}`);
+            audio.play().catch((err) => {
+                console.error("[useAudio] 🔴 Fade-in play failed:", err?.message ?? err, "error:", err);
+            });
+        }
+
+        const interval = setInterval(() => {
+            const elapsed = performance.now() - startTime;
+            const progress = Math.min(1, elapsed / duration);
+            const multiplier = type === "in" ? progress : (1 - progress);
+            applyVol(audio, track, multiplier);
+
+            if (progress >= 1) {
+                clearInterval(interval);
+                fadeTimersRef.current.delete(audio);
+                if (type === "out") audio.pause();
+                if (onComplete) onComplete();
+            }
+        }, 16);
+        fadeTimersRef.current.set(audio, interval);
+    };
 
     useEffect(() => {
         channelARef.current = new Audio();
@@ -53,6 +96,15 @@ export function useAudio() {
 
         // Setup event handlers for when audio is ready to play
         const setupAudioHandlers = (audio: HTMLAudioElement) => {
+            audio.addEventListener("play", () => {
+                const { pQueue, ci, trackStart } = usePlayerStore.getState();
+                const ct = pQueue[ci];
+                if (ct && (audio as any)._lastTrackId === ct.id) {
+                    console.log(`[useAudio] ▶️ Track started playing: ${ct.title}`);
+                    trackStart(ct.id);
+                }
+            });
+
             audio.addEventListener("canplay", () => {
                 if (playbackQueueRef.current && playbackQueueRef.current.audio === audio) {
                     const { track, type, fadeInMs } = playbackQueueRef.current;
@@ -68,6 +120,35 @@ export function useAudio() {
                     playbackQueueRef.current = null;
                 }
             });
+
+            audio.addEventListener("ended", () => {
+                const { pQueue, ci, trackEnd } = usePlayerStore.getState();
+                const ct = pQueue[ci];
+                if (ct) {
+                    console.log(`[useAudio] 🏁 Track ended naturally: ${ct.title}`);
+                    trackEnd(ct.id, audio.currentTime * 1000);
+                }
+            });
+
+            audio.addEventListener("loadstart", () => {
+                const currentTrack = usePlayerStore.getState().pQueue[usePlayerStore.getState().ci];
+                const prevId = (audio as any)._lastTrackId;
+                
+                if (prevId && prevId !== currentTrack?.id) {
+                    const lastPos = (audio as any)._lastPos || 0;
+                    const lastDur = (audio as any)._lastDur || 0;
+                    if (lastDur > 0 && (lastPos / lastDur) < 0.3 && lastPos > 1) {
+                        console.log(`[useAudio] ⏭️ Track skipped (<30%): ${prevId}`);
+                        usePlayerStore.getState().trackSkip(prevId, lastPos * 1000);
+                    }
+                }
+                (audio as any)._lastTrackId = currentTrack?.id;
+            });
+
+            audio.addEventListener("timeupdate", () => {
+                (audio as any)._lastPos = audio.currentTime;
+                if (audio.duration && !isNaN(audio.duration)) (audio as any)._lastDur = audio.duration;
+            });
         };
 
         if (channelARef.current) setupAudioHandlers(channelARef.current);
@@ -76,48 +157,10 @@ export function useAudio() {
         return () => {
             channelARef.current?.pause();
             channelBRef.current?.pause();
-            if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
+            fadeTimersRef.current.forEach(id => clearInterval(id));
+            fadeTimersRef.current.clear();
         };
     }, []);
-
-    const getActive = () => activeChannel.current === "A" ? channelARef.current : channelBRef.current;
-
-    const applyVol = (audio: HTMLAudioElement, track: Track | null, multiplier: number = 1) => {
-        if (!audio) return;
-        let v = stateRef.current.vol * multiplier;
-        if (track && autoGain && track.gainOffset) {
-            v = Math.min(1.0, v * Math.min(2.0, track.gainOffset));
-        }
-        audio.volume = Math.max(0, Math.min(1, v));
-    };
-
-    const runFade = (audio: HTMLAudioElement, track: Track | null, type: "in" | "out", duration: number, onComplete?: () => void) => {
-        if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-        const startTime = performance.now();
-        
-        if (type === "in") {
-            applyVol(audio, track, 0);
-            console.log(`[useAudio] 🔊 Attempting fade-in play for: ${track?.title}`);
-            audio.play().catch((err) => {
-                console.error("[useAudio] 🔴 Fade-in play failed:", err?.message ?? err, "error:", err);
-            });
-        }
-
-        const interval = setInterval(() => {
-            const elapsed = performance.now() - startTime;
-            const progress = Math.min(1, elapsed / duration);
-            const multiplier = type === "in" ? progress : (1 - progress);
-            applyVol(audio, track, multiplier);
-            
-            if (progress >= 1) {
-                clearInterval(interval);
-                fadeTimerRef.current = null;
-                if (type === "out") audio.pause();
-                if (onComplete) onComplete();
-            }
-        }, 16);
-        fadeTimerRef.current = interval;
-    };
 
     // ── CICLO DE VIDA UNIFICADO ──
     useEffect(() => {
@@ -138,8 +181,16 @@ export function useAudio() {
                 if (isNewSrc) {
                     audio.src = objectUrl;
                     audio.load();
-                    audio.currentTime = (ct.startTime || 0) / 1000;
-                    console.log(`[useAudio] 📦 Audio loaded: ${ct.title}, channel: ${activeChannel.current}, startTime: ${ct.startTime || 0}ms`);
+                    
+                    // Aplicar seek inicial si es la primera carga tras restauración
+                    const initialSeekMs = isInitialLoad.current ? stateRef.current.pos : (ct.startTime || 0);
+                    audio.currentTime = initialSeekMs / 1000;
+                    if (isInitialLoad.current) {
+                        console.log(`[useAudio] 🎯 Initial seek applied: ${initialSeekMs}ms`);
+                        isInitialLoad.current = false;
+                    }
+                    
+                    console.log(`[useAudio] 📦 Audio loaded: ${ct.title}, channel: ${activeChannel.current}, startTime: ${initialSeekMs}ms`);
 
                     // Persistir la URL fresca en el store para evitar re-fetch de IDB en cada play
                     if (objectUrl !== url) {
@@ -154,11 +205,13 @@ export function useAudio() {
                     if (audio.paused || isNewSrc) {
                         // Si es nuevo o estaba pausado, queue the playback for when ready
                         console.log(`[useAudio] 📋 Queueing playback for: ${ct.title}, fadeEnabled: ${fadeEnabled}`);
+                        const shouldFadeIn = fadeEnabled || crossfade;
+                        const fadeInDuration = crossfade ? crossfadeMs : fadeInMs;
                         playbackQueueRef.current = {
                             audio,
                             track: ct,
-                            type: fadeEnabled ? "fade" : "direct",
-                            fadeInMs: fadeEnabled ? fadeInMs : undefined
+                            type: shouldFadeIn ? "fade" : "direct",
+                            fadeInMs: shouldFadeIn ? fadeInDuration : undefined
                         };
 
                         // If audio is already ready (cached or quick load), trigger immediately
@@ -178,7 +231,7 @@ export function useAudio() {
                         }
                     } else {
                         // Si ya estaba sonando, solo aseguramos el volumen
-                        if (!fadeTimerRef.current) applyVol(audio, ct);
+                        if (!fadeTimersRef.current.has(audio)) applyVol(audio, ct);
                     }
                 } else {
                     // 3. PAUSA (¿Debería detenerse?)
@@ -202,12 +255,12 @@ export function useAudio() {
     // ── Efecto: Volumen y Seek (Reactividad instantánea) ──
     useEffect(() => {
         const audio = getActive();
-        if (audio && !fadeTimerRef.current) applyVol(audio, pQueue[ci]);
+        if (audio && !fadeTimersRef.current.has(audio)) applyVol(audio, pQueue[ci]);
     }, [vol]);
 
     useEffect(() => {
         const audio = getActive();
-        if (audio && Math.abs(audio.currentTime * 1000 - pos) > 1500) {
+        if (audio && Math.abs(audio.currentTime * 1000 - pos) > 50) {
             audio.currentTime = pos / 1000;
         }
     }, [pos]);

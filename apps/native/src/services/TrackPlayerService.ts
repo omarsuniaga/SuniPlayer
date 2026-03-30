@@ -24,4 +24,18 @@ export async function PlaybackService() {
     const { position } = await TrackPlayer.getProgress();
     TrackPlayer.seekTo(Math.max(0, position - interval));
   });
+
+  // Manejo de interrupciones (llamadas, otras apps) para recuperación rápida del foco (Modo Turbo)
+  TrackPlayer.addEventListener(Event.RemoteDuck, async ({ paused, permanent }) => {
+    if (permanent) {
+      await TrackPlayer.stop();
+    } else {
+      if (paused) {
+        await TrackPlayer.pause();
+      } else {
+        // Recuperación rápida: el sistema cedió el audio de vuelta
+        await TrackPlayer.play();
+      }
+    }
+  });
 }

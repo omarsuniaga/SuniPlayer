@@ -40,6 +40,15 @@ export interface Track {
     // Visual Assets
     sheetMusic?: string[]; // URLs or local paths
     markers?: TrackMarker[];
+
+    // Stats & History
+    totalPlayTimeMs?: number;
+    playCount?: number;
+    lastPlayedAt?: string;
+    completePlays?: number;
+    skips?: number;
+    affinityScore?: number; // 0-100
+    metadata?: Record<string, any>;
 }
 
 export interface SetEntry {
@@ -55,10 +64,27 @@ export interface Show {
     name: string;
     createdAt: string;
     sets: SetEntry[];
+    tracks?: Track[];
 }
 
 /** Legacy support for older session data */
 export interface SetHistoryItem extends Show {
     date?: string;
     total?: number;
+    target?: number;
+    tracks: Track[];
+    venue?: string;
+    curve?: string;
+}
+
+export interface Venue {
+    id: string;
+    label: string;
+    color: string;
+}
+
+export interface Curve {
+    id: string;
+    label: string;
+    desc: string;
 }

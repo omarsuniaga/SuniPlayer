@@ -60,16 +60,14 @@ export const MarkerLayer: React.FC<MarkerLayerProps> = ({
         mouseDownPos.current = { x: e.clientX, y: e.clientY };
         isLongPress.current = false;
 
-        if (!isLive) {
-            const clickPosMs = getPosMs(e.clientX);
-            pendingPosMs.current = clickPosMs;
+        const clickPosMs = getPosMs(e.clientX);
+        pendingPosMs.current = clickPosMs;
 
-            longPressTimer.current = setTimeout(() => {
-                isLongPress.current = true;
-                setProvisionalPosMs(clickPosMs);
-            }, LONG_PRESS_MS);
-        }
-    }, [isLive, getPosMs]);
+        longPressTimer.current = setTimeout(() => {
+            isLongPress.current = true;
+            setProvisionalPosMs(clickPosMs);
+        }, LONG_PRESS_MS);
+    }, [getPosMs]);
 
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         if (!mouseDownPos.current || !longPressTimer.current) return;
@@ -104,7 +102,7 @@ export const MarkerLayer: React.FC<MarkerLayerProps> = ({
                 marker: nearby,
                 mode: isLive ? "readonly" : "edit",
             });
-        } else if (!isLive) {
+        } else {
             // Seek
             onSeek(getPosMs(e.clientX));
         }

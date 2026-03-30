@@ -20,8 +20,8 @@ interface LibraryState {
     addTag: (tag: string) => void;
     setSelectedFolderName: (folderName: string | null) => void;
     setDirectoryHandle: (handle: unknown | null) => void;
-    recordMetric: (id: string, playTimeMs: number, incrementCount?: boolean) => void;
     hydrateFromStorage: () => Promise<void>;
+    topTracks: () => Track[];
 
     // ── Repertoire Management ────────────────────────────────────────────────
     repertoire: Track[];
@@ -71,6 +71,12 @@ export const useLibraryStore = create<LibraryState>()(
                             energy: analysis.energy,
                             mood: "calm", // Default
                             genre: "Unknown",
+                            affinityScore: analysis.affinityScore,
+                            playCount: analysis.playCount,
+                            completePlays: analysis.completePlays,
+                            skips: analysis.skips,
+                            totalPlayTimeMs: analysis.totalPlayTimeMs,
+                            lastPlayedAt: analysis.lastPlayedAt,
                             ...get().trackOverrides[id]
                         };
                         hydratedTracks.push(track);
@@ -85,10 +91,37 @@ export const useLibraryStore = create<LibraryState>()(
             addCustomTrack: (track) =>
                 set((state) => ({ customTracks: [...state.customTracks, track] })),
             updateTrack: (id, updates) =>
-                set((state) => ({
-                    customTracks: state.customTracks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
-                    trackOverrides: { ...state.trackOverrides, [id]: { ...state.trackOverrides[id], ...updates } }
-                })),
+                set((state) => {
+                    const newTracks = state.customTracks.map((t) => (t.id === id ? { ...t, ...updates } : t));
+                    const newOverrides = { ...state.trackOverrides, [id]: { ...state.trackOverrides[id], ...updates } };
+
+                    const analyticsFields = ['affinityScore', 'playCount', 'completePlays', 'skips', 'bpm', 'key', 'energy', 'gainOffset', 'totalPlayTimeMs', 'lastPlayedAt'];
+                    const hasAnalyticsUpdate = Object.keys(updates).some(k => analyticsFields.includes(k));
+
+                    if (hasAnalyticsUpdate) {
+                        const track = newTracks.find(t => t.id === id);
+                        if (track) {
+                            getStorage().saveAnalysis(id, {
+                                bpm: track.bpm,
+                                key: track.key,
+                                energy: track.energy,
+                                gainOffset: track.gainOffset,
+                                affinityScore: track.affinityScore,
+                                playCount: track.playCount,
+                                completePlays: track.completePlays,
+                                skips: track.skips,
+                                totalPlayTimeMs: track.totalPlayTimeMs,
+                                lastPlayedAt: track.lastPlayedAt,
+                                timestamp: Date.now()
+                            });
+                        }
+                    }
+
+                    return {
+                        customTracks: newTracks,
+                        trackOverrides: newOverrides
+                    };
+                }),
             removeCustomTrack: (id) =>
                 set((state) => {
                     const newOverrides = { ...state.trackOverrides };
@@ -111,32 +144,17 @@ export const useLibraryStore = create<LibraryState>()(
             })),
             setSelectedFolderName: (selectedFolderName) => set({ selectedFolderName }),
             setDirectoryHandle: (directoryHandle) => set({ directoryHandle }),
-            recordMetric: (id, playTimeMs, incrementCount = false) =>
-                set((state) => {
-                    const current = state.trackOverrides[id] || {};
-                    const newPlayTime = (current.totalPlayTimeMs || 0) + playTimeMs;
-                    const newPlayCount = (current.playCount || 0) + (incrementCount ? 1 : 0);
-                    
-                    const updates: Partial<Track> = {
-                        totalPlayTimeMs: newPlayTime,
-                        playCount: newPlayCount,
-                        lastPlayedAt: new Date().toISOString(),
-                    };
-                    
-                    return {
-                        customTracks: state.customTracks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
-                        trackOverrides: { 
-                            ...state.trackOverrides, 
-                            [id]: { ...current, ...updates } 
-                        }
-                    };
-                }),
+            topTracks: () => {
+                return [...get().customTracks].sort((a, b) => (b.affinityScore || 0) - (a.affinityScore || 0));
+            },
         }),
         {
             name: "suniplayer-library",
             storage: createJSONStorage(() => getStorage()),
             partialize: (state) => ({
-                customTracks: state.customTracks,
+                // blob_url es efímera — hydrateTracks() la regenera desde IDB al iniciar.
+                // Persistirla causaría ERR_FILE_NOT_FOUND en la siguiente sesión.
+                customTracks: state.customTracks.map(t => ({ ...t, blob_url: undefined })),
                 repertoire: state.repertoire, // Guardar la selección curada
                 trackOverrides: state.trackOverrides,
                 availableTags: state.availableTags,

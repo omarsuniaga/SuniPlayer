@@ -1,11 +1,16 @@
 // src/platform/interfaces/IAudioEngine.ts
 
 export interface AudioLoadOptions {
+    id?: string;
     startMs?: number;
     endMs?: number;
     initialPitch?: number;   // semitones, -12 to +12
     initialTempo?: number;   // factor, 0.8 to 1.2
     initialVolume?: number;  // 0.0 to 1.0
+    title?: string;
+    artist?: string;
+    artwork?: string;
+    duration?: number;
 }
 
 /**
@@ -25,6 +30,12 @@ export interface IAudioEngine {
     pause(): void;
     seek(positionMs: number): void;
 
+    /** Get current playback position in milliseconds. */
+    getPosition(): Promise<number>;
+
+    /** Smoothly change volume to target over duration. */
+    fadeVolume(target: number, durationMs: number): Promise<void>;
+
     /** Set pitch in semitones. Applies immediately even while playing. */
     setPitch(semitones: number): void;
 
@@ -35,6 +46,12 @@ export interface IAudioEngine {
 
     /** Register a callback called every ~250ms with current position in ms. */
     onPositionUpdate(cb: (posMs: number) => void): void;
+
+    /** Fires every ~250ms with buffered position in ms. Only meaningful for streaming tracks. */
+    onBufferUpdate(cb: (bufferedMs: number) => void): void;
+
+    /** Fires when the network buffering state changes. True = buffering/loading, false = ready. */
+    onBufferingChange(cb: (isBuffering: boolean) => void): void;
 
     /** Fires when the track reaches its end. */
     onEnded(cb: () => void): void;

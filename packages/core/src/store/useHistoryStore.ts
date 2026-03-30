@@ -8,28 +8,25 @@ import { Show, SetHistoryItem } from "../types";
 import { getStorage } from './storage';
 
 interface HistoryState {
-    history: Show[];
-    saveShow: (show: Show) => void;
-    setHistory: (history: Show[] | ((prev: Show[]) => Show[])) => void;
+    history: SetHistoryItem[];
+    saveShow: (show: SetHistoryItem) => void;
+    setHistory: (history: SetHistoryItem[] | ((prev: SetHistoryItem[]) => SetHistoryItem[])) => void;
     clearHistory: () => void;
 }
 
-const migrateFromLegacy = (stored: unknown): Show[] => {
+const migrateFromLegacy = (stored: unknown): SetHistoryItem[] => {
     if (!Array.isArray(stored)) return [];
 
     return stored.map((item: any) => {
-        // If it's already a Show structure, return as-is
-        if (item.sets && Array.isArray(item.sets)) {
-            return item as Show;
-        }
-
-        // Legacy SetHistoryItem — convert to Show
+        // If it's already a Show/SetHistoryItem structure, return with track safety
         return {
-            id: item.id,
-            name: item.name,
+            ...item,
+            id: item.id || Date.now() + "",
+            name: item.name || "Untitled Set",
             createdAt: item.createdAt || item.date || new Date().toISOString(),
             sets: item.sets || [],
-        } as Show;
+            tracks: item.tracks || [],
+        } as SetHistoryItem;
     });
 };
 
@@ -37,7 +34,7 @@ export const useHistoryStore = create<HistoryState>()(
     persist(
         (set) => ({
             history: [],
-            saveShow: (show: Show) =>
+            saveShow: (show: SetHistoryItem) =>
                 set((state) => ({
                     history: [show, ...state.history],
                 })),

@@ -4,6 +4,7 @@ import { THEME } from "../../data/theme";
 import { fmt } from "../../services/uiUtils";
 import { LiveUnlockModal } from "../player/LiveUnlockModal";
 import { sumTrackDurationMs } from "../../utils/trackMetrics";
+import { InstallButton } from "../common/InstallButton";
 
 export const Navbar: React.FC = () => {
     const pQueue = useProjectStore(s => s.pQueue);
@@ -99,6 +100,7 @@ export const Navbar: React.FC = () => {
 
             {/* ── Right side: Show Toggle & Settings ── */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <InstallButton />
                 <button
                     onClick={handleModeToggle}
                     className="mode-toggle-btn"

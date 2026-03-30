@@ -1,17 +1,18 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  useWindowDimensions, ScrollView, Alert,
+  useWindowDimensions, ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { usePlayerStore, useSettingsStore, useLibraryStore, sumTrackDurationMs } from '@suniplayer/core';
+import { usePlayerStore, useSettingsStore, useLibraryStore, sumTrackDurationMs, getTrackUrl } from '@suniplayer/core';
 import type { Track } from '@suniplayer/core';
 import { audioEngine } from '../platform';
 import { colors } from '../theme/colors';
 import { TrackProfileModal } from '../components/TrackProfileModal';
 import { SheetMusicViewer } from '../components/SheetMusicViewer';
 import type { SheetEntry } from '../components/SheetMusicViewer';
+import { Waveform } from '../components/Waveform';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -201,21 +202,6 @@ function TransportControls({ isPlaying, onPlay, onPause, onNext, onPrev, hasNext
   );
 }
 
-// ── Progress bar ──────────────────────────────────────────────────────────────
-
-function ProgressBar({ positionMs, durationMs, color }: { positionMs: number; durationMs: number; color: string }) {
-  const progress = durationMs > 0 ? Math.min(positionMs / durationMs, 1) : 0;
-  return (
-    <View style={styles.progressContainer}>
-      <Text style={styles.progressTime}>{fmt(positionMs)}</Text>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: color }]} />
-      </View>
-      <Text style={styles.progressTime}>{fmt(durationMs)}</Text>
-    </View>
-  );
-}
-
 // ── Queue item ────────────────────────────────────────────────────────────────
 
 function QueueItem({ track, index, isActive, isPlaying, onPress }: {
@@ -279,13 +265,23 @@ export function PlayerScreen() {
   const setElapsed = usePlayerStore(s => s.setElapsed);
   const mode = usePlayerStore(s => s.mode);
   const setMode = usePlayerStore(s => s.setMode);
+  
+  // Settings
   const autoNext = useSettingsStore(s => s.autoNext);
+  const fadeEnabled = useSettingsStore(s => s.fadeEnabled);
+  const fadeInMs = useSettingsStore(s => s.fadeInMs);
+  const fadeOutMs = useSettingsStore(s => s.fadeOutMs);
+  const crossfade = useSettingsStore(s => s.crossfade);
+  const crossfadeMs = useSettingsStore(s => s.crossfadeMs);
 
   const [positionMs, setPositionMs] = useState(0);
+  const [bufferedMs, setBufferedMs] = useState(0);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSheetMusic, setShowSheetMusic] = useState(false);
   const elapsedRef = useRef(elapsed);
+  const isTransitioningRef = useRef(false);
 
   const currentTrack: Track | null = queue[ci] ?? null;
   const nextTrack: Track | null = queue[ci + 1] ?? null;
@@ -303,46 +299,157 @@ export function PlayerScreen() {
       if (isPlaying) {
         elapsedRef.current += 0.25;
         setElapsed(elapsedRef.current);
+
+        // ── Smooth Transitions (Fade Out) ──
+        if (autoNext && currentTrack && !isTransitioningRef.current) {
+          const duration = currentTrack.duration_ms ?? 0;
+          const triggerMs = crossfade ? crossfadeMs : (fadeEnabled ? fadeOutMs : 0);
+          
+          if (triggerMs > 0 && duration > 0 && triggerMs < duration && ms >= (duration - triggerMs)) {
+            isTransitioningRef.current = true;
+            audioEngine.fadeVolume(0, triggerMs)
+              .catch(err => console.error('[PlayerScreen] Fade out failed:', err));
+          }
+        }
       }
     });
     audioEngine.onEnded(() => {
       if (!active) return;
+      isTransitioningRef.current = false;
+      
       if (autoNext && ci < queue.length - 1) {
         setCi(ci + 1);
+        // Fade in is handled by the useEffect loading currentTrack
       } else {
         setPlaying(false);
       }
     });
-    audioEngine.onError(err => console.error('[PlayerScreen]', err));
+    audioEngine.onBufferUpdate(buffered => {
+      if (!active) return;
+      setBufferedMs(buffered);
+    });
+    audioEngine.onBufferingChange(buffering => {
+      if (!active) return;
+      setIsBuffering(buffering);
+    });
+    audioEngine.onError(err => {
+      console.error('[PlayerScreen]', err);
+      if (!active) return;
+      setPlaying(false);
+      Alert.alert('Error de reproducción', `No se pudo cargar el audio.\n${err.message}`);
+    });
 
     return () => {
       active = false;
       // Clear listeners so stale closures don't fire after deps change
       audioEngine.onPositionUpdate(() => {});
+      audioEngine.onBufferUpdate(() => {});
+      audioEngine.onBufferingChange(() => {});
       audioEngine.onEnded(() => {});
       audioEngine.onError(() => {});
     };
-  }, [ci, queue.length, autoNext, isPlaying]);
+  }, [ci, queue.length, autoNext, isPlaying, currentTrack, crossfade, crossfadeMs, fadeEnabled, fadeOutMs]);
 
   useEffect(() => {
     if (!currentTrack) return;
-    const url = currentTrack.blob_url ?? currentTrack.file_path;
+    isTransitioningRef.current = false;
+    // Resolve URL with remote streaming fallback for demo assets
+    const url = getTrackUrl(currentTrack, 'https://suniplayer.netlify.app/audio/');
     setPositionMs(0);
-    audioEngine.load(url, { initialVolume: useSettingsStore.getState().defaultVol })
+    setBufferedMs(0);
+    setIsBuffering(false);
+    
+    if (!url) {
+      Alert.alert('Sin audio', 'Este track no tiene archivo de audio asignado.');
+      return;
+    }
+
+    const startVolume = (fadeEnabled || crossfade) ? 0 : vol;
+    audioEngine.load(url, {
+      id: currentTrack.id,
+      initialVolume: startVolume,
+      title: currentTrack.title,
+      artist: currentTrack.artist,
+      artwork: currentTrack.artwork,
+      duration: currentTrack.duration_ms,
+    })
+      .then(async () => {
+        if (isPlaying) {
+          await audioEngine.play();
+          if (fadeEnabled || crossfade) {
+            audioEngine.fadeVolume(vol, fadeInMs || crossfadeMs)
+              .catch(err => console.error('[PlayerScreen] Fade in failed:', err));
+          }
+        }
+      })
       .catch(err => console.error('[PlayerScreen] audioEngine.load failed:', err));
   }, [currentTrack?.id]);
 
   // ── Handlers ──
-  const handlePlay = useCallback(() => { audioEngine.play(); setPlaying(true); }, []);
-  const handlePause = useCallback(() => { audioEngine.pause(); setPlaying(false); }, []);
-  const handleNext = useCallback(() => {
-    if (mode === 'live') return;
-    if (ci < queue.length - 1) { setCi(ci + 1); setPositionMs(0); }
-  }, [ci, queue.length, mode]);
-  const handlePrev = useCallback(() => {
-    if (mode === 'live') return;
-    if (ci > 0) { setCi(ci - 1); setPositionMs(0); }
-  }, [ci, mode]);
+  const handlePlay = useCallback(async () => {
+    setPlaying(true);
+    try {
+      const { fadeEnabled, fadeInMs, crossfade, crossfadeMs } = useSettingsStore.getState();
+      const { vol } = usePlayerStore.getState();
+      if (fadeEnabled || crossfade) {
+        // Garantiza fade-in desde 0, sin importar cómo se pausó antes
+        await audioEngine.setVolume(0);
+      } else {
+        audioEngine.setVolume(vol);
+      }
+      await audioEngine.play();
+      if (fadeEnabled || crossfade) {
+        audioEngine.fadeVolume(vol, crossfade ? crossfadeMs : fadeInMs)
+          .catch(err => console.warn('[PlayerScreen] handlePlay fade failed:', err));
+      }
+    } catch (err) {
+      console.error('[PlayerScreen] handlePlay failed:', err);
+      setPlaying(false);
+      Alert.alert('Error de reproducción', 'No se pudo iniciar el audio. Verifica el archivo.');
+    }
+  }, []);
+  const handlePause = useCallback(async () => {
+    const { fadeEnabled, fadeOutMs, crossfade, crossfadeMs } = useSettingsStore.getState();
+    if (fadeEnabled || crossfade) {
+      await audioEngine.fadeVolume(0, crossfade ? crossfadeMs : fadeOutMs).catch(() => {});
+    }
+    audioEngine.pause();
+    setPlaying(false);
+  }, []);
+  const handleNext = useCallback(async () => {
+    const { mode: currentMode, ci: currentCi, pQueue, playing } = usePlayerStore.getState();
+    if (currentMode === 'live') return;
+    if (currentCi >= pQueue.length - 1) return;
+
+    if (playing) {
+      const { fadeEnabled, fadeOutMs, crossfade, crossfadeMs } = useSettingsStore.getState();
+      if (fadeEnabled || crossfade) {
+        isTransitioningRef.current = true; // bloquea el trigger automático de fade-out
+        await audioEngine.fadeVolume(0, crossfade ? crossfadeMs : fadeOutMs).catch(() => {});
+        // isTransitioningRef se resetea en el useEffect de load del próximo track
+      }
+    }
+
+    setCi(currentCi + 1);
+    setPositionMs(0);
+  }, []);
+
+  const handlePrev = useCallback(async () => {
+    const { mode: currentMode, ci: currentCi, playing } = usePlayerStore.getState();
+    if (currentMode === 'live') return;
+    if (currentCi <= 0) return;
+
+    if (playing) {
+      const { fadeEnabled, fadeOutMs, crossfade, crossfadeMs } = useSettingsStore.getState();
+      if (fadeEnabled || crossfade) {
+        isTransitioningRef.current = true;
+        await audioEngine.fadeVolume(0, crossfade ? crossfadeMs : fadeOutMs).catch(() => {});
+      }
+    }
+
+    setCi(currentCi - 1);
+    setPositionMs(0);
+  }, []);
 
   const handleEnterLive = useCallback(() => {
     Alert.alert('Modo Live', '¿Entrar al modo live? Los controles de edición se bloquearán.', [
@@ -388,7 +495,17 @@ export function PlayerScreen() {
         onSheetMusic={() => setShowSheetMusic(true)}
       />
 
-      <ProgressBar positionMs={positionMs} durationMs={currentTrack?.duration_ms ?? 0} color={color} />
+      <View style={styles.progressContainer}>
+        <Text style={styles.progressTime}>{fmt(positionMs)}</Text>
+        <Waveform
+          positionMs={positionMs}
+          durationMs={currentTrack?.duration_ms ?? 0}
+          color={color}
+          markers={currentTrack?.markers}
+          onSeek={(ms) => audioEngine.seek(ms)}
+        />
+        <Text style={styles.progressTime}>{fmt(currentTrack?.duration_ms ?? 0)}</Text>
+      </View>
 
       <TransportControls
         isPlaying={isPlaying} onPlay={handlePlay} onPause={handlePause}
@@ -546,6 +663,8 @@ const styles = StyleSheet.create({
   progressContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   progressTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 2 },
+  progressFillAbsolute: { position: 'absolute', top: 0, left: 0 },
+  bufferingSpinner: { position: 'absolute', right: -20, top: -8 },
   progressTime: { color: colors.textSecondary, fontSize: 12, width: 42, textAlign: 'center', fontVariant: ['tabular-nums'] },
 
   // Transport

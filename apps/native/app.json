@@ -21,7 +21,10 @@
     "android": {
       "package": "com.suniplayer.app",
       "permissions": [
-        "READ_EXTERNAL_STORAGE"
+        "READ_EXTERNAL_STORAGE",
+        "WAKE_LOCK",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_AUDIO_PLAYBACK"
       ],
       "newArchEnabled": false
     },

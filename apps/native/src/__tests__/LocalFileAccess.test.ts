@@ -1,5 +1,5 @@
 jest.mock('expo-document-picker', () => ({ getDocumentAsync: jest.fn() }));
-jest.mock('expo-file-system', () => ({
+jest.mock('expo-file-system/legacy', () => ({
   documentDirectory: 'file:///data/app/',
   copyAsync: jest.fn().mockResolvedValue(undefined),
   getInfoAsync: jest.fn().mockResolvedValue({ exists: true }),
@@ -9,7 +9,7 @@ jest.mock('expo-file-system', () => ({
 
 import { LocalFileAccess } from '../platform/LocalFileAccess';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 describe('LocalFileAccess', () => {
   const access = new LocalFileAccess();

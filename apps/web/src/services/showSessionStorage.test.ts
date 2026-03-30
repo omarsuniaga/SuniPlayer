@@ -39,9 +39,11 @@ const resetStores = () => {
 describe("showSessionStorage", () => {
     it("sanitizes custom blob URLs and marks reconnect warnings in snapshots", () => {
         resetStores();
-        usePlayerStore.setState({ pQueue: [baseTrack] });
-        useBuilderStore.setState({ genSet: [baseTrack] });
-        useLibraryStore.setState({ customTracks: [baseTrack] });
+        // Manually set in localStorage to simulate state BEFORE persistence strips blob_url
+        // buildShowSessionSnapshot reads from localStorage
+        localStorage.setItem("suniplayer-player", JSON.stringify({ state: { pQueue: [baseTrack] } }));
+        localStorage.setItem("suniplayer-builder", JSON.stringify({ state: { genSet: [baseTrack] } }));
+        localStorage.setItem("suniplayer-library", JSON.stringify({ state: { customTracks: [baseTrack] } }));
 
         const snapshot = buildShowSessionSnapshot();
 

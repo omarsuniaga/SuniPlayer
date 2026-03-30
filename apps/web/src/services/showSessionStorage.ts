@@ -43,14 +43,12 @@ export function buildShowSessionSnapshot(): ShowSessionSnapshot {
     // Sanitize blob URLs: remove temporary blob URLs and mark as sourceMissing
     const sanitizeTrack = (track: any) => {
         if (!track) return track;
-        if (track.blob_url && track.blob_url.startsWith('blob:')) {
-            return {
-                ...track,
-                blob_url: undefined,
-                sourceMissing: true,
-            };
-        }
-        return track;
+        const isBlob = !!(track.blob_url && track.blob_url.startsWith('blob:'));
+        return {
+            ...track,
+            blob_url: isBlob ? undefined : track.blob_url,
+            sourceMissing: isBlob || (track.sourceMissing ?? false),
+        };
     };
 
     // Sanitize player pQueue

@@ -19,13 +19,12 @@ export const PlayerWaveform: React.FC<Props> = ({ waveData, prog, mCol, isLive, 
         <div
             onClick={onSeek}
             style={{
-                cursor: isLive ? "not-allowed" : "pointer",
+                cursor: "pointer",
                 borderRadius: THEME.radius.xl,
                 padding: "12px 0",
                 backgroundColor: "rgba(255,255,255,0.02)",
-                border: `1px solid ${isLive ? THEME.colors.brand.cyan + "20" : THEME.colors.border}`,
+                border: `1px solid ${THEME.colors.border}`,
                 position: "relative",
-                opacity: isLive ? 0.85 : 1,
                 transition: "border-color 0.3s",
                 minHeight: 76,
                 display: "flex",
@@ -47,20 +46,6 @@ export const PlayerWaveform: React.FC<Props> = ({ waveData, prog, mCol, isLive, 
                     transition: "left 0.25s linear",
                 }}
             />
-            {/* Live lock overlay */}
-            {isLive && (
-                <div style={{
-                    position: "absolute",
-                    inset: 0,
-                    borderRadius: THEME.radius.xl,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    backgroundColor: "transparent",
-                }}>
-                    <span style={{ fontSize: 10, color: THEME.colors.brand.cyan, opacity: 0.4, fontWeight: 700, letterSpacing: "0.1em" }}>SEEK BLOQUEADO</span>
-                </div>
-            )}
         </div>
         {/* Timestamps */}
         <div style={{ display: "flex", justifyContent: "space-between", fontFamily: THEME.fonts.mono, fontSize: 12, color: THEME.colors.text.muted, padding: "0 8px" }}>

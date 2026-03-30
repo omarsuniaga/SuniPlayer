@@ -126,6 +126,15 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const [currentWave, setCurrentWave] = useState<number[]>([]);
     const isLoadingWave = Boolean(ct) && currentWave.length === 0;
 
+    // Track Start Hook
+    const lastTrackStarted = useRef<string | null>(null);
+    useEffect(() => {
+        if (ct && playing && lastTrackStarted.current !== ct.id) {
+            usePlayerStore.getState().trackStart(ct.id);
+            lastTrackStarted.current = ct.id;
+        }
+    }, [ct?.id, playing]);
+
     useEffect(() => {
         if (!ct) return;
         const url = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
@@ -203,7 +212,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
 
                     <PlayerHeader track={ct} performanceMode={performanceMode} playing={playing} rem={rem} tPct={tPct} currentSetMetadata={currentSetMetadata} onProfileClick={() => setProfileTrack(ct)} onSheetMusicClick={() => setViewingSheetTrack(ct)} />
 
-                    <VisualizerSection track={ct} performanceMode={performanceMode} isLive={isLive} playing={playing} pos={pos} rem={rem} durMs={durMs} prog={prog} mCol={mCol} currentWave={currentWave} isLoadingWave={isLoadingWave} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} onMarkersChange={(markers) => ct && updateTrackMetadata(ct.id, { markers })} onSeek={(newPosMs) => { if (!isLive && ct) setPos(newPosMs); }} />
+                    <VisualizerSection track={ct} performanceMode={performanceMode} isLive={isLive} playing={playing} pos={pos} rem={rem} durMs={durMs} prog={prog} mCol={mCol} currentWave={currentWave} isLoadingWave={isLoadingWave} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} onMarkersChange={(markers) => ct && updateTrackMetadata(ct.id, { markers })} onSeek={(newPosMs) => { if (ct) setPos(newPosMs); }} />
 
                     <PlaybackControls playing={playing} isLive={isLive} ci={ci} queueLen={pQueue.length} pos={pos} performanceMode={performanceMode} mCol={mCol} onPlayPause={() => setPlaying(!playing)} onPrev={() => { setCi(ci - 1); setPos(0); }} onNext={() => { setCi(ci + 1); setPos(0); }} onStop={() => { setPlaying(false); setPos(0); }} />
 

@@ -284,6 +284,8 @@ export function saveSet() {
     const newItem: SetHistoryItem = {
         id: Date.now() + "",
         name: (v?.label || "Set") + " " + targetMin + "min",
+        createdAt: new Date().toISOString(),
+        sets: [],
         tracks: [...genSet],
         total: sumTrackDurationMs(genSet),
         target: tSec,

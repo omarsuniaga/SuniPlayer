@@ -16,10 +16,17 @@ export class AudioStreamerService {
      * Si la URL es un blob muerto, intenta recuperarlo del storage local.
      */
     static async fetchWithProgress(
-        url: string, 
+        url: string,
         onProgress: (p: DownloadProgress) => void,
         trackId?: string // Agregamos trackId para búsqueda en storage
     ): Promise<string> {
+        // 🚀 CORTOCIRCUITO: Blob URLs vivas no necesitan re-procesarse.
+        // Re-fetchear un blob crea una nueva URL → isNewSrc=true → audio.load() → posición reseteada + sin fade.
+        if (url.startsWith('blob:')) {
+            onProgress({ percentage: 100, speedKbps: 0, loadedBytes: 0, totalBytes: 0 });
+            return url;
+        }
+
         try {
             const response = await fetch(url);
             if (response.ok) {

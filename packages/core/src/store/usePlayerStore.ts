@@ -6,6 +6,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { Track } from "../types";
 import { getStorage } from './storage';
+import { AnalyticsService } from "../services/AnalyticsService";
 
 interface PlayerState {
     pQueue: Track[];
@@ -43,11 +44,16 @@ interface PlayerState {
     /** Metadata about which show/set is currently loaded — used for "Set N / M" indicator */
     currentSetMetadata: { setLabel: string; totalSetsInShow: number } | null;
     setCurrentSetMetadata: (metadata: { setLabel: string; totalSetsInShow: number } | null) => void;
+
+    /** Analytics Hooks */
+    trackStart: (trackId: string) => void;
+    trackEnd: (trackId: string, positionMs: number) => void;
+    trackSkip: (trackId: string, positionMs: number) => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             pQueue: [],
             setPQueue: (pQueue) => set({ pQueue }),
 
@@ -95,12 +101,18 @@ export const usePlayerStore = create<PlayerState>()(
 
             currentSetMetadata: null,
             setCurrentSetMetadata: (currentSetMetadata) => set({ currentSetMetadata }),
+
+            trackStart: (trackId) => AnalyticsService.trackStart(trackId),
+            trackEnd: (trackId, positionMs) => AnalyticsService.trackEnd(trackId, positionMs),
+            trackSkip: (trackId, positionMs) => AnalyticsService.trackSkip(trackId, positionMs),
         }),
         {
             name: "suniplayer-player",
             storage: createJSONStorage(() => getStorage()),
             partialize: (state) => ({
-                pQueue: state.pQueue,
+                // blob_url es efímera (URL.createObjectURL) y muere al recargar la página.
+                // Nunca persistirla — getTrackUrl() usará file_path como fallback.
+                pQueue: state.pQueue.map(t => ({ ...t, blob_url: undefined })),
                 ci: state.ci,
                 pos: state.pos,
                 vol: state.vol,
@@ -111,9 +123,16 @@ export const usePlayerStore = create<PlayerState>()(
             merge: (persistedState, currentState) => {
                 const persisted = persistedState as Partial<PlayerState>;
 
+                // Sanitizar blob_urls que pudieran existir en localStorage de sesiones anteriores.
+                // Son efímeras y mueren al recargar — forzar fallback a file_path.
+                const sanitizedQueue = (persisted.pQueue ?? []).map(
+                    (t) => ({ ...t, blob_url: undefined })
+                );
+
                 return {
                     ...currentState,
                     ...persisted,
+                    pQueue: sanitizedQueue,
                     playing: false,
                     elapsed: 0,
                     isSimulating: false,

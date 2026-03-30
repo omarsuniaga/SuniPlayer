@@ -15,12 +15,9 @@ export const fileAccess = new LocalFileAccess();
 // Initialize storage DB tables on app startup
 export async function initPlatform(): Promise<void> {
   await storage.init();
-  // Temporarily disabled to debug crash
-  /*
   try {
     await audioEngine.init();
   } catch (err) {
     console.warn('[initPlatform] TrackPlayer init failed:', err);
   }
-  */
 }

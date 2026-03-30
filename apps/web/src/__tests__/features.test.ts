@@ -120,8 +120,19 @@ describe("F1 — Biblioteca de canciones", () => {
     it("registra métricas de reproducción (playCount, playTimeMs)", () => {
         const track = makeTrack({ id: "metric-track", isCustom: true });
         useLibraryStore.getState().addCustomTrack(track);
-        useLibraryStore.getState().recordMetric("metric-track", 120_000, true);
-        useLibraryStore.getState().recordMetric("metric-track", 60_000, true);
+        
+        // Simulating two play events via updateTrack (which is what AnalyticsService does)
+        useLibraryStore.getState().updateTrack("metric-track", { 
+            totalPlayTimeMs: 120_000, 
+            playCount: 1, 
+            lastPlayedAt: new Date().toISOString() 
+        });
+        
+        useLibraryStore.getState().updateTrack("metric-track", { 
+            totalPlayTimeMs: 180_000, 
+            playCount: 2, 
+            lastPlayedAt: new Date().toISOString() 
+        });
 
         const overrides = useLibraryStore.getState().trackOverrides["metric-track"];
         expect(overrides?.totalPlayTimeMs).toBe(180_000);

@@ -7,6 +7,12 @@ export interface AnalysisData {
     energy: number;
     gainOffset: number;
     timestamp: number;
+    affinityScore?: number;
+    playCount?: number;
+    completePlays?: number;
+    skips?: number;
+    totalPlayTimeMs?: number;
+    lastPlayedAt?: string;
 }
 
 /**
