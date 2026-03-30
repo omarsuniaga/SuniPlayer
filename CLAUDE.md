@@ -28,9 +28,10 @@ Audio files live in `apps/web/public/audio/`. Built-in catalog: `apps/web/src/da
 
 ### Audio Engine — Native (`apps/native/src/platform/ExpoAudioEngine.ts`)
 - Implements: `load`, `play`, `pause`, `seek`, `fadeVolume`, `setVolume`, `getPosition`
+- **`fadeVolume`**: fully functional — smooth volume transitions via interval-based stepping
 - Callbacks: `onPositionUpdate`, `onBufferUpdate`, `onBufferingChange`, `onEnded`, `onError`
 - Analytics at engine level: `trackStart`, `trackEnd`, `trackSkip` (30% rule for skip detection)
-- **Pitch shift**: stub only — requires external library, NOT implemented
+- **Pitch shift**: explicit no-op with `console.warn` — RNTP v4 does not support pitch shift; requires external library (e.g. soundtouchjs-rn)
 
 ### AudioStreamerService (`apps/web/src/services/AudioStreamerService.ts`)
 - Fetch with progress tracking for loading bars
@@ -47,7 +48,9 @@ Audio files live in `apps/web/public/audio/`. Built-in catalog: `apps/web/src/da
 
 ### SQLiteStorage — Native (`apps/native/src/platform/SQLiteStorage.ts`)
 - Implemented for: track analysis data + waveform data
-- NOT implemented: binary audio file storage (`saveAudioFile`/`getAudioFile` stubs)
+- Binary audio storage **fully implemented**: `saveAudioFile`, `getAudioFile`, `deleteAudioFile`, `getAllStoredTrackIds`
+- Audio files stored in `documentDirectory/audio_storage/`; path registered in `audio_files` SQLite table
+- Base64 ↔ Blob conversion for native ↔ web transfer
 
 ## Testing
 - **Web**: `npm test` — Vitest 4, 25 test files, acceptance tests across areas F1–F9
@@ -91,3 +94,20 @@ Audio files live in `apps/web/public/audio/`. Built-in catalog: `apps/web/src/da
 - `apps/web/src/components/settings/PedalConfig.tsx` — Bluetooth pedal UI
 - `apps/web/src/__tests__/features.test.ts` — Feature acceptance tests across 9 areas (F1–F9)
 - `docs/superpowers/plans/` — Implementation plans (pedal bindings: done; iOS migration: pending)
+
+## Feature Status
+
+| Feature | Web | Native |
+|---------|-----|--------|
+| Reproducción básica | ✅ | ✅ |
+| Fade In/Out | ✅ | ✅ |
+| Crossfade | ✅ | N/A |
+| Set Builder Monte Carlo | ✅ | ✅ core |
+| Analytics (affinityScore) | ✅ | ✅ |
+| Pedal Bluetooth | ✅ | N/A |
+| Background audio | ✅ | ✅ |
+| Pitch shift | ✅ web | ❌ native stub |
+| Waveform | ✅ | ⚠️ parcial |
+| Multi-set Shows | ✅ | ✅ core |
+| Buffering bar | ✅ | ✅ |
+| Blob URL fix (ERR_FILE_NOT_FOUND) | ✅ | N/A |

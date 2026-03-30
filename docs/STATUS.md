@@ -1,166 +1,140 @@
-# SuniPlayer — Estado del Proyecto
+# SuniPlayer — Estado del Proyecto (2026-03-29)
 
-Última actualización: 2026-03-29
+## Resumen Ejecutivo
 
----
-
-## ✅ Web App (`apps/web`) — Production-ready
-
-### Audio Engine (`useAudio.ts`)
-- Dual-channel A/B para crossfade seamless (dos HTMLAudioElement, canales A y B)
-- Fade in/out configurable: `fadeEnabled`, `fadeInMs`, `fadeOutMs`; `fadeTimersRef` es un `Map` por canal, NO un ref único
-- Crossfade mode: canal A fade-out mientras canal B fade-in, controlado por `crossfadeMs`
-- Volume con autoGain: `gainOffset` por track aplicado sobre master volume
-- Seeking funcional
-- Analytics hooks integrados: `trackStart`, `trackEnd`, `trackSkip`
-
-### AudioStreamerService (`AudioStreamerService.ts`)
-- Fetch con progress tracking (barra de carga)
-- Blob URL short-circuit: si el track ya tiene blob URL cargado, no re-fetcha
-- IndexedDB recovery: si el fetch falla, intenta recuperar audio desde almacenamiento local
-
-### Blob URL Policy
-- `blob_url` en `Track` es EFÍMERO — se crea en runtime, NUNCA persiste a localStorage
-- `partialize` en stores excluye explícitamente `blob_url`
-
-### Set Builder (`setBuilderService.ts`)
-- Algoritmo Monte Carlo (600 iteraciones) + Greedy fallback
-- Filtros: BPM range, venue energy bias, mood transitions
-- Graceful fallback: si filtros dejan < 3 tracks, usa el catálogo completo (diseño intencional)
-- `setTrackTrim()` recalcula `tTarget` desde cero via `getEffectiveDuration()` — no es un delta
-
-### Analytics (`AnalyticsService.ts`)
-- Métricas: `playCount`, `completePlays`, `skips`, `affinityScore`
-- `affinityScore` usa Laplace smoothing para evitar cold-start bias
-- Integrado en `useAudio` — se dispara automáticamente durante reproducción
-
-### Stores (5 dominios, `packages/core/src/store/`)
-- `usePlayerStore` — estado de reproducción actual
-- `useSettingsStore` — configuración, pedal bindings (`PedalAction`, `PedalBinding`, `PedalBindings`)
-- `useBuilderStore` — estado del set builder
-- `useHistoryStore` — historial de shows/sets
-- `useLibraryStore` — biblioteca de tracks custom
-- `useProjectStore` — API composite que combina todos los stores (conveniente pero no usar en código crítico)
-
-### Pedal Bindings
-- Learn Mode funcional
-- 6 acciones disponibles
-- Persistido en `suniplayer-settings`
-
-### UI Completa
-- Player page con waveform canvas (`Wave`), marcadores (`MarkerLayer`), SPL meter UI
-- Builder page para generar sets
-- Library page para gestión de tracks custom
-- History page para ver shows anteriores
-- Modales: `TrackProfileModal`, `TrackTrimmer`, `SheetMusicViewer`
-- SPL Meter: solo UI — NO mide audio real (requeriría Web Audio AnalyserNode)
+| Plataforma | Estado | Descripción |
+|-----------|--------|-------------|
+| **Web** | ✅ Production-ready | Audio engine dual-channel, set builder, analytics, pedal |
+| **Native (Android/iOS)** | ⚠️ Beta funcional | Player completo, sin pitch shift nativo |
 
 ---
 
-## ⚠️ App Nativa (`apps/native`) — Beta / Work in Progress
+## Features Implementadas
 
-### ExpoAudioEngine (`ExpoAudioEngine.ts`) — Implementado
-- `load`, `play`, `pause`, `seek`, `fadeVolume`, `setVolume`, `getPosition`
-- `setTempo` funcional via `TrackPlayer.setRate(rate)`; mantiene `_currentRate` para tracking interno
-- `setPitch` — no-op explícito con `console.warn`; RNTP v4 no soporta pitch shift (requiere lib externa)
-- Callbacks: `onPositionUpdate`, `onBufferUpdate`, `onBufferingChange`, `onEnded`, `onError`
-- Analytics a nivel de engine: `trackStart`, `trackEnd`, `trackSkip` (regla del 30% para detectar skips)
+### 🎵 Audio Engine
 
-### LocalFileAccess — Implementado con seguridad
-- Whitelist de MIME types y extensiones
-- Límite de 200MB por archivo
-- Sanitización de paths
+| Feature | Web | Native |
+|---------|-----|--------|
+| Reproducción básica | ✅ | ✅ |
+| Dual-channel A/B | ✅ | N/A (RNTP) |
+| Fade In/Out configurable | ✅ | ✅ |
+| Crossfade | ✅ | N/A |
+| Seeking | ✅ | ✅ |
+| Tempo shift | ✅ (soundtouchjs) | ✅ (RNTP rate) |
+| Pitch shift | ✅ (soundtouchjs) | ❌ Stub |
+| Volume + autoGain | ✅ | ✅ |
+| Background audio | ✅ (WakeLock) | ✅ (iOS + Android config) |
+| Barra de buffering | ✅ | ✅ |
 
-### SQLiteStorage — Completamente implementado
-- Funciona para: datos de análisis de tracks + datos de waveform
-- Almacenamiento binario de audio: `saveAudioFile`, `getAudioFile`, `deleteAudioFile`, `getAllStoredTrackIds` implementados
-- Archivos guardados en `documentDirectory/audio_storage/`
-- Path registrado en tabla `audio_files` de SQLite
-- Conversión base64 ↔ Blob para transferencia nativo ↔ web
+### 📚 Biblioteca & Importación
 
-### PlayerScreen — Funcional básico
-- Play/Pause, Next/Prev
-- Volume control
-- Fade controls
-- Buffering bar
-- Waveform (`Waveform.tsx` — componente presente, integración en progreso)
+| Feature | Web | Native |
+|---------|-----|--------|
+| Tracks built-in (catalog) | ✅ `tracks.json` | ✅ (via streaming) |
+| Import archivos locales | ✅ (File API) | ✅ (expo-document-picker) |
+| Análisis BPM/Key (librosa) | ✅ | ✅ (core) |
+| Waveform visual | ✅ (canvas) | ✅ (componente) |
+| Marcadores en waveform | ✅ | ✅ |
+| Sheet Music Viewer (PDF) | ✅ | ✅ |
+| Persistencia (IDB/SQLite) | ✅ IndexedDB | ✅ SQLiteStorage |
+| Binary audio storage | ✅ IDB | ✅ Base64 SQLite |
+
+### 🎛 Set Builder
+
+| Feature | Web | Native |
+|---------|-----|--------|
+| Algoritmo Monte Carlo | ✅ (600 iteraciones) | ✅ (via core) |
+| Greedy fallback | ✅ | ✅ |
+| Filtros BPM / mood | ✅ | ✅ |
+| Venue energy bias | ✅ | ✅ |
+| Multi-set Shows | ✅ | ✅ (via core) |
+| Historial de shows | ✅ | ✅ |
+| affinityScore influence | 🔶 Pendiente integración | 🔶 Pendiente |
+
+### 📊 Analytics (SuniAnalytics)
+
+| Métrica | Estado | Notas |
+|---------|--------|-------|
+| `playCount` | ✅ | Incrementa en trackStart |
+| `completePlays` | ✅ | Incrementa en trackEnd natural |
+| `skips` | ✅ | Regla del 30%: solo < 30% del track |
+| `affinityScore` | ✅ | Laplace smoothing, base 50 |
+| Persistencia | ✅ | En Track.* via useLibraryStore |
+| Influir en Builder | 🔶 Pendiente | Integrar topTracks() en buildSet() |
+
+### 🎮 Controles & UX
+
+| Feature | Web | Native |
+|---------|-----|--------|
+| Pedal Bluetooth (HID) | ✅ Learn Mode | N/A |
+| Modo Show (live) | ✅ | ✅ |
+| SPL Meter | ⚠️ UI only | ❌ |
+| Transiciones automáticas | ✅ | ✅ |
+| Auto-fade en play/pause | ✅ | ✅ |
+| PWA (installable) | ✅ | N/A |
 
 ---
 
-## ❌ Gaps pendientes
+## Pendientes Clave
 
-| Feature | Notas |
-|---------|-------|
-| Pitch shift | `setPitch` es no-op explícito en `ExpoAudioEngine`; requiere librería externa (e.g., soundtouchjs) |
-| SPL meter real | Solo UI web; requiere `Web Audio AnalyserNode` — no disponible en React Native |
+### 🔴 Críticos
+| Item | Plataforma | Descripción |
+|------|-----------|-------------|
+| Pitch shift nativo | Native | `setPitch()` es stub. Necesita librería externa (soundtouchjs-rn o similar) |
+| Audio files en `/public/audio/` | Web | Carpeta vacía — tracks demo no funcionan sin deploy a Netlify |
+
+### 🟡 Mejoras importantes
+| Item | Plataforma | Descripción |
+|------|-----------|-------------|
+| Analytics → Builder | Both | `topTracks()` no influye aún en generación de sets |
+| SPL Meter real | Web | Necesita `AudioContext.createAnalyser()` conectado al engine |
+| Waveform nativa integración | Native | `Waveform.tsx` existe pero no está completamente integrado |
+
+### 🟢 Planes documentados (sin ejecutar)
+| Plan | Archivo | Estado |
+|------|---------|--------|
+| Edit Modal Auto-Pause | `2026-03-24-edit-modal-auto-pause.md` | ❌ Pendiente |
+| Energy Curve Toggle | `2026-03-22-energy-curve-toggle.md` | ❌ Pendiente |
+
+---
+
+## Arquitectura
+
+```
+SuniPlayer/
+├── apps/web/          → React 18 + Vite + Vitest (producción)
+├── apps/native/       → React Native + Expo SDK 55 (beta)
+└── packages/core/     → Tipos, stores, servicios compartidos
+```
+
+### Stores Zustand (packages/core/src/store/)
+- `usePlayerStore` — queue, posición, modo play/live
+- `useBuilderStore` — sets generados, config de venue/curve/BPM, Shows
+- `useLibraryStore` — tracks custom, repertoire, analytics
+- `useHistoryStore` — historial de shows (migración legacy)
+- `useSettingsStore` — fade/crossfade, pedal bindings, SPL, energy curve
+
+### Audio Engines
+- **Web**: `useAudio.ts` — Dual-channel HTML5 Audio, fade timer por canal (Map)
+- **Native**: `ExpoAudioEngine.ts` — react-native-track-player v4, foreground service
 
 ---
 
 ## Tests
 
-| Plataforma | Runner | Archivos | Cobertura |
-|------------|--------|----------|-----------|
-| Web | Vitest 4 + @testing-library/react | 25 archivos | F1–F9 acceptance tests |
-| Native | Jest | 3 archivos | ExpoAudioEngine, LocalFileAccess, SQLiteStorage |
-
-**Áreas de tests web (F1–F9):**
-- F1: Library — gestión de tracks custom
-- F2: Builder — generación de sets
-- F3: Player — reproducción y controles
-- F4: Live — modo en vivo
-- F5: History — historial de shows
-- F6: Customization — waveforms, marcadores, sheet music
-- F7: Session — gestión de sesión
-- F8: Pedal — bindings de pedal bluetooth
-- F9: Settings — configuración general
-
-**Notas críticas de testing:**
-- `globals: true` en `vitest.config.ts` — requerido para auto-cleanup de `@testing-library/react`
-- Reset de stores: `localStorage.clear()` + `store.setState(store.getInitialState(), true)`
-- Usar `queryAllByText()` no `queryByText()` cuando pueden matchear múltiples elementos
+| Suite | Runner | Tests |
+|-------|--------|-------|
+| `apps/web/__tests__/features.test.ts` | Vitest 4 | F1-F9, ~800 líneas |
+| `apps/native/__tests__/ExpoAudioEngine.test.ts` | Jest | engine lifecycle, analytics |
+| `apps/native/__tests__/LocalFileAccess.test.ts` | Jest | whitelist, 200MB limit |
+| `apps/native/__tests__/SQLiteStorage.test.ts` | Jest | análisis, waveform, audio binary |
 
 ---
 
-## Arquitectura de Plataformas
+## Deploy
 
-```
-packages/core/
-  src/
-    types.ts              — Track, Show, SetEntry, TrackMarker (tipos compartidos)
-    store/                — 5 domain stores (Zustand)
-    services/             — setBuilderService, AnalyticsService
-    platform/
-      interfaces/
-        IAudioEngine.ts   — Contrato de audio (web + native implementan esto)
-        IStorage.ts       — Contrato de storage
-
-apps/web/                 — React 18, Vite, Vitest
-  src/
-    services/
-      useAudio.ts         — Motor de audio web (implementa IAudioEngine)
-      AudioStreamerService.ts
-
-apps/native/              — React Native + Expo
-  src/
-    platform/
-      ExpoAudioEngine.ts  — Motor de audio nativo (implementa IAudioEngine)
-      SQLiteStorage.ts    — Storage nativo (implementa IStorage, completo)
-    screens/
-      PlayerScreen.tsx
-```
-
-**Tipos principales:**
-```typescript
-Track {
-  id, title, artist, duration_ms, file_path,
-  blob_url?,        // EPHEMERAL — nunca persiste a localStorage
-  bpm?, key?, energy?, mood?, genre?, tags?, notes?,
-  isCustom?, waveform?, gainOffset?, startTime?, endTime?,
-  sheetMusic?, markers?,
-  playCount?, completePlays?, skips?, affinityScore?, totalPlayTimeMs?, lastPlayedAt?
-}
-
-Show { id, name, createdAt, sets: SetEntry[] }
-SetEntry { id, label, tracks, durationMs, builtAt }
-TrackMarker { id, posMs, comment }
-```
+| Target | URL | Trigger |
+|--------|-----|---------|
+| Web (Netlify) | https://suniplayer.netlify.app | Push a `main` |
+| Android APK (EAS) | Ver EAS dashboard | `eas build --platform android --profile preview` |
+| iOS (EAS) | Requiere Apple Developer Account | `eas build --platform ios --profile preview` |
