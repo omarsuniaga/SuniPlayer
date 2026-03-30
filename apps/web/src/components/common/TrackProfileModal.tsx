@@ -61,7 +61,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
         const engine = getPitchEngine();
         setIsLoadingPreview(true);
         try {
-            const ok = await engine.loadFromPath(track.file_path, track.blob_url ?? undefined);
+            const ok = await engine.loadFromPath(track.file_path || "", track.blob_url ?? undefined);
             if (!ok) throw new Error("Failed to load audio");
             engine.pitchSemitones = transposeSemitones;
             engine.tempo = playbackTempo;

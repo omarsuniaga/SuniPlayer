@@ -4,6 +4,7 @@ import { THEME } from "../data/theme";
 import { useProjectStore } from "../store/useProjectStore";
 import {
     applyShowSessionSnapshot,
+    buildShowSessionSnapshot,
     clearShowSessionSnapshot,
     hasRecoverableShowSession,
     readShowSessionSnapshot,
@@ -46,7 +47,7 @@ export const ShowRecoveryManager: React.FC = () => {
 
     useEffect(() => {
         const flushSnapshot = () => {
-            void saveShowSessionSnapshot();
+            void saveShowSessionSnapshot(buildShowSessionSnapshot());
         };
 
         if (saveTimerRef.current) {

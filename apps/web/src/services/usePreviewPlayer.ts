@@ -41,7 +41,7 @@ export function usePreviewPlayer() {
         } else {
             // New track â€” reset and play
             audioRef.current.pause();
-            const url = track.blob_url ?? `/audio/${encodeURIComponent(track.file_path)}`;
+            const url = track.blob_url ?? `/audio/${encodeURIComponent(track.file_path || "")}`;
             audioRef.current.src = url;
             audioRef.current.load();
             audioRef.current.play();

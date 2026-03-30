@@ -220,8 +220,8 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                             fontSize: 10,
                             padding: "2px 6px",
                             borderRadius: THEME.radius.sm,
-                            backgroundColor: mc(track.mood) + "12",
-                            color: mc(track.mood),
+                            backgroundColor: mc(track.mood || "calm") + "12",
+                            color: mc(track.mood || "calm"),
                             fontWeight: 700,
                             textTransform: "uppercase",
                             letterSpacing: "0.02em",
@@ -246,13 +246,13 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                         overflow: "hidden",
                         flexShrink: 0,
                     }}
-                    title={`Energy: ${Math.round(track.energy * 100)}%`}
+                    title={`Energy: ${Math.round((track.energy ?? 0) * 100)}%`}
                 >
                     <div
                         style={{
                             height: "100%",
-                            width: `${track.energy * 100}%`,
-                            backgroundColor: ec(track.energy),
+                            width: `${(track.energy ?? 0) * 100}%`,
+                            backgroundColor: ec(track.energy ?? 0.5),
                             borderRadius: 2,
                         }}
                     />

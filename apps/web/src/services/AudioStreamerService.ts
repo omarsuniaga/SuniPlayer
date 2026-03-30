@@ -77,7 +77,7 @@ export class AudioStreamerService {
             });
         }
 
-        const fullBlob = new Blob(chunks, { type: response.headers.get('Content-Type') ?? 'audio/mpeg' });
+        const fullBlob = new Blob(chunks as any, { type: response.headers.get('Content-Type') ?? 'audio/mpeg' });
         return URL.createObjectURL(fullBlob);
     }
 }

@@ -16,7 +16,7 @@ export interface Track {
     title: string;
     artist: string;
     duration_ms: number;
-    file_path: string;
+    file_path?: string;
     
     // Metadata & Analysis
     blob_url?: string;
@@ -36,9 +36,13 @@ export interface Track {
     startTime?: number; // In MS, for auto-trim
     endTime?: number;   // In MS, for auto-trim
     instanceId?: string; // For unique keys in React lists
+    transposeSemitones?: number;
+    playbackTempo?: number;
+    sourceMissing?: boolean;
+    targetKey?: string;
     
     // Visual Assets
-    sheetMusic?: string[]; // URLs or local paths
+    sheetMusic?: { id: string; type: "pdf" | "image"; name: string; localUri?: string }[]; // Partituras vinculadas
     markers?: TrackMarker[];
 
     // Stats & History

@@ -114,7 +114,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
 
     const ct = pQueue[ci];
     const isLive = mode === "live";
-    const mCol = mcHelper(ct?.mood);
+    const mCol = mcHelper(ct?.mood || "calm");
     const durMs = ct?.duration_ms || 1;
     const rem = Math.max(0, durMs - pos);
     const tPct = Math.min(1, pos / durMs);
@@ -137,7 +137,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
 
     useEffect(() => {
         if (!ct) return;
-        const url = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path)}`;
+        const url = ct.blob_url ?? `/audio/${encodeURIComponent(ct.file_path || "")}`;
         getWaveformData(url, ct.id).then(wave => setCurrentWave(wave));
         return () => setCurrentWave([]);
     }, [ct]);

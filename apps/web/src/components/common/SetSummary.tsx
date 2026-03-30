@@ -13,7 +13,7 @@ export const SetSummary: React.FC<SetSummaryProps> = ({ tracks, target }) => {
     const diff = tot - (target * 1000);
     const dc = Math.abs(diff) <= 60000 ? "#10B981" : Math.abs(diff) <= 180000 ? "#F59E0B" : "#EF4444";
     const dl = diff === 0 ? "Exacto" : diff > 0 ? "+" + fmtM(diff) : "-" + fmtM(Math.abs(diff));
-    const ae = tracks.length ? tracks.reduce((s: number, t: Track) => s + t.energy, 0) / tracks.length : 0;
+    const ae = tracks.length ? tracks.reduce((s: number, t: Track) => s + (t.energy ?? 0.5), 0) / tracks.length : 0;
 
     return (
         <div

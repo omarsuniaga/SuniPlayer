@@ -28,7 +28,7 @@ export const PlayerTrackHeader: React.FC<Props> = ({ ct, rem, tCol, tPct }) => (
                         <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: THEME.radius.sm, backgroundColor: THEME.colors.brand.violet + "15", color: THEME.colors.brand.violet, fontFamily: THEME.fonts.mono, fontWeight: 700 }}>
                             {ct.key}
                         </span>
-                        <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: THEME.radius.sm, backgroundColor: mc(ct.mood) + "15", color: mc(ct.mood), fontWeight: 700, textTransform: "capitalize" }}>
+                        <span style={{ fontSize: 11, padding: "4px 10px", borderRadius: THEME.radius.sm, backgroundColor: mc(ct.mood || "calm") + "15", color: mc(ct.mood || "calm"), fontWeight: 700, textTransform: "capitalize" }}>
                             {ct.mood}
                         </span>
                     </>

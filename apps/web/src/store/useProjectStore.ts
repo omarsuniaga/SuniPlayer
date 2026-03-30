@@ -275,13 +275,14 @@ export function appendToQueue(tracks: Track[]) {
 
 /** Save the current generated set to history */
 export function saveSet() {
-    const { genSet, targetMin, venue } = useBuilderStore.getState();
+    const builderState = useBuilderStore.getState();
+    const { genSet, targetMin, venue, curve } = builderState;
     if (!genSet.length) return;
 
     const v = VENUES.find((x) => x.id === venue);
     const now = new Date().toISOString();
 
-    const newShow: Show = {
+    const newShow: SetHistoryItem = {
         id: crypto.randomUUID(),
         name: (v?.label || "Set") + " " + targetMin + "min",
         createdAt: now,
@@ -291,7 +292,13 @@ export function saveSet() {
             tracks: [...genSet],
             durationMs: sumTrackDurationMs(genSet),
             builtAt: now
-        }]
+        }],
+        tracks: [...genSet],
+        total: sumTrackDurationMs(genSet),
+        target: targetMin * 60,
+        venue,
+        curve,
+        date: new Date().toLocaleString()
     };
 
     useHistoryStore.getState().saveShow(newShow);

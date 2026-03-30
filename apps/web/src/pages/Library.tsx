@@ -34,7 +34,7 @@ export const Library: React.FC = () => {
 
     React.useEffect(() => {
         TRACKS.forEach(t => {
-            const url = `/audio/${encodeURIComponent(t.file_path)}`;
+            const url = `/audio/${encodeURIComponent(t.file_path || "")}`;
             analyzeTrack(url).then(analysis => {
                 if (analysis) {
                     useLibraryStore.getState().updateTrack(t.id, {

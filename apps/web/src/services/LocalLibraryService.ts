@@ -1,6 +1,6 @@
 import * as mm from 'music-metadata-browser';
 import { audioCache } from './db';
-import { Track } from '../types';
+import { Track } from '@suniplayer/core';
 
 export class LocalLibraryService {
     /**
@@ -26,7 +26,7 @@ export class LocalLibraryService {
             bpm: Math.round(metadata.common.bpm || 120),
             key: metadata.common.key || "C",
             energy: 5, // Default
-            mood: "Steady", // Default
+            mood: "calm", // Default
             file_path: file.name,
             analysis_cached: true,
             isCustom: true,

@@ -29,7 +29,7 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
         wasPlayingRef.current = usePlayerStore.getState().playing;
         setPlaying(false);
 
-        const url = track.blob_url ?? `/audio/${encodeURIComponent(track.file_path)}`;
+        const url = track.blob_url ?? `/audio/${encodeURIComponent(track.file_path || "")}`;
         getWaveformData(url, track.id, 200).then(data => {
             setWaveData(data);
         });

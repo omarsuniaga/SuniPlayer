@@ -30,7 +30,7 @@ export const VisualizerSection: React.FC<VisualizerSectionProps> = ({
     currentWave, isLoadingWave, fadeEnabled, fadeInMs, fadeOutMs,
     onMarkersChange, onSeek
 }) => {
-    const url = track ? (track.blob_url ?? `/audio/${encodeURIComponent(track.file_path)}`) : "";
+    const url = track ? (track.blob_url ?? `/audio/${encodeURIComponent(track.file_path || "")}`) : "";
     const download = useDownloadStore(s => s.activeDownloads[url]);
     const isBuffering = download && download.percentage < 100;
 
