@@ -1,7 +1,7 @@
 import React from "react";
 import { Track } from "@suniplayer/core";
 import { THEME } from "../../../data/theme";
-import { fmt } from "../../../services/uiUtils";
+import { fmt } from \"@suniplayer/core\";
 
 interface PlayerHeaderProps {
     track: Track | null;

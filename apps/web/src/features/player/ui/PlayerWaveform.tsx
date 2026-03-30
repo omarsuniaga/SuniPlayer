@@ -2,7 +2,7 @@
 import React from "react";
 import { THEME } from "../../../data/theme.ts";
 import { Wave } from "../../../components/common/Wave.tsx";
-import { fmt } from "../../../services/uiUtils.ts";
+import { fmt } from \"@suniplayer/core\";
 
 interface Props {
     waveData: number[];

@@ -1,10 +1,10 @@
 import React from "react";
 
-import { CURVES, VENUES } from "../../../data/constants";
+import { CURVES, VENUES } from \"@suniplayer/core\";
 import { THEME } from "../../../data/theme";
 import { EnergyCurveChart } from "../../../components/common/EnergyCurveChart";
 import type { CurveType } from "../../../components/common/EnergyCurveChart";
-import type { Show, Track } from "../../../types";
+import type { Show, Track } from \"@suniplayer/core\";
 import { useSettingsStore } from "../../../store/useSettingsStore";
 import { useLibraryStore } from "../../../store/useLibraryStore";
 

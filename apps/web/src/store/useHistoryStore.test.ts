@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { TRACKS } from "../data/constants";
+import { TRACKS } from \"@suniplayer/core\";
 import { useHistoryStore } from "./useHistoryStore";
-import type { SetHistoryItem, Show } from "../types";
+import type { SetHistoryItem, Show } from \"@suniplayer/core\";
 
 describe("useHistoryStore — Show-based storage", () => {
     beforeEach(() => {

@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Track } from "../../types.ts";
+import { Track } from \"@suniplayer/core\";
 import { THEME } from "../../data/theme.ts";
-import { fmt, fmtFull } from "../../services/uiUtils.ts";
+import { fmt, fmtFull } from \"@suniplayer/core\";
 import { TrackTrimmer } from "./TrackTrimmer.tsx";
 import { useLibraryStore } from "../../store/useLibraryStore.ts";
 import { analyzeAudio } from "../../services/analysisService.ts";

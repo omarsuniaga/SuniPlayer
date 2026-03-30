@@ -1,9 +1,9 @@
 import React from "react";
 import { THEME } from "../../../data/theme.ts";
-import { Track } from "../../../types";
+import { Track } from \"@suniplayer/core\";
 import { Wave } from "../../../components/common/Wave.tsx";
 import { MarkerLayer } from "../../../components/common/MarkerLayer";
-import { fmt } from "../../../services/uiUtils.ts";
+import { fmt } from \"@suniplayer/core\";
 import { useDownloadStore } from "../../../store/useDownloadStore";
 
 interface VisualizerSectionProps {

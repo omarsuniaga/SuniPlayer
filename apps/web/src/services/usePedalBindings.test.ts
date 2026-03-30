@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handlePedalEvent } from "./usePedalBindings";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
-import type { Track } from "../types";
+import type { Track } from \"@suniplayer/core\";
 
 const makeTrack = (id: string): Track => ({
     id,

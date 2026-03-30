@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Track } from "../types";
+import { Track } from \"@suniplayer/core\";
 
 /**
  * usePreviewPlayer — Independent audio player for library previews.

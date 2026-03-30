@@ -1,5 +1,5 @@
 // Types
-export type { Track, Venue, Curve, SetHistoryItem, TrackMarker, Mood } from './types';
+export type { Track, Venue, Curve, SetHistoryItem, SetEntry, Show, TrackMarker, Mood } from './types';
 
 // Stores
 export { useBuilderStore } from './store/useBuilderStore';
@@ -15,7 +15,7 @@ export type { ProjectState } from './store/useProjectStore';
 export { configureStorage } from './store/storage';
 
 // Data constants
-export { VENUES, CURVES, MOODS } from './data/constants';
+export { TRACKS, VENUES, CURVES, MOODS } from './data/constants';
 
 // Services
 export { buildSet } from './services/setBuilderService';

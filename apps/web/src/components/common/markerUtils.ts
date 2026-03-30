@@ -1,4 +1,4 @@
-import type { TrackMarker } from "../../types";
+import type { TrackMarker } from \"@suniplayer/core\";
 
 const HIT_TOLERANCE_PX = 12;
 

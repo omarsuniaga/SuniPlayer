@@ -1,5 +1,5 @@
 import React from "react";
-import type { TrackMarker } from "../../types";
+import type { TrackMarker } from \"@suniplayer/core\";
 import { blinkDurationSec, BubbleState } from "./markerUtils";
 
 interface MarkerBubbleProps {

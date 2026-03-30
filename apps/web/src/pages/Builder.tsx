@@ -4,11 +4,11 @@ import { BuilderGeneratedSetSection } from "../features/set-builder/ui/BuilderGe
 import { BuilderRepertoirePanel } from "../features/set-builder/ui/BuilderRepertoirePanel";
 import { useProjectStore, useBuilderStore } from "../store/useProjectStore";
 import { THEME } from "../data/theme.ts";
-import { TRACKS } from "../data/constants.ts";
+import { TRACKS } from \"@suniplayer/core\";
 import { useLibraryStore } from "../store/useLibraryStore";
 import { TrackProfileModal } from "../components/common/TrackProfileModal.tsx";
 import { updateTrackMetadata } from "../store/useProjectStore.ts";
-import { Track } from "../types.ts";
+import { Track } from \"@suniplayer/core\";
 
 export const Builder: React.FC = () => {
     const s = useProjectStore();

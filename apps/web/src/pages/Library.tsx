@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useLibraryStore, useProjectStore, Track } from "@suniplayer/core";
 import { THEME } from "../data/theme";
-import { TRACKS } from "../data/constants";
+import { TRACKS } from \"@suniplayer/core\";
 import { ImportZone } from "../components/common/ImportZone";
 import { TrackRow } from "../components/common/TrackRow";
 import { TrackTrimmer } from "../components/common/TrackTrimmer";

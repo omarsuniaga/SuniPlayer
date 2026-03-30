@@ -12,7 +12,7 @@ vi.mock("../components/common/TrackProfileModal");
 vi.mock("../components/common/SheetMusicViewer");
 vi.mock("../components/player/LiveUnlockModal");
 
-import { TRACKS } from "../data/constants";
+import { TRACKS } from \"@suniplayer/core\";
 import { useBuilderStore } from "../store/useBuilderStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TRACKS } from "../data/constants";
+import { TRACKS } from \"@suniplayer/core\";
 import { buildSet } from "./setBuilderService";
 
 describe("buildSet", () => {

@@ -12,11 +12,11 @@
  *   useHistoryStore  — history
  *   useLibraryStore  — customTracks
  */
-import { Track, SetHistoryItem, Show } from "../types.ts";
-import { TRACKS, VENUES } from "../data/constants.ts";
-import { buildSet } from "../services/setBuilderService.ts";
-import { sumTrackDurationMs, sumTrackDurationSeconds } from "../utils/trackMetrics.ts";
-import { getEffectiveDuration } from "../services/uiUtils.ts";
+import { Track, SetHistoryItem, Show } from \"@suniplayer/core\";
+import { TRACKS, VENUES } from \"@suniplayer/core\";
+import { buildSet } from \"@suniplayer/core\";
+import { sumTrackDurationMs, sumTrackDurationSeconds } from \"@suniplayer/core\";
+import { getEffectiveDuration } from \"@suniplayer/core\";
 
 import { useBuilderStore } from "./useBuilderStore.ts";
 import { usePlayerStore } from "./usePlayerStore.ts";

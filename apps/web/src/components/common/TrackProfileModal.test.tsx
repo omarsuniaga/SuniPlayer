@@ -1,7 +1,7 @@
 // src/components/common/TrackProfileModal.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TRACKS } from "../../data/constants";
-import type { Track } from "../../types";
+import { TRACKS } from \"@suniplayer/core\";
+import type { Track } from \"@suniplayer/core\";
 
 // Mock pitchEngine
 const mockEngine = {

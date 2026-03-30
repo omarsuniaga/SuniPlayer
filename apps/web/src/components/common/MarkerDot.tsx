@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { TrackMarker } from "../../types";
+import type { TrackMarker } from \"@suniplayer/core\";
 
 interface MarkerDotProps {
     marker: TrackMarker;

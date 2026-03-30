@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import type { TrackMarker } from "../../types";
+import type { TrackMarker } from \"@suniplayer/core\";
 import { findNearbyMarker, getBubbleState } from "./markerUtils";
 import { MarkerDot } from "./MarkerDot";
 import { MarkerBubble } from "./MarkerBubble";

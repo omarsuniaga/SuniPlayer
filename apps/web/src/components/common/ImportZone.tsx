@@ -5,7 +5,7 @@ import React, { useRef, useState, useCallback, useEffect, useImperativeHandle, f
 import { useProjectStore } from "../../store/useProjectStore";
 import { useLibraryStore } from "../../store/useLibraryStore";
 import { THEME } from "../../data/theme.ts";
-import { Track } from "../../types";
+import { Track } from \"@suniplayer/core\";
 import { ImportCandidate, getRelativeAudioPath, isSupportedAudioFile, parseTrackName } from "../../features/library/lib/audioImport";
 import { analyzeAudio } from "../../services/analysisService.ts";
 

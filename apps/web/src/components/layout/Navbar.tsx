@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useProjectStore, usePlayerStore, Track } from "@suniplayer/core";
 import { THEME } from "../../data/theme";
-import { fmt } from "../../services/uiUtils";
+import { fmt } from \"@suniplayer/core\";
 import { LiveUnlockModal } from "../player/LiveUnlockModal";
-import { sumTrackDurationMs } from "../../utils/trackMetrics";
+import { sumTrackDurationMs } from \"@suniplayer/core\";
 import { InstallButton } from "../common/InstallButton";
 
 export const Navbar: React.FC = () => {

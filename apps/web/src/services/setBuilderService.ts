@@ -1,4 +1,4 @@
-import { Track } from "../types";
+import { Track } from \"@suniplayer/core\";
 
 /** Generate a waveform visualization array for the Wave component */
 export function genWave(seed: number, n = 100): number[] {

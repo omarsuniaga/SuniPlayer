@@ -1,6 +1,6 @@
 import React from "react";
-import { Track } from "../../types";
-import { fmt, fmtFull, mc, ec, getEffectiveDuration } from "../../services/uiUtils.ts";
+import { Track } from \"@suniplayer/core\";
+import { fmt, fmtFull, mc, ec, getEffectiveDuration } from \"@suniplayer/core\";
 import { THEME } from "../../data/theme.ts";
 
 interface TrackRowProps {

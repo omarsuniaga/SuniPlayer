@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { TrackMarker } from "../../types";
+import type { TrackMarker } from \"@suniplayer/core\";
 import { THEME } from "../../data/theme";
 
 const MAX_CHARS = 140;

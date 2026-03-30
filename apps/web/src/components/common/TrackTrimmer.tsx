@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Track } from "../../types.ts";
+import { Track } from \"@suniplayer/core\";
 import { THEME } from "../../data/theme.ts";
 import { getWaveformData } from "../../services/waveformService.ts";
 import { Wave } from "./Wave.tsx";
-import { fmt } from "../../services/uiUtils.ts";
+import { fmt } from \"@suniplayer/core\";
 import { usePlayerStore } from "../../store/usePlayerStore.ts";
 
 interface TrackTrimmerProps {

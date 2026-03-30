@@ -18,7 +18,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { TRACKS, VENUES } from "../data/constants";
+import { TRACKS, VENUES } from \"@suniplayer/core\";
 import {
     appendToQueue,
     doGen,
@@ -33,7 +33,7 @@ import { useHistoryStore } from "../store/useHistoryStore";
 import { useLibraryStore } from "../store/useLibraryStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useSettingsStore } from "../store/useSettingsStore";
-import type { Track } from "../types";
+import type { Track } from \"@suniplayer/core\";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { TrackMarker } from "../../types";
+import type { TrackMarker } from \"@suniplayer/core\";
 
 const DURATION_MS = 120000;
 

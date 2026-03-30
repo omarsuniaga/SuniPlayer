@@ -1,4 +1,4 @@
-import type { Track, Show } from "../types";
+import type { Track, Show } from \"@suniplayer/core\";
 import { 
     useBuilderStore, 
     usePlayerStore, 

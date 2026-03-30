@@ -4,7 +4,7 @@ import {
     blinkDurationSec,
     getBubbleState,
 } from "./markerUtils";
-import type { TrackMarker } from "../../types";
+import type { TrackMarker } from \"@suniplayer/core\";
 
 const marker = (id: string, posMs: number): TrackMarker => ({
     id,

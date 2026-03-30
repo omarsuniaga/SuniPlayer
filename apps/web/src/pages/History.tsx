@@ -3,7 +3,7 @@ import { useHistoryStore } from "../store/useHistoryStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useBuilderStore } from "../store/useBuilderStore";
 import { THEME } from "../data/theme.ts";
-import type { SetEntry, Show, Track } from "../types";
+import type { SetEntry, Show, Track } from \"@suniplayer/core\";
 import { StatsDashboard } from "../features/history/ui/StatsDashboard";
 
 export const History: React.FC = () => {

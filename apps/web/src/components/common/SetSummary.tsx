@@ -1,6 +1,6 @@
 import React from "react";
-import { Track } from "../../types";
-import { fmtM, getEffectiveDuration } from "../../services/uiUtils.ts";
+import { Track } from \"@suniplayer/core\";
+import { fmtM, getEffectiveDuration } from \"@suniplayer/core\";
 import { THEME } from "../../data/theme.ts";
 
 interface SetSummaryProps {

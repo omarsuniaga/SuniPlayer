@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useProjectStore, Track, useSettingsStore } from "@suniplayer/core";
 import { THEME } from "../../data/theme";
-import { fmt } from "../../services/uiUtils";
+import { fmt } from \"@suniplayer/core\";
 
 export const MiniPlayer: React.FC = () => {
     const { pQueue, ci, pos, playing, setPlaying, setCi, setPos, setView } = useProjectStore();

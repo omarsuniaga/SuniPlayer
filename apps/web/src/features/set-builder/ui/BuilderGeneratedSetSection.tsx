@@ -3,7 +3,7 @@ import React from "react";
 import { SetSummary } from "../../../components/common/SetSummary";
 import { TrackRow } from "../../../components/common/TrackRow";
 import { THEME } from "../../../data/theme";
-import type { Track } from "../../../types";
+import type { Track } from \"@suniplayer/core\";
 
 interface BuilderGeneratedSetSectionProps {
     tracks: Track[];

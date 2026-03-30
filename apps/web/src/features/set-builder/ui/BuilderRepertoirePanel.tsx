@@ -2,10 +2,10 @@ import React from "react";
 
 import { ImportZone } from "../../../components/common/ImportZone";
 import { TrackRow } from "../../../components/common/TrackRow";
-import { MOODS } from "../../../data/constants";
+import { MOODS } from \"@suniplayer/core\";
 import { THEME } from "../../../data/theme";
-import { mc } from "../../../services/uiUtils";
-import type { Track } from "../../../types";
+import { mc } from \"@suniplayer/core\";
+import type { Track } from \"@suniplayer/core\";
 
 interface BuilderRepertoirePanelProps {
     filteredTracks: Track[];

@@ -1,8 +1,8 @@
 // src/features/player/ui/PlayerTrackHeader.tsx
 import React from "react";
-import { Track } from "../../../types";
+import { Track } from \"@suniplayer/core\";
 import { THEME } from "../../../data/theme.ts";
-import { fmt, mc } from "../../../services/uiUtils.ts";
+import { fmt, mc } from \"@suniplayer/core\";
 
 interface Props {
     ct: Track | undefined;

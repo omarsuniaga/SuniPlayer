@@ -1,9 +1,9 @@
 // src/features/player/ui/PlayerSetFooter.tsx
 import React from "react";
-import { Track } from "../../../types";
+import { Track } from \"@suniplayer/core\";
 import { THEME } from "../../../data/theme.ts";
-import { fmtM } from "../../../services/uiUtils.ts";
-import { sumTrackDurationMs } from "../../../utils/trackMetrics.ts";
+import { fmtM } from \"@suniplayer/core\";
+import { sumTrackDurationMs } from \"@suniplayer/core\";
 
 interface Props {
     pQueue: Track[];

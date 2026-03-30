@@ -1,8 +1,8 @@
 // src/features/player/ui/PlayerQueueSidebar.tsx
 import React from "react";
-import { Track } from "../../../types";
+import { Track } from \"@suniplayer/core\";
 import { THEME } from "../../../data/theme.ts";
-import { fmt } from "../../../services/uiUtils.ts";
+import { fmt } from \"@suniplayer/core\";
 
 interface Props {
     pQueue: Track[];
