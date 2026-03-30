@@ -1,0 +1,27 @@
+# EAS Build ignore file — keeps upload lean
+# Android build artifacts
+android/build/
+android/app/build/
+android/.gradle/
+android/.idea/
+android/**/*.apk
+android/**/*.aab
+
+# iOS build artifacts
+ios/build/
+ios/Pods/
+ios/DerivedData/
+ios/.xcode.env.local
+
+# Node / Metro
+node_modules/
+.expo/
+dist/
+
+# Test artifacts
+coverage/
+__tests__/__snapshots__/
+
+# Misc
+.DS_Store
+*.log
