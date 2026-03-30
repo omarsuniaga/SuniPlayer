@@ -6,7 +6,7 @@ const resetStore = () => {
     useSettingsStore.setState(useSettingsStore.getInitialState(), true);
 };
 
-describe("useSettingsStore â€” pedal bindings", () => {
+describe("useSettingsStore — pedal bindings", () => {
     beforeEach(() => {
         resetStore();
     });
@@ -18,16 +18,16 @@ describe("useSettingsStore â€” pedal bindings", () => {
 
     it("setPedalBinding saves a binding for an action", () => {
         const { setPedalBinding } = useSettingsStore.getState();
-        setPedalBinding("next", { key: "ArrowRight", label: "â†’" });
+        setPedalBinding("next", { key: "ArrowRight", label: "→" });
 
         const { pedalBindings } = useSettingsStore.getState();
-        expect(pedalBindings.next).toEqual({ key: "ArrowRight", label: "â†’" });
+        expect(pedalBindings.next).toEqual({ key: "ArrowRight", label: "→" });
     });
 
     it("clearPedalBindings resets all bindings to {}", () => {
         const { setPedalBinding, clearPedalBindings } = useSettingsStore.getState();
-        setPedalBinding("next", { key: "ArrowRight", label: "â†’" });
-        setPedalBinding("prev", { key: "ArrowLeft", label: "â†" });
+        setPedalBinding("next", { key: "ArrowRight", label: "→" });
+        setPedalBinding("prev", { key: "ArrowLeft", label: "←" });
         clearPedalBindings();
 
         expect(useSettingsStore.getState().pedalBindings).toEqual({});
@@ -53,7 +53,7 @@ describe("useSettingsStore â€” pedal bindings", () => {
     });
 });
 
-describe("useSettingsStore â€” curve panel visibility", () => {
+describe("useSettingsStore — curve panel visibility", () => {
     beforeEach(() => {
         resetStore();
     });

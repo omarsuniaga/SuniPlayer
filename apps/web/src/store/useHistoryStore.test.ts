@@ -4,7 +4,7 @@ import { TRACKS } from "@suniplayer/core";
 import { useHistoryStore } from "./useHistoryStore";
 import type { SetHistoryItem, Show } from "@suniplayer/core";
 
-describe("useHistoryStore â€” Show-based storage", () => {
+describe("useHistoryStore — Show-based storage", () => {
     beforeEach(() => {
         localStorage.clear();
         useHistoryStore.setState(useHistoryStore.getInitialState(), true);

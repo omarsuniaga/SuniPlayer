@@ -31,7 +31,7 @@ interface DashboardProps {
 
     /** Energy curve of the current set (e.g. "steady", "ascending") */
     curve?: string;
-    /** 0â€“1: how far through the set we are (for the playhead dot) */
+    /** 0–1: how far through the set we are (for the playhead dot) */
     curvePlayheadPct?: number;
     curveExpanded: boolean;
     setCurveExpanded: (v: boolean) => void;
@@ -39,7 +39,7 @@ interface DashboardProps {
     curveVisible: boolean;
 }
 
-// â”€â”€ Reusable section container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Reusable section container ────────────────────────────────────────────────
 const Section: React.FC<{
     active?: boolean;
     accentColor: string;
@@ -93,7 +93,7 @@ const Section: React.FC<{
     </div>
 );
 
-// â”€â”€ Quick preset pills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Quick preset pills ────────────────────────────────────────────────────────
 const Presets: React.FC<{
     values: number[];
     current: number;
@@ -119,7 +119,7 @@ const Presets: React.FC<{
     </div>
 );
 
-// â”€â”€ Slider row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Slider row ────────────────────────────────────────────────────────────────
 const SliderRow: React.FC<{
     label: string;
     value: number;
@@ -137,7 +137,7 @@ const SliderRow: React.FC<{
             <span style={{ fontSize: 13, fontWeight: 900, fontFamily: THEME.fonts.mono, color }}>{displayValue}</span>
         </div>
         <div style={{ position: "relative", height: 32, display: "flex", alignItems: "center" }}> 
-            {/* Height aumentado de 20 a 32 para mejor captura tÃ¡ctil */}
+            {/* Height aumentado de 20 a 32 para mejor captura táctil */}
             <div style={{ position: "absolute", left: 0, right: 0, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.07)" }}/>
             <div style={{ position: "absolute", left: 0, height: 6, borderRadius: 3, width: `${fillPct * 100}%`, background: `linear-gradient(to right, ${color}80, ${color})` }}/>
             <input
@@ -149,7 +149,7 @@ const SliderRow: React.FC<{
     </div>
 );
 
-// â”€â”€ Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 export const Dashboard: React.FC<DashboardProps> = ({
     fadeEnabled, fadeInMs, setFadeInMs, fadeOutMs, setFadeOutMs, fadeExpanded, setFadeExpanded,
     crossfade, crossfadeMs, setCrossfadeMs, crossExpanded, setCrossExpanded,
@@ -163,7 +163,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-            {/* â”€â”€ CROSSFADE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ── CROSSFADE ──────────────────────────────────────────── */}
             {crossfade && (
                 <Section
                     accentColor={THEME.colors.brand.cyan}
@@ -214,10 +214,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 padding: "0 12px", pointerEvents: "none",
                             }}>
                                 <span style={{ fontSize: 9, fontWeight: 800, color: THEME.colors.brand.cyan, textTransform: "uppercase", letterSpacing: 1 }}>
-                                    CanciÃ³n A â†˜
+                                    Canción A ↘
                                 </span>
                                 <span style={{ fontSize: 9, fontWeight: 800, color: THEME.colors.brand.violet, textTransform: "uppercase", letterSpacing: 1 }}>
-                                    â†— CanciÃ³n B
+                                    ↗ Canción B
                                 </span>
                             </div>
                             {/* Duration pill */}
@@ -234,7 +234,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                         {/* Duration slider */}
                         <SliderRow
-                            label="DuraciÃ³n del cruce"
+                            label="Duración del cruce"
                             value={crossfadeMs}
                             min={500} max={10000} step={250}
                             onChange={setCrossfadeMs}
@@ -254,16 +254,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                         {/* Description */}
                         <p style={{ margin: 0, fontSize: 10, color: THEME.colors.text.muted, lineHeight: 1.6 }}>
-                            La canciÃ³n activa harÃ¡ un{" "}
+                            La canción activa hará un{" "}
                             <strong style={{ color: THEME.colors.brand.cyan }}>fadeOut</strong> y la siguiente un{" "}
                             <strong style={{ color: THEME.colors.brand.violet }}>fadeIn</strong>{" "}
-                            durante los Ãºltimos {fmtMs(crossfadeMs)} de la canciÃ³n.
+                            durante los últimos {fmtMs(crossfadeMs)} de la canción.
                         </p>
                     </div>
                 </Section>
             )}
 
-            {/* â”€â”€ FADE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ── FADE ───────────────────────────────────────────────── */}
             {fadeEnabled && (
                 <Section
                     accentColor={THEME.colors.brand.cyan}
@@ -274,7 +274,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </svg>
                     }
                     title="FADE CURVES"
-                    badge={`â†‘${(fadeInMs/1000).toFixed(1)}s Â· â†“${(fadeOutMs/1000).toFixed(1)}s`}
+                    badge={`↑${(fadeInMs/1000).toFixed(1)}s · ↓${(fadeOutMs/1000).toFixed(1)}s`}
                     expanded={fadeExpanded}
                     onToggle={() => setFadeExpanded(!fadeExpanded)}
                 >
@@ -316,7 +316,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </Section>
             )}
 
-            {/* â”€â”€ ENERGY CURVE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ── ENERGY CURVE ───────────────────────────────────────── */}
             {curve && curveVisible && (
                 <Section
                     accentColor={THEME.colors.brand.violet}
@@ -338,13 +338,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             active
                         />
                         <p style={{ margin: "10px 0 0", fontSize: 10, color: THEME.colors.text.muted, lineHeight: 1.6 }}>
-                            El punto indica en quÃ© parte de la curva de energÃ­a estÃ¡s dentro del set completo.
+                            El punto indica en qué parte de la curva de energía estás dentro del set completo.
                         </p>
                     </div>
                 </Section>
             )}
 
-            {/* â”€â”€ SPL METER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ── SPL METER ──────────────────────────────────────────── */}
             {splMeterEnabled && (
                 <Section
                     accentColor={THEME.colors.brand.violet}

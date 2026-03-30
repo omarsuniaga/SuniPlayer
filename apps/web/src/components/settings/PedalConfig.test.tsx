@@ -14,11 +14,11 @@ describe("PedalConfig", () => {
     it("renders 5 action rows with their Spanish labels", () => {
         // Test that all 5 pedal actions are defined
         const labels = [
-            "Siguiente canciÃ³n",
-            "CanciÃ³n anterior",
+            "Siguiente canción",
+            "Canción anterior",
             "Play / Pause",
             "Volumen +",
-            "Volumen âˆ’",
+            "Volumen −",
         ];
         expect(labels).toHaveLength(5);
     });
@@ -39,7 +39,7 @@ describe("PedalConfig", () => {
     });
 
     it("shows 'Cambiar' for a bound action and hides its Aprender button", () => {
-        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "â†’" });
+        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
 
         const state = useSettingsStore.getState();
         const nextBinding = state.pedalBindings.next;

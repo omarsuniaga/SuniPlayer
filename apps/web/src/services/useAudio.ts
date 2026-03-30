@@ -1,9 +1,9 @@
 /**
- * useAudio â€” Master Performance Engine v3.6.0
+ * useAudio — Master Performance Engine v3.6.0
  * Unified Lifecycle Engine (Load -> Buffer -> Play)
  * 
  * Racional: 
- * - Unifica la carga y la reproducciÃ³n en un solo flujo para evitar condiciones de carrera.
+ * - Unifica la carga y la reproducción en un solo flujo para evitar condiciones de carrera.
  * - Soporta Crossfade y Pre-carga agresiva.
  */
 import { useEffect, useRef } from "react";
@@ -23,7 +23,7 @@ export function useAudio() {
         pQueue, ci, playing, vol, mode, stackOrder, pos,
         setPos, setCi, setPlaying, setElapsed, setStackOrder,
         trackStart, trackEnd, trackSkip
-    } = usePlayerStore(); // Usamos los stores atÃ³micos directamente
+    } = usePlayerStore(); // Usamos los stores atómicos directamente
 
     const { crossfade, crossfadeMs, autoGain, fadeEnabled, fadeInMs, fadeOutMs } = useSettingsStore();
     const updateDownload = useDownloadStore(s => s.updateProgress);
@@ -33,7 +33,7 @@ export function useAudio() {
     // Diagnostic logging
     useEffect(() => {
         if (playing && pQueue[ci]) {
-            console.log(`[useAudio] â–¶ï¸ Play requested for track: ${pQueue[ci].title}, mode: ${mode}`);
+            console.log(`[useAudio] ▶️ Play requested for track: ${pQueue[ci].title}, mode: ${mode}`);
         }
     }, [playing, ci, pQueue]);
 
@@ -43,7 +43,7 @@ export function useAudio() {
     const fadeTimersRef = useRef<Map<HTMLAudioElement, ReturnType<typeof setInterval>>>(new Map());
     const playbackQueueRef = useRef<{ audio: HTMLAudioElement; track: Track; type: "fade" | "direct"; fadeInMs?: number } | null>(null);
     
-    // SincronizaciÃ³n de estado para intervalos
+    // Sincronización de estado para intervalos
     const stateRef = useRef({ playing, ci, vol, pQueue, stackOrder, pos });
     useEffect(() => {
         stateRef.current = { playing, ci, vol, pQueue, stackOrder, pos };
@@ -67,9 +67,9 @@ export function useAudio() {
 
         if (type === "in") {
             applyVol(audio, track, 0);
-            console.log(`[useAudio] ðŸ”Š Attempting fade-in play for: ${track?.title}`);
+            console.log(`[useAudio] 🔊 Attempting fade-in play for: ${track?.title}`);
             audio.play().catch((err) => {
-                console.error("[useAudio] ðŸ”´ Fade-in play failed:", err?.message ?? err, "error:", err);
+                console.error("[useAudio] 🔴 Fade-in play failed:", err?.message ?? err, "error:", err);
             });
         }
 
@@ -92,7 +92,7 @@ export function useAudio() {
     useEffect(() => {
         channelARef.current = new Audio();
         channelBRef.current = new Audio();
-        console.log("[useAudio] ðŸŽ§ Audio channels initialized (A/B)");
+        console.log("[useAudio] 🎧 Audio channels initialized (A/B)");
 
         // Setup event handlers for when audio is ready to play
         const setupAudioHandlers = (audio: HTMLAudioElement) => {
@@ -100,7 +100,7 @@ export function useAudio() {
                 const { pQueue, ci, trackStart } = usePlayerStore.getState();
                 const ct = pQueue[ci];
                 if (ct && (audio as any)._lastTrackId === ct.id) {
-                    console.log(`[useAudio] â–¶ï¸ Track started playing: ${ct.title}`);
+                    console.log(`[useAudio] ▶ï¸ Track started playing: ${ct.title}`);
                     trackStart(ct.id);
                 }
             });
@@ -108,13 +108,13 @@ export function useAudio() {
             audio.addEventListener("canplay", () => {
                 if (playbackQueueRef.current && playbackQueueRef.current.audio === audio) {
                     const { track, type, fadeInMs } = playbackQueueRef.current;
-                    console.log(`[useAudio] ðŸŸ¢ Audio ready to play: ${track.title}`);
+                    console.log(`[useAudio] 🟢 Audio ready to play: ${track.title}`);
                     if (type === "fade" && fadeInMs) {
                         runFade(audio, track, "in", fadeInMs);
                     } else {
                         applyVol(audio, track);
                         audio.play().catch((err) => {
-                            console.error("[useAudio] ðŸ”´ Play after canplay failed:", err?.message ?? err);
+                            console.error("[useAudio] 🔴 Play after canplay failed:", err?.message ?? err);
                         });
                     }
                     playbackQueueRef.current = null;
@@ -125,7 +125,7 @@ export function useAudio() {
                 const { pQueue, ci, trackEnd } = usePlayerStore.getState();
                 const ct = pQueue[ci];
                 if (ct) {
-                    console.log(`[useAudio] ðŸ Track ended naturally: ${ct.title}`);
+                    console.log(`[useAudio] 🏁 Track ended naturally: ${ct.title}`);
                     trackEnd(ct.id, audio.currentTime * 1000);
                 }
             });
@@ -138,7 +138,7 @@ export function useAudio() {
                     const lastPos = (audio as any)._lastPos || 0;
                     const lastDur = (audio as any)._lastDur || 0;
                     if (lastDur > 0 && (lastPos / lastDur) < 0.3 && lastPos > 1) {
-                        console.log(`[useAudio] â­ï¸ Track skipped (<30%): ${prevId}`);
+                        console.log(`[useAudio] ⏭️ Track skipped (<30%): ${prevId}`);
                         usePlayerStore.getState().trackSkip(prevId, lastPos * 1000);
                     }
                 }
@@ -162,7 +162,7 @@ export function useAudio() {
         };
     }, []);
 
-    // â”€â”€ CICLO DE VIDA UNIFICADO â”€â”€
+    // ── CICLO DE VIDA UNIFICADO ──
     useEffect(() => {
         const ct = pQueue[ci];
         const audio = getActive();
@@ -172,25 +172,25 @@ export function useAudio() {
 
         const url = getTrackUrl(ct);
 
-        // 1. CARGA (Download -> Buffer) â€” async operation
+        // 1. CARGA (Download -> Buffer) — async operation
         AudioStreamerService.fetchWithProgress(url, (p) => updateDownload(ct.id, p), ct.id)
             .then((objectUrl) => {
-                if (cancelled) return; // Efecto stale â€” descartar
+                if (cancelled) return; // Efecto stale — descartar
 
                 const isNewSrc = audio.src !== objectUrl;
                 if (isNewSrc) {
                     audio.src = objectUrl;
                     audio.load();
                     
-                    // Aplicar seek inicial si es la primera carga tras restauraciÃ³n
+                    // Aplicar seek inicial si es la primera carga tras restauración
                     const initialSeekMs = isInitialLoad.current ? stateRef.current.pos : (ct.startTime || 0);
                     audio.currentTime = initialSeekMs / 1000;
                     if (isInitialLoad.current) {
-                        console.log(`[useAudio] ðŸŽ¯ Initial seek applied: ${initialSeekMs}ms`);
+                        console.log(`[useAudio] 🎯 Initial seek applied: ${initialSeekMs}ms`);
                         isInitialLoad.current = false;
                     }
                     
-                    console.log(`[useAudio] ðŸ“¦ Audio loaded: ${ct.title}, channel: ${activeChannel.current}, startTime: ${initialSeekMs}ms`);
+                    console.log(`[useAudio] 📦 Audio loaded: ${ct.title}, channel: ${activeChannel.current}, startTime: ${initialSeekMs}ms`);
 
                     // Persistir la URL fresca en el store para evitar re-fetch de IDB en cada play
                     if (objectUrl !== url) {
@@ -200,11 +200,11 @@ export function useAudio() {
                     }
                 }
 
-                // 2. REPRODUCCIÃ“N (Â¿DeberÃ­a estar sonando?)
+                // 2. REPRODUCCIÓN (¿Debería estar sonando?)
                 if (playing) {
                     if (audio.paused || isNewSrc) {
                         // Si es nuevo o estaba pausado, queue the playback for when ready
-                        console.log(`[useAudio] ðŸ“‹ Queueing playback for: ${ct.title}, fadeEnabled: ${fadeEnabled}`);
+                        console.log(`[useAudio] 📋 Queueing playback for: ${ct.title}, fadeEnabled: ${fadeEnabled}`);
                         const shouldFadeIn = fadeEnabled || crossfade;
                         const fadeInDuration = crossfade ? crossfadeMs : fadeInMs;
                         playbackQueueRef.current = {
@@ -216,7 +216,7 @@ export function useAudio() {
 
                         // If audio is already ready (cached or quick load), trigger immediately
                         if (audio.readyState >= 2) { // >= HAVE_CURRENT_DATA
-                            console.log(`[useAudio] âš¡ Audio already ready, triggering playback immediately`);
+                            console.log(`[useAudio] ⚡ Audio already ready, triggering playback immediately`);
                             const queue = playbackQueueRef.current;
                             playbackQueueRef.current = null;
                             if (queue.type === "fade") {
@@ -224,7 +224,7 @@ export function useAudio() {
                             } else {
                                 applyVol(queue.audio, queue.track);
                                 queue.audio.play().catch((err) => {
-                                    console.error("[useAudio] ðŸ”´ Immediate play failed:", err?.message ?? err);
+                                    console.error("[useAudio] 🔴 Immediate play failed:", err?.message ?? err);
                                     setPlaying(false);
                                 });
                             }
@@ -234,7 +234,7 @@ export function useAudio() {
                         if (!fadeTimersRef.current.has(audio)) applyVol(audio, ct);
                     }
                 } else {
-                    // 3. PAUSA (Â¿DeberÃ­a detenerse?)
+                    // 3. PAUSA (¿Debería detenerse?)
                     if (!audio.paused) {
                         if (fadeEnabled && audio.currentTime > 1) runFade(audio, ct, "out", fadeOutMs);
                         else audio.pause();
@@ -244,7 +244,7 @@ export function useAudio() {
             .catch((err) => {
                 if (cancelled) return;
                 console.error("[useAudio] No se pudo cargar el audio:", ct.title, err?.message ?? err);
-                // Revertir estado de reproducciÃ³n para que el UI no quede "congelado"
+                // Revertir estado de reproducción para que el UI no quede "congelado"
                 setPlaying(false);
             });
 
@@ -252,7 +252,7 @@ export function useAudio() {
 
     }, [ci, playing, pQueue.length]); // Reacciona a cambio de track Y a Play/Pause
 
-    // â”€â”€ Efecto: Volumen y Seek (Reactividad instantÃ¡nea) â”€â”€
+    // ── Efecto: Volumen y Seek (Reactividad instantánea) ──
     useEffect(() => {
         const audio = getActive();
         if (audio && !fadeTimersRef.current.has(audio)) applyVol(audio, pQueue[ci]);
@@ -265,7 +265,7 @@ export function useAudio() {
         }
     }, [pos]);
 
-    // â”€â”€ Main Loop (Progreso y Transiciones) â”€â”€
+    // ── Main Loop (Progreso y Transiciones) ──
     useEffect(() => {
         const interval = setInterval(() => {
             const audio = getActive();

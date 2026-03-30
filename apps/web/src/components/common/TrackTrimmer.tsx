@@ -108,7 +108,7 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
                         <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "white", letterSpacing: "-0.02em" }}>Recortar Pista</h3>
                         <p style={{ margin: "6px 0 0", fontSize: 13, color: THEME.colors.text.muted, display: "flex", alignItems: "center", gap: 8 }}>
                             <span style={{ color: THEME.colors.brand.violet, fontWeight: 700 }}>{track.artist}</span>
-                            <span style={{ opacity: 0.3 }}>â€¢</span>
+                            <span style={{ opacity: 0.3 }}>•</span>
                             <span>{track.title}</span>
                         </p>
                     </div>
@@ -243,7 +243,7 @@ export const TrackTrimmer: React.FC<TrackTrimmerProps> = ({ track, onSave, onCan
                         padding: "10px 20px", borderRadius: THEME.radius.md, backgroundColor: "rgba(255,255,255,0.02)",
                         border: `1px solid rgba(255,255,255,0.03)`
                     }}>
-                        DuraciÃ³n del segmento recortado: <strong style={{ color: "white", fontFamily: THEME.fonts.mono }}>{fmt(end - start)}</strong>
+                        Duración del segmento recortado: <strong style={{ color: "white", fontFamily: THEME.fonts.mono }}>{fmt(end - start)}</strong>
                     </div>
                 </div>
 

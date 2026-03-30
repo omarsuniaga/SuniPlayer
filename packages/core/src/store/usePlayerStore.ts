@@ -45,6 +45,21 @@ interface PlayerState {
     currentSetMetadata: { setLabel: string; totalSetsInShow: number } | null;
     setCurrentSetMetadata: (metadata: { setLabel: string; totalSetsInShow: number } | null) => void;
 
+    /** Stage Mirror visibility */
+    isMirrorOpen: boolean;
+    toggleMirror: () => void;
+
+    /** Stage Mirror configuration */
+    mirrorMode: 'docked' | 'floating';
+    setMirrorMode: (mode: 'docked' | 'floating') => void;
+
+    mirrorSize: 'sm' | 'md' | 'lg';
+    setMirrorSize: (size: 'sm' | 'md' | 'lg') => void;
+
+    /** Amplitude Zoom for waveforms */
+    waveScale: number;
+    setWaveScale: (s: number) => void;
+
     /** Analytics Hooks */
     trackStart: (trackId: string) => void;
     trackEnd: (trackId: string, positionMs: number) => void;
@@ -102,6 +117,18 @@ export const usePlayerStore = create<PlayerState>()(
             currentSetMetadata: null,
             setCurrentSetMetadata: (currentSetMetadata) => set({ currentSetMetadata }),
 
+            isMirrorOpen: false,
+            toggleMirror: () => set((state) => ({ isMirrorOpen: !state.isMirrorOpen })),
+
+            mirrorMode: 'docked',
+            setMirrorMode: (mirrorMode) => set({ mirrorMode }),
+
+            mirrorSize: 'sm',
+            setMirrorSize: (mirrorSize) => set({ mirrorSize }),
+
+            waveScale: 1.0,
+            setWaveScale: (waveScale) => set({ waveScale }),
+
             trackStart: (trackId) => AnalyticsService.trackStart(trackId),
             trackEnd: (trackId, positionMs) => AnalyticsService.trackEnd(trackId, positionMs),
             trackSkip: (trackId, positionMs) => AnalyticsService.trackSkip(trackId, positionMs),
@@ -119,6 +146,10 @@ export const usePlayerStore = create<PlayerState>()(
                 tTarget: state.tTarget,
                 mode: state.mode,
                 stackOrder: state.stackOrder,
+                isMirrorOpen: state.isMirrorOpen,
+                mirrorMode: state.mirrorMode,
+                mirrorSize: state.mirrorSize,
+                waveScale: state.waveScale,
             }),
             merge: (persistedState, currentState) => {
                 const persisted = persistedState as Partial<PlayerState>;

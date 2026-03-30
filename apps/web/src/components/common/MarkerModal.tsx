@@ -95,7 +95,7 @@ export const MarkerModal: React.FC<MarkerModalProps> = ({
                             {fmtMs(marker.posMs)}
                         </div>
                     </div>
-                    <button onClick={onClose} style={{ background: "none", border: "none", color: THEME.colors.text.muted, cursor: "pointer", fontSize: 20, lineHeight: 1 }}>Ã—</button>
+                    <button onClick={onClose} style={{ background: "none", border: "none", color: THEME.colors.text.muted, cursor: "pointer", fontSize: 20, lineHeight: 1 }}>×</button>
                 </div>
 
                 {/* Textarea */}
@@ -105,7 +105,7 @@ export const MarkerModal: React.FC<MarkerModalProps> = ({
                         value={comment}
                         onChange={e => setComment(e.target.value.slice(0, MAX_CHARS))}
                         disabled={isReadOnly}
-                        placeholder={isReadOnly ? "" : "Escribe tu comentarioâ€¦"}
+                        placeholder={isReadOnly ? "" : "Escribe tu comentario…"}
                         rows={4}
                         style={{
                             width: "100%",
@@ -131,7 +131,7 @@ export const MarkerModal: React.FC<MarkerModalProps> = ({
                     )}
                 </div>
 
-                {/* Nav â€” prev/next */}
+                {/* Nav — prev/next */}
                 {markers.length > 1 && (
                     <div style={{ display: "flex", gap: 8 }}>
                         <button
@@ -144,7 +144,7 @@ export const MarkerModal: React.FC<MarkerModalProps> = ({
                                 cursor: prevMarker ? "pointer" : "default", fontSize: 12, fontWeight: 700,
                             }}
                         >
-                            â† Anterior
+                            ← Anterior
                         </button>
                         <button
                             onClick={() => nextMarker && onNavigate(nextMarker)}
@@ -156,7 +156,7 @@ export const MarkerModal: React.FC<MarkerModalProps> = ({
                                 cursor: nextMarker ? "pointer" : "default", fontSize: 12, fontWeight: 700,
                             }}
                         >
-                            Siguiente â†’
+                            Siguiente →
                         </button>
                     </div>
                 )}
@@ -175,7 +175,7 @@ export const MarkerModal: React.FC<MarkerModalProps> = ({
                                     transition: "all 0.2s",
                                 }}
                             >
-                                {confirmDelete ? "Â¿Confirmar?" : "Eliminar"}
+                                {confirmDelete ? "¿Confirmar?" : "Eliminar"}
                             </button>
                         )}
                         <button

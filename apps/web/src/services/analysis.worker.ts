@@ -13,7 +13,7 @@ export interface AnalysisWorkerResults {
     gainOffset: number;
 }
 
-// â”€â”€ Analysis Logic (Migrated from analysisService.ts) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Analysis Logic (Migrated from analysisService.ts) ────────────────────────
 
 function calculateRawRMS(data: Float32Array): number {
     let sumSq = 0;
@@ -120,7 +120,7 @@ function detectKey(data: Float32Array, sampleRate: number): string {
     return bestKey;
 }
 
-// â”€â”€ Worker Message Handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Worker Message Handler ───────────────────────────────────────────────────
 
 self.onmessage = (event: MessageEvent<{ audioData: Float32Array, sampleRate: number }>) => {
     const { audioData, sampleRate } = event.data;

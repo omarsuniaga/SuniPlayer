@@ -24,7 +24,7 @@ export interface ShowSessionSnapshot {
 }
 
 /**
- * buildShowSessionSnapshot â€” Captura el estado actual desde localStorage
+ * buildShowSessionSnapshot — Captura el estado actual desde localStorage
  * Sanitiza datos y maneja entries malformadas
  */
 export function buildShowSessionSnapshot(): ShowSessionSnapshot {
@@ -119,7 +119,7 @@ export function buildShowSessionSnapshot(): ShowSessionSnapshot {
 }
 
 /**
- * applyShowSessionSnapshot â€” Aplica los datos recuperados a los stores actuales
+ * applyShowSessionSnapshot — Aplica los datos recuperados a los stores actuales
  */
 export function applyShowSessionSnapshot(snapshot: ShowSessionSnapshot): void {
     if (!snapshot) return;
@@ -130,7 +130,7 @@ export function applyShowSessionSnapshot(snapshot: ShowSessionSnapshot): void {
     if (snapshot.settings) useSettingsStore.setState(snapshot.settings);
     if (snapshot.history) useHistoryStore.setState(snapshot.history);
     
-    console.log("[ShowRecovery] ðŸ©¹ Snapshot applied successfully");
+    console.log("[ShowRecovery] 🩹 Snapshot applied successfully");
 }
 
 export async function saveShowSessionSnapshot(snapshot: ShowSessionSnapshot): Promise<void> {
@@ -164,7 +164,7 @@ export function hasActiveSession(snapshot: ShowSessionSnapshot | null): boolean 
 }
 
 /**
- * requestPersistentStorage â€” Pide permiso al navegador para persistencia duradera
+ * requestPersistentStorage — Pide permiso al navegador para persistencia duradera
  */
 export async function requestPersistentStorage(): Promise<boolean> {
     if (navigator.storage && navigator.storage.persist) {

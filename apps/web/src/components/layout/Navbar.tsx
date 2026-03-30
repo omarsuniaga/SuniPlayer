@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useProjectStore, usePlayerStore, Track } from "@suniplayer/core";
 import { THEME } from "../../data/theme";
 import { fmt } from "@suniplayer/core";
@@ -19,9 +19,44 @@ export const Navbar: React.FC = () => {
     const elapsed = useProjectStore(s => s.elapsed);
     const isShowMode = mode === "live";
     
+    // Mirror State
+    const isMirrorOpen = usePlayerStore(s => s.isMirrorOpen);
+    const toggleMirror = usePlayerStore(s => s.toggleMirror);
+    
     const [showUnlockModal, setShowUnlockModal] = useState(false);
 
-    // CÃ¡lculos de tiempo total
+    // Long Press Logic
+    const [isPressing, setIsPressing] = useState(false);
+    const pressTimer = useRef<any>(null);
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        // Only left click or touch
+        if (e.button !== 0 && e.pointerType === "mouse") return;
+        
+        setIsPressing(true);
+        pressTimer.current = setTimeout(() => {
+            setShowSettings(true);
+            setIsPressing(false);
+        }, 2000);
+    };
+
+    const handlePointerUp = () => {
+        setIsPressing(false);
+        if (pressTimer.current) {
+            clearTimeout(pressTimer.current);
+            pressTimer.current = null;
+        }
+    };
+
+    const handlePointerLeave = () => {
+        setIsPressing(false);
+        if (pressTimer.current) {
+            clearTimeout(pressTimer.current);
+            pressTimer.current = null;
+        }
+    };
+
+    // Cálculos de tiempo total
     const qTot = sumTrackDurationMs(pQueue);
     const currentProgressMs = sumTrackDurationMs(pQueue.slice(0, ci)) + pos;
     const totalRemainingMs = Math.max(0, qTot - currentProgressMs);
@@ -55,7 +90,7 @@ export const Navbar: React.FC = () => {
                 />
             )}
 
-            {/* â”€â”€ Left side: Logo & Timers â”€â”€ */}
+            {/* ── Left side: Logo & Timers ── */}
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{
@@ -69,7 +104,7 @@ export const Navbar: React.FC = () => {
                     <span style={{ fontSize: 16, fontWeight: 900, color: "white" }} className="nav-logo-text">SuniPlayer</span>
                 </div>
 
-                {/* â±ï¸ DUAL SHOW TIMER */}
+                {/* ⏱️ DUAL SHOW TIMER */}
                 {pQueue.length > 0 && (
                     <div style={{ 
                         display: "flex", alignItems: "center", 
@@ -88,7 +123,19 @@ export const Navbar: React.FC = () => {
                         {/* Separator */}
                         <div style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.1)" }} />
                         {/* Remaining */}
-                        <div style={{ padding: "4px 12px", textAlign: "center" }}>
+                        <div 
+                            onPointerDown={handlePointerDown}
+                            onPointerUp={handlePointerUp}
+                            onPointerLeave={handlePointerLeave}
+                            style={{ 
+                                padding: "4px 12px", 
+                                textAlign: "center",
+                                cursor: "pointer",
+                                userSelect: "none",
+                                transition: isPressing ? "opacity 2s linear" : "opacity 0.2s ease",
+                                opacity: isPressing ? 0.2 : 1
+                            }}
+                        >
                             <div style={{ fontSize: 8, fontWeight: 800, color: THEME.colors.text.muted, letterSpacing: 0.5 }}>REMAINING</div>
                             <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 800, color: "white" }}>
                                 {fmt(totalRemainingMs)}
@@ -98,7 +145,7 @@ export const Navbar: React.FC = () => {
                 )}
             </div>
 
-            {/* â”€â”€ Right side: Show Toggle & Settings â”€â”€ */}
+            {/* ── Right side: Show Toggle & Settings ── */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <InstallButton />
                 <button
@@ -118,6 +165,24 @@ export const Navbar: React.FC = () => {
                 >
                     <div className={isShowMode ? "record-dot-active" : "record-dot"} />
                     <span>{isShowMode ? "MODO SHOW" : "SHOW"}</span>
+                </button>
+
+                <button
+                    onClick={toggleMirror}
+                    title="Espejo de Escenario"
+                    style={{
+                        background: isMirrorOpen ? "rgba(6, 182, 212, 0.2)" : "rgba(255,255,255,0.02)",
+                        border: isMirrorOpen ? `1px solid ${THEME.colors.brand.cyan}` : `1px solid rgba(255,255,255,0.1)`,
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        color: isMirrorOpen ? THEME.colors.brand.cyan : THEME.colors.text.muted,
+                        width: "38px", height: "38px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: isMirrorOpen ? `0 0 15px ${THEME.colors.brand.cyan}40` : "none",
+                        transition: "all 0.3s ease"
+                    }}
+                >
+                    <span style={{ fontSize: 18 }}>📸</span>
                 </button>
 
                 <button

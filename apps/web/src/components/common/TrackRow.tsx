@@ -191,7 +191,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                         fontWeight: 900,
                         zIndex: 10
                     }}>
-                        {swipeOffset > 0 ? "ADD TO QUEUE â†’" : "â† VIEW PROFILE"}
+                        {swipeOffset > 0 ? "ADD TO QUEUE →" : "← VIEW PROFILE"}
                     </div>
                 )}
                 {(track.playCount || 0) > 0 && (
@@ -359,7 +359,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                                 e.stopPropagation();
                                 onAdd(track);
                             }}
-                            title="AÃ±adir al setlist"
+                            title="Añadir al setlist"
                             style={{
                             background: THEME.colors.surfaceHover,
                             border: `1px solid ${THEME.colors.border}`,
@@ -417,7 +417,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({
                             e.currentTarget.style.color = THEME.colors.status.error;
                         }}
                     >
-                        Ã—
+                        ×
                     </button>
                 )}
             </div>

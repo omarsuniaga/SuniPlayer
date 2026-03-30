@@ -52,7 +52,7 @@ export const Library: React.FC = () => {
             display: "flex", 
             flexDirection: "column", 
             padding: "32px", 
-            overflowY: "auto", // ðŸŸ¢ SCROLL CRÃTICO
+            overflowY: "auto", // 🟢 SCROLL CRÍTICO
             gap: 32, 
             backgroundColor: "#0A0E14",
             fontFamily: "'DM Sans', sans-serif",
@@ -70,13 +70,13 @@ export const Library: React.FC = () => {
             <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20 }}>
                 <div>
                     <h1 style={{ fontSize: 40, fontWeight: 900, margin: 0, letterSpacing: "-0.04em", color: "white" }}>Biblioteca Local</h1>
-                    <p style={{ fontSize: 16, color: THEME.colors.text.muted, marginTop: 6, fontWeight: 500 }}>GestionÃ¡ tu mÃºsica offline para el escenario</p>
+                    <p style={{ fontSize: 16, color: THEME.colors.text.muted, marginTop: 6, fontWeight: 500 }}>Gestioná tu música offline para el escenario</p>
                 </div>
                 
                 <div style={{ display: "flex", gap: 12 }}>
                     {customTracks.length > 0 && (
                         <button
-                            onClick={() => confirm("Â¿VACIAR DISCO? Esta acciÃ³n borrarÃ¡ fÃ­sicamente los audios del navegador.") && clearCustomTracks()}
+                            onClick={() => confirm("¿VACIAR DISCO? Esta acción borrará físicamente los audios del navegador.") && clearCustomTracks()}
                             style={{ 
                                 padding: "12px 20px", borderRadius: 12, border: `1px solid ${THEME.colors.status.error}40`, 
                                 color: THEME.colors.status.error, background: "rgba(239, 68, 68, 0.05)", 
@@ -96,7 +96,7 @@ export const Library: React.FC = () => {
                             transition: "transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)" 
                         }}
                     >
-                        {importOpen ? "+ AGREGAR MÃS" : "IMPORTAR MÃšSICA"}
+                        {importOpen ? "+ AGREGAR MÁS" : "IMPORTAR MÚSICA"}
                     </button>
                 </div>
             </header>
@@ -118,9 +118,9 @@ export const Library: React.FC = () => {
                         border: `2px dashed ${THEME.colors.border}`, borderRadius: 24, 
                         cursor: "pointer", background: "rgba(255,255,255,0.01)", transition: "all 0.3s" 
                     }}>
-                        <div style={{ fontSize: 50, marginBottom: 20 }}>ðŸ’¿</div>
-                        <h2 style={{ fontSize: 24, fontWeight: 800, color: "white", margin: "0 0 10px" }}>Tu biblioteca estÃ¡ lista para el show</h2>
-                        <p style={{ color: THEME.colors.text.muted, fontSize: 16, maxWidth: "450px", margin: "0 auto", lineHeight: 1.6 }}>TocÃ¡ acÃ¡ para cargar tus archivos <strong>MP3 o WAV</strong>. Se guardarÃ¡n de forma persistente como en una app nativa.</p>
+                        <div style={{ fontSize: 50, marginBottom: 20 }}>💿</div>
+                        <h2 style={{ fontSize: 24, fontWeight: 800, color: "white", margin: "0 0 10px" }}>Tu biblioteca está lista para el show</h2>
+                        <p style={{ color: THEME.colors.text.muted, fontSize: 16, maxWidth: "450px", margin: "0 auto", lineHeight: 1.6 }}>Tocá acá para cargar tus archivos <strong>MP3 o WAV</strong>. Se guardarán de forma persistente como en una app nativa.</p>
                     </div>
                 )}
 
@@ -150,7 +150,7 @@ export const Library: React.FC = () => {
                                     borderColor: `transparent ${THEME.colors.brand.cyan} transparent transparent`,
                                     zIndex: 1
                                 }}>
-                                    <span style={{ position: "absolute", top: 6, right: -36, color: "black", fontSize: 10, fontWeight: 900 }}>âœ“</span>
+                                    <span style={{ position: "absolute", top: 6, right: -36, color: "black", fontSize: 10, fontWeight: 900 }}>✓</span>
                                 </div>
                             )}
 
@@ -165,7 +165,7 @@ export const Library: React.FC = () => {
                                         transition: "all 0.2s", boxShadow: isPlaying ? `0 0 25px ${THEME.colors.brand.cyan}50` : "none"
                                     }}
                                 >
-                                    {isPlaying ? "â¸" : "â–¶"}
+                                    {isPlaying ? "⏸" : "▶"}
                                 </button>
                                 
                                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -186,7 +186,7 @@ export const Library: React.FC = () => {
                                         boxShadow: isInRepertoire ? `0 5px 15px ${THEME.colors.brand.cyan}30` : "none"
                                     }}
                                 >
-                                    {isInRepertoire ? "âœ“" : "+"}
+                                    {isInRepertoire ? "✓" : "+"}
                                 </button>
                             </div>
 

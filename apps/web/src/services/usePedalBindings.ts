@@ -6,13 +6,13 @@ import { useDebugStore } from "../store/useDebugStore";
 /** Maps raw event.key values to human-readable labels */
 function keyLabel(key: string): string {
     const map: Record<string, string> = {
-        ArrowRight: "â†’",
-        ArrowLeft: "â†",
-        ArrowUp: "â†‘",
-        ArrowDown: "â†“",
+        ArrowRight: "→",
+        ArrowLeft: "←",
+        ArrowUp: "↑",
+        ArrowDown: "↓",
         " ": "Espacio",
-        PageUp: "PÃ¡gâ†‘",
-        PageDown: "PÃ¡gâ†“",
+        PageUp: "Pág↑",
+        PageDown: "Pág↓",
         Enter: "Enter",
         Escape: "Esc",
     };
@@ -50,7 +50,7 @@ export function handlePedalEvent(
     
     if (isTypingTarget(event.target)) return;
 
-    // â”€â”€ Learn mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Learn mode ──────────────────────────────────────────────────
     if (learningAction !== null) {
         event.preventDefault();
         event.stopPropagation();
@@ -71,7 +71,7 @@ export function handlePedalEvent(
         return;
     }
 
-    // â”€â”€ Normal mode â€” find matching binding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Normal mode — find matching binding ──────────────────────────
     if (event.type !== "keydown") return;
 
     const matchedAction = (
@@ -85,7 +85,7 @@ export function handlePedalEvent(
     event.preventDefault();
     event.stopPropagation();
 
-    addLog(`AcciÃ³n: ${matchedAction}${isLive ? " (LIVE)" : ""}`);
+    addLog(`Acción: ${matchedAction}${isLive ? " (LIVE)" : ""}`);
     console.log(`[Pedal] Action triggered: ${matchedAction} (Live: ${isLive})`);
 
     switch (matchedAction) {
@@ -126,7 +126,7 @@ export function handlePedalEvent(
 }
 
 /**
- * usePedalBindings â€” mount once globally in AppViewport.
+ * usePedalBindings — mount once globally in AppViewport.
  */
 export function usePedalBindings() {
     const setLastEvent = useDebugStore(s => s.setLastEvent);

@@ -1,16 +1,16 @@
 /**
- * useProjectStore â€” Backward-compatible composite hook
+ * useProjectStore — Backward-compatible composite hook
  *
  * Combines all domain stores into a single API so existing components
  * continue to work without changes.  Performance-critical code (useAudio)
  * should import domain stores directly to minimise re-renders.
  *
  * Domain stores:
- *   useBuilderStore  â€” view, targetMin, venue, curve, genSet, search, fMood
- *   usePlayerStore   â€” pQueue, ci, playing, pos, vol, elapsed, tTarget, mode
- *   useSettingsStore â€” autoNext, crossfade, showSettings, bpmMin, bpmMax, defaultVol
- *   useHistoryStore  â€” history
- *   useLibraryStore  â€” customTracks
+ *   useBuilderStore  — view, targetMin, venue, curve, genSet, search, fMood
+ *   usePlayerStore   — pQueue, ci, playing, pos, vol, elapsed, tTarget, mode
+ *   useSettingsStore — autoNext, crossfade, showSettings, bpmMin, bpmMax, defaultVol
+ *   useHistoryStore  — history
+ *   useLibraryStore  — customTracks
  */
 import { Track, SetHistoryItem, Show } from "@suniplayer/core";
 import { TRACKS, VENUES } from "@suniplayer/core";
@@ -33,7 +33,7 @@ export {
     useLibraryStore,
 };
 
-// â”€â”€ Combined state type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Combined state type ────────────────────────────────────────────────────
 
 type View = "builder" | "player" | "history" | "library";
 
@@ -135,11 +135,11 @@ export interface ProjectState {
     resetApp: () => void;
 }
 
-// â”€â”€ Cross-domain actions (module-level, use .getState() â€” no hooks needed) â”€
+// ── Cross-domain actions (module-level, use .getState() — no hooks needed) ─
 
 /** Reset all stores to defaults and clear local storage */
 export function resetApp() {
-    if (!confirm("Â¿EstÃ¡s seguro de que deseas reiniciar la aplicaciÃ³n? Se borrarÃ¡n todos los sets generados, el historial y las canciones importadas.")) return;
+    if (!confirm("¿Estás seguro de que deseas reiniciar la aplicación? Se borrarán todos los sets generados, el historial y las canciones importadas.")) return;
     
     // Clear persistences manually if needed, but setState handles the runtime
     useBuilderStore.setState({ genSet: [], targetMin: 45, curve: "steady", venue: "lobby" });
@@ -310,7 +310,7 @@ export function setDefaultVol(v: number) {
     usePlayerStore.getState().setVol(v);
 }
 
-// â”€â”€ Composite hook â€” backward-compatible shim â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Composite hook — backward-compatible shim ──────────────────────────────
 
 export function useProjectStore(): ProjectState;
 export function useProjectStore<T>(selector: (s: ProjectState) => T): T;

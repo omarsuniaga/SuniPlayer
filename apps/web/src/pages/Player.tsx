@@ -14,6 +14,7 @@ import { Track } from "@suniplayer/core";
 import { SheetMusicViewer } from "../components/common/SheetMusicViewer";
 import { Dashboard } from "../components/player/Dashboard";
 import { getWaveformData } from "../services/waveformService";
+import { StageMirror } from "../components/player/StageMirror";
 
 // Sub-components
 import { PlayerHeader } from "../features/player/components/PlayerHeader";
@@ -28,7 +29,7 @@ interface PlayerProps {
 }
 
 export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
-    // â”€â”€ Store Selectors â”€â”€
+    // ── Store Selectors ──
     const pQueue = useProjectStore(s => s.pQueue);
     const ci = useProjectStore(s => s.ci);
     const pos = useProjectStore(s => s.pos);
@@ -70,8 +71,12 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const setCurveExpanded = useSettingsStore(s => s.setCurveExpanded);
     const curve = useBuilderStore(s => s.curve);
     const currentSetMetadata = usePlayerStore(s => s.currentSetMetadata);
+    const isMirrorOpen = usePlayerStore(s => s.isMirrorOpen);
+    const mirrorMode = usePlayerStore(s => s.mirrorMode);
+    const toggleMirror = usePlayerStore(s => s.toggleMirror);
+    const setMirrorMode = usePlayerStore(s => s.setMirrorMode);
 
-    // â”€â”€ UI State â”€â”€
+    // ── UI State ──
     const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const [viewingSheetTrack, setViewingSheetTrack] = useState<Track | null>(null);
@@ -172,7 +177,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
             onTouchEnd={handleTouchEnd}
             style={{ height: "100%", width: "100%", display: "flex", backgroundColor: THEME.colors.bg, color: THEME.colors.text.primary, overflow: "hidden", position: "absolute", inset: 0 }}
         >
-            {/* Sutil indicador lateral para el swipe (solo en mÃ³vil) */}
+            {/* Sutil indicador lateral para el swipe (solo en móvil) */}
             {!useColumns && !showQueue && (
                 <div style={{ position: "fixed", right: 0, top: "40%", width: "4px", height: "60px", background: `${THEME.colors.brand.violet}40`, borderRadius: "4px 0 0 4px", zIndex: 1000 }} />
             )}
@@ -206,11 +211,22 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                     {isSimulating && playing && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: THEME.radius.md, backgroundColor: `${THEME.colors.status.warning}10`, border: `1px solid ${THEME.colors.status.warning}30` }}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={THEME.colors.status.warning} strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                            <span style={{ fontSize: 12, color: THEME.colors.status.warning, fontWeight: 700 }}>MODO SIMULACIÃ“N</span>
+                            <span style={{ fontSize: 12, color: THEME.colors.status.warning, fontWeight: 700 }}>MODO SIMULACIÓN</span>
                         </div>
                     )}
 
-                    <PlayerHeader track={ct} performanceMode={performanceMode} playing={playing} rem={rem} tPct={tPct} currentSetMetadata={currentSetMetadata} onProfileClick={() => setProfileTrack(ct)} onSheetMusicClick={() => setViewingSheetTrack(ct)} />
+                    <PlayerHeader 
+                        track={ct} 
+                        performanceMode={performanceMode} 
+                        playing={playing} 
+                        rem={rem} 
+                        tPct={tPct} 
+                        isMirrorOpen={isMirrorOpen}
+                        onMirrorToggle={toggleMirror}
+                        currentSetMetadata={currentSetMetadata} 
+                        onProfileClick={() => setProfileTrack(ct)} 
+                        onSheetMusicClick={() => setViewingSheetTrack(ct)} 
+                    />
 
                     <VisualizerSection track={ct} performanceMode={performanceMode} isLive={isLive} playing={playing} pos={pos} rem={rem} durMs={durMs} prog={prog} mCol={mCol} currentWave={currentWave} isLoadingWave={isLoadingWave} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} onMarkersChange={(markers) => ct && updateTrackMetadata(ct.id, { markers })} onSeek={(newPosMs) => { if (ct) setPos(newPosMs); }} />
 
@@ -218,10 +234,28 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
 
                     <VolumeControl vol={vol} mCol={mCol} performanceMode={performanceMode} onVolumeChange={setVol} />
 
-                    {/* âš™ï¸ CONTROLES DE EFECTOS (Debajo de los controles principales) */}
+                    {/* ⚙️ CONTROLES DE EFECTOS (Debajo de los controles principales) */}
                     <div style={{ marginTop: 16 }}>
                         <div style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.text.muted, letterSpacing: 1.5, marginBottom: 12, paddingLeft: 4 }}>SHOW SETTINGS & EFFECTS</div>
-                        <ShowControl crossfade={crossfade} setCrossfade={setCrossfade} fadeEnabled={fadeEnabled} setFadeEnabled={setFadeEnabled} splMeterEnabled={splMeterEnabled} setSplMeterEnabled={setSplMeterEnabled} curveVisible={curveVisible} setCurveVisible={setCurveVisible} hasCurve={Boolean(curve)} onToggleQueue={() => setShowQueue(!showQueue)} />
+                        <ShowControl 
+                            crossfade={crossfade} setCrossfade={setCrossfade} 
+                            fadeEnabled={fadeEnabled} setFadeEnabled={setFadeEnabled} 
+                            splMeterEnabled={splMeterEnabled} setSplMeterEnabled={setSplMeterEnabled} 
+                            curveVisible={curveVisible} setCurveVisible={setCurveVisible} 
+                            hasCurve={Boolean(curve)} 
+                            isMirrorOpen={isMirrorOpen}
+                            onToggleMirror={toggleMirror}
+                            mirrorMode={mirrorMode}
+                            onToggleMirrorMode={() => setMirrorMode(mirrorMode === 'docked' ? 'floating' : 'docked')}
+                            onToggleQueue={() => setShowQueue(!showQueue)} 
+                        />
+
+                        {/* DOCKED STAGE MIRROR */}
+                        {isMirrorOpen && mirrorMode === 'docked' && (
+                            <div style={{ marginTop: 24, display: "flex", justifyContent: "center" }}>
+                                <StageMirror />
+                            </div>
+                        )}
 
                         {!useColumns && (
                             <div style={{ marginTop: 12 }}>
@@ -237,6 +271,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
             {trimmingTrack && <TrackTrimmer track={trimmingTrack} onSave={(s, e) => { setTrackTrim(trimmingTrack.id, s, e); setTrimmingTrack(null); }} onCancel={() => setTrimmingTrack(null)} />}
             {profileTrack && <TrackProfileModal track={profileTrack} onSave={(u) => { updateTrackMetadata(profileTrack.id, u); setProfileTrack(null); }} onCancel={() => setProfileTrack(null)} />}
             {viewingSheetTrack && <SheetMusicViewer items={viewingSheetTrack.sheetMusic || []} onClose={() => setViewingSheetTrack(null)} />}
+            {isMirrorOpen && mirrorMode === 'floating' && <StageMirror />}
         </div>
     );
 };

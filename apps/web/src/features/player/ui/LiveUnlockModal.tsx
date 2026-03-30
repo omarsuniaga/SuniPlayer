@@ -56,17 +56,17 @@ export const LiveUnlockModal: React.FC<Props> = ({ onConfirm, onCancel }) => (
                 </div>
                 <div>
                     <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Salir del modo Live</h3>
-                    <p style={{ fontSize: 13, color: THEME.colors.text.muted, margin: "4px 0 0" }}>El reproductor estÃ¡ actualmente bloqueado</p>
+                    <p style={{ fontSize: 13, color: THEME.colors.text.muted, margin: "4px 0 0" }}>El reproductor está actualmente bloqueado</p>
                 </div>
             </div>
 
             {/* Message */}
             <p style={{ fontSize: 14, color: THEME.colors.text.secondary, lineHeight: 1.6, margin: 0 }}>
-                EstÃ¡s a punto de desbloquear el reproductor durante una{" "}
-                <strong style={{ color: "white" }}>presentaciÃ³n en vivo</strong>.
-                Esto permitirÃ¡ cambiar tracks, reordenar la cola y alterar la reproducciÃ³n.
+                Estás a punto de desbloquear el reproductor durante una{" "}
+                <strong style={{ color: "white" }}>presentación en vivo</strong>.
+                Esto permitirá cambiar tracks, reordenar la cola y alterar la reproducción.
                 <br /><br />
-                Â¿Confirmas que quieres activar el{" "}
+                ¿Confirmas que quieres activar el{" "}
                 <strong style={{ color: THEME.colors.brand.violet }}>modo Edit</strong>?
             </p>
 
@@ -108,7 +108,7 @@ export const LiveUnlockModal: React.FC<Props> = ({ onConfirm, onCancel }) => (
                     onMouseEnter={e => e.currentTarget.style.backgroundColor = `${THEME.colors.status.warning}25`}
                     onMouseLeave={e => e.currentTarget.style.backgroundColor = `${THEME.colors.status.warning}15`}
                 >
-                    SÃ­, desbloquear
+                    Sí, desbloquear
                 </button>
             </div>
         </div>

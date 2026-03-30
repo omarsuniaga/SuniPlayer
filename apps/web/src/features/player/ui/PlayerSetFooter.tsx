@@ -42,7 +42,7 @@ export const PlayerSetFooter: React.FC<Props> = ({ pQueue, ci, pos, qTot, isLive
             </div>
         </div>
 
-        {/* Export Set Button â€” Edit mode only */}
+        {/* Export Set Button — Edit mode only */}
         {!isLive && (
             <button
                 onClick={onExport}
@@ -80,7 +80,7 @@ export const PlayerSetFooter: React.FC<Props> = ({ pQueue, ci, pos, qTot, isLive
         {/* Mode Toggle Button */}
         <button
             onClick={onModeToggle}
-            title={isLive ? "Haz clic para desbloquear (pedirÃ¡ confirmaciÃ³n)" : "Activar modo Live â€” bloquea la reproducciÃ³n"}
+            title={isLive ? "Haz clic para desbloquear (pedirá confirmación)" : "Activar modo Live — bloquea la reproducción"}
             style={{
                 display: "flex",
                 alignItems: "center",

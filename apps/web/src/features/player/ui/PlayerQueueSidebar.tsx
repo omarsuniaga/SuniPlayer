@@ -46,7 +46,7 @@ export const PlayerQueueSidebar: React.FC<Props> = ({
                             </svg>
                         )}
                         <span style={{ fontSize: 13, fontWeight: 700, color: isLive ? THEME.colors.brand.cyan : THEME.colors.text.primary }}>
-                            {isLive ? "COLA Â· LOCKED" : "COLA Â· EDIT"}
+                            {isLive ? "COLA · LOCKED" : "COLA · EDIT"}
                         </span>
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -58,7 +58,7 @@ export const PlayerQueueSidebar: React.FC<Props> = ({
                 </div>
                 {!isLive && (
                     <p style={{ fontSize: 11, color: THEME.colors.text.muted, margin: "8px 0 0", lineHeight: 1.4 }}>
-                        Click en una pista para aÃ±adir/quitar de la cola de reproducciÃ³n
+                        Click en una pista para añadir/quitar de la cola de reproducción
                     </p>
                 )}
             </div>
@@ -66,11 +66,11 @@ export const PlayerQueueSidebar: React.FC<Props> = ({
             {/* Queue list */}
             <div style={{ flex: 1, overflowY: "auto" }}>
 
-                {/* â”€â”€ ACTIVE QUEUE â”€â”€ */}
+                {/* ── ACTIVE QUEUE ── */}
                 <div style={{ padding: "8px 8px 0" }}>
                     {isLive && (
                         <div style={{ fontSize: 10, color: THEME.colors.brand.violet, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, padding: "4px 8px 8px" }}>
-                            Toca para apilar el orden â–¼
+                            Toca para apilar el orden ▼
                         </div>
                     )}
                     {pQueue.map((t, i) => {
@@ -125,11 +125,11 @@ export const PlayerQueueSidebar: React.FC<Props> = ({
                                 title={
                                     isCurrent ? "Reproduciendo ahora"
                                         : isLive
-                                            ? (isStacked ? `Prioridad ${stackIdx + 1} â€” click para quitar del stack` : "Click para apilar como siguiente")
-                                            : "Click para saltar Â· Arrastra para reordenar"
+                                            ? (isStacked ? `Prioridad ${stackIdx + 1} — click para quitar del stack` : "Click para apilar como siguiente")
+                                            : "Click para saltar · Arrastra para reordenar"
                                 }
                             >
-                                {/* Drag handle â€” only in Edit mode, not for current track */}
+                                {/* Drag handle — only in Edit mode, not for current track */}
                                 {!isLive && !isCurrent && (
                                     <div style={{
                                         color: THEME.colors.text.muted,
@@ -139,7 +139,7 @@ export const PlayerQueueSidebar: React.FC<Props> = ({
                                         padding: "0 2px",
                                         fontSize: 14,
                                     }}>
-                                        â ¿
+                                        ⠿
                                     </div>
                                 )}
                                 {/* Position/Stack badge */}
@@ -211,7 +211,7 @@ export const PlayerQueueSidebar: React.FC<Props> = ({
                                             style={{ fontSize: 11, color: THEME.colors.brand.violet, marginTop: 2, opacity: 0.85, cursor: isLive ? "default" : "pointer" }}
                                             title={isLive ? t.notes : "Click para editar notas"}
                                         >
-                                            ðŸ“ {t.notes}
+                                            📝 {t.notes}
                                         </div>
                                     ) : null}
                                 </div>
@@ -238,7 +238,7 @@ export const PlayerQueueSidebar: React.FC<Props> = ({
                                             onMouseEnter={e => { e.currentTarget.style.opacity = "1"; }}
                                             onMouseLeave={e => { e.currentTarget.style.opacity = t.notes ? "0.9" : "0.4"; }}
                                         >
-                                            âœï¸
+                                            ✍️
                                         </button>
                                     )}
                                     {/* Trimming button (Edit mode only) */}
@@ -270,11 +270,11 @@ export const PlayerQueueSidebar: React.FC<Props> = ({
                     })}
                 </div>
 
-                {/* â”€â”€ POOL (not in queue) â”€â”€ */}
+                {/* ── POOL (not in queue) ── */}
                 {poolTracks.length > 0 && (
                     <div style={{ padding: "12px 8px 8px", marginTop: 4, borderTop: `1px solid ${THEME.colors.border}` }}>
                         <div style={{ fontSize: 10, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, padding: "0 8px 6px" }}>
-                            Disponibles Â· no programadas
+                            Disponibles · no programadas
                         </div>
                         {poolTracks.map(t => (
                             <div
@@ -302,7 +302,7 @@ export const PlayerQueueSidebar: React.FC<Props> = ({
                                     e.currentTarget.style.backgroundColor = "transparent";
                                     e.currentTarget.style.opacity = "0.45";
                                 }}
-                                title={isLive ? "" : "Click para aÃ±adir a la cola"}
+                                title={isLive ? "" : "Click para añadir a la cola"}
                             >
                                 {/* Empty slot badge */}
                                 <span style={{

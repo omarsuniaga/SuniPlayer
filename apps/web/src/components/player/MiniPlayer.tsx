@@ -12,7 +12,7 @@ export const MiniPlayer: React.FC = () => {
     const ct = pQueue[ci];
     if (!ct) return null;
 
-    // FunciÃ³n para saltar de tema con estilo (Graceful Skip)
+    // Función para saltar de tema con estilo (Graceful Skip)
     const handleNextGraceful = () => {
         if (!playing) {
             if (ci < pQueue.length - 1) { setCi(ci + 1); setPos(0); }
@@ -66,7 +66,7 @@ export const MiniPlayer: React.FC = () => {
                     {ct.title}
                 </div>
                 <div style={{ fontSize: 11, color: THEME.colors.brand.cyan, fontWeight: 700 }}>
-                    {ct.artist || "Artista Local"} â€¢ {fmt(pos)} / {fmt(ct.duration_ms)}
+                    {ct.artist || "Artista Local"} • {fmt(pos)} / {fmt(ct.duration_ms)}
                 </div>
             </div>
 
@@ -81,7 +81,7 @@ export const MiniPlayer: React.FC = () => {
                         display: "flex", alignItems: "center", justifyContent: "center"
                     }}
                 >
-                    {playing ? "â¸" : "â–¶"}
+                    {playing ? "⏸" : "▶"}
                 </button>
                 <button 
                     onClick={handleNextGraceful}

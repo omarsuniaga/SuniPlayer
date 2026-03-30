@@ -112,7 +112,7 @@ export const MarkerLayer: React.FC<MarkerLayerProps> = ({
         isLongPress.current = false;
     }, [durationMs, markers, isLive, onSeek, getPosMs]);
 
-    // â”€â”€ Modal handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Modal handlers ───────────────────────────────────────────────────────
     const handleSave = useCallback((saved: TrackMarker) => {
         const existing = markers.find(m => m.id === saved.id);
         const updated = existing
@@ -132,7 +132,7 @@ export const MarkerLayer: React.FC<MarkerLayerProps> = ({
         setModal({ marker, mode: isLive ? "readonly" : "edit" });
     }, [isLive]);
 
-    // â”€â”€ Bubble stacking: group markers by posMs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bubble stacking: group markers by posMs ──────────────────────────────
     // Group markers sharing the same posMs bucket (within 500ms)
     const bubbleGroups = new Map<string, TrackMarker[]>();
     for (const m of markers) {

@@ -22,13 +22,13 @@ export const Builder: React.FC = () => {
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const isPlaying = playing && pQueue.length > 0;
 
-    // â”€â”€ Show context selectors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Show context selectors ────────────────────────────────────────────────
     const currentShow = useBuilderStore(st => st.currentShow);
     const startNewShow = useBuilderStore(st => st.startNewShow);
     const addSetToCurrentShow = useBuilderStore(st => st.addSetToCurrentShow);
     const getExcludedTrackIdsInShow = useBuilderStore(st => st.getExcludedTrackIdsInShow);
 
-    // â”€â”€ Generated set drag-to-reorder (HTML5 Drag API) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Generated set drag-to-reorder (HTML5 Drag API) ───────────────────────
     const dragIdx   = useRef<number | null>(null);
     const [dropTarget, setDropTarget] = useState<number | null>(null);
 
@@ -53,7 +53,7 @@ export const Builder: React.FC = () => {
     const trackOverrides = useLibraryStore(st => st.trackOverrides || {});
 
     const filtered = useMemo(() => {
-        // Usar el Repertorio curado por el mÃºsico como fuente de verdad en el Builder
+        // Usar el Repertorio curado por el músico como fuente de verdad en el Builder
         return repertoire.filter((t) => {
             if (s.search && !t.title.toLowerCase().includes(s.search.toLowerCase()) && !t.artist.toLowerCase().includes(s.search.toLowerCase())) return false;
             if (s.fMood && t.mood !== s.fMood) return false;
@@ -69,13 +69,13 @@ export const Builder: React.FC = () => {
 
     return (
         <>
-            {/* â”€â”€ Layout â”€â”€ */}
+            {/* ── Layout ── */}
             <div style={{ flex: 1, display: "flex", overflow: "hidden" }} className="builder-layout">
 
-                {/* â”€â”€ Main Content â”€â”€ */}
+                {/* ── Main Content ── */}
                 <main style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px", overflowY: "auto", gap: 24, minWidth: 0 }} className="main-content">
 
-                    {/* â”€â”€ Show Context Header â”€â”€ */}
+                    {/* ── Show Context Header ── */}
                     {currentShow && (
                         <div style={{ marginBottom: 0, padding: 16, borderRadius: 8, backgroundColor: "rgba(6,182,212,0.08)", borderLeft: `4px solid ${THEME.colors.brand.cyan}` }}>
                             <div style={{ fontSize: 12, color: THEME.colors.text.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Show Context</div>
@@ -127,7 +127,7 @@ export const Builder: React.FC = () => {
                     />
                 </main>
 
-                {/* â”€â”€ Desktop Sidebar (hidden on mobile) â”€â”€ */}
+                {/* ── Desktop Sidebar (hidden on mobile) ── */}
                 <aside
                     className="desktop-sidebar"
                     style={{
@@ -157,9 +157,9 @@ export const Builder: React.FC = () => {
                 </aside>
             </div>
 
-            {/* â”€â”€ Mobile: Floating "Browse" button + Bottom Sheet â”€â”€ */}
+            {/* ── Mobile: Floating "Browse" button + Bottom Sheet ── */}
             <>
-                {/* FAB â€” show only on mobile */}
+                {/* FAB — show only on mobile */}
                 <button
                     className="mobile-repo-fab"
                     onClick={() => setRepoOpen(true)}

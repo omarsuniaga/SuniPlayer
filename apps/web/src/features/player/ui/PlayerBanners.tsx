@@ -10,7 +10,7 @@ interface Props {
 
 export const PlayerBanners: React.FC<Props> = ({ isLive, isSimulating, playing }) => (
     <>
-        {/* â”€â”€ Live Lock Banner â”€â”€ */}
+        {/* ── Live Lock Banner ── */}
         {isLive && (
             <div
                 style={{
@@ -29,15 +29,15 @@ export const PlayerBanners: React.FC<Props> = ({ isLive, isSimulating, playing }
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
                 <span style={{ fontSize: 12, color: THEME.colors.brand.cyan, fontWeight: 700, letterSpacing: "0.04em" }}>
-                    LIVE LOCK ACTIVO â€” La reproducciÃ³n estÃ¡ protegida
+                    LIVE LOCK ACTIVO — La reproducción está protegida
                 </span>
                 <span style={{ marginLeft: "auto", fontSize: 11, color: THEME.colors.text.muted }}>
-                    Espacio para pausar Â· Flechas bloqueadas
+                    Espacio para pausar · Flechas bloqueadas
                 </span>
             </div>
         )}
 
-        {/* â”€â”€ Simulation Mode Indicator â”€â”€ */}
+        {/* ── Simulation Mode Indicator ── */}
         {isSimulating && playing && (
             <div
                 style={{
@@ -57,10 +57,10 @@ export const PlayerBanners: React.FC<Props> = ({ isLive, isSimulating, playing }
                     <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
                 <span style={{ fontSize: 11, color: THEME.colors.status.warning, fontWeight: 700, letterSpacing: "0.04em" }}>
-                    MODO SIMULACIÃ“N â€” Sin archivos de audio reales
+                    MODO SIMULACIÓN — Sin archivos de audio reales
                 </span>
                 <span style={{ marginLeft: "auto", fontSize: 10, color: THEME.colors.text.muted }}>
-                    Usa la pestaÃ±a "Library" para seleccionar tu mÃºsica local
+                    Usa la pestaña "Library" para seleccionar tu música local
                 </span>
             </div>
         )}

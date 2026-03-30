@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { TRACKS } from "@suniplayer/core";
 import { useBuilderStore } from "./useBuilderStore";
 
-describe("useBuilderStore â€” Show context", () => {
+describe("useBuilderStore — Show context", () => {
     beforeEach(() => {
         localStorage.clear();
         useBuilderStore.setState(useBuilderStore.getInitialState(), true);

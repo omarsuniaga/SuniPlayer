@@ -23,9 +23,9 @@ export const VolumeControl: React.FC<VolumeControlProps> = ({
         }
     };
 
-    // Sensibilidad LogarÃ­tmica (PercepciÃ³n humana)
+    // Sensibilidad Logarítmica (Percepción humana)
     // El usuario mueve de 0-100 linealmente, pero nosotros podemos 
-    // aplicar una curva para que el control sea mÃ¡s fino en rangos bajos.
+    // aplicar una curva para que el control sea más fino en rangos bajos.
     const displayVol = Math.round(vol * 100);
 
     return (
@@ -39,7 +39,7 @@ export const VolumeControl: React.FC<VolumeControlProps> = ({
             border: `1px solid ${isMuted ? THEME.colors.status.error + "30" : "transparent"}`,
             transition: "all 0.3s"
         }}>
-            {/* BotÃ³n MUTE */}
+            {/* Botón MUTE */}
             <button 
                 onClick={handleMuteToggle}
                 title={isMuted ? "Activar sonido" : "Silenciar"}

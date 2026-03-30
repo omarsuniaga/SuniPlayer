@@ -24,7 +24,7 @@ export const StatsDashboard: React.FC = () => {
         <div className="stats-container">
             {/* CARD: TIEMPO TOTAL */}
             <div className="stats-card">
-                <div className="icon-box" style={{ background: `${THEME.colors.brand.cyan}15`, color: THEME.colors.brand.cyan }}>â±ï¸</div>
+                <div className="icon-box" style={{ background: `${THEME.colors.brand.cyan}15`, color: THEME.colors.brand.cyan }}>⏱️</div>
                 <div className="stat-content">
                     <div className="stat-label">TOTAL SHOWS</div>
                     <div className="stat-value">{totalHours}<span className="stat-unit">HRS</span></div>
@@ -33,18 +33,18 @@ export const StatsDashboard: React.FC = () => {
 
             {/* CARD: BPM PROMEDIO */}
             <div className="stats-card">
-                <div className="icon-box" style={{ background: `${THEME.colors.brand.pink}15`, color: THEME.colors.brand.pink }}>ðŸ’“</div>
+                <div className="icon-box" style={{ background: `${THEME.colors.brand.pink}15`, color: THEME.colors.brand.pink }}>💓</div>
                 <div className="stat-content">
                     <div className="stat-label">BPM MEDIO</div>
                     <div className="stat-value">{avgBpm}<span className="stat-unit">BPM</span></div>
                 </div>
             </div>
 
-            {/* CARD: ENERGÃA */}
+            {/* CARD: ENERGÍA */}
             <div className="stats-card energy-card">
-                <div className="icon-box" style={{ background: `${THEME.colors.brand.violet}15`, color: THEME.colors.brand.violet }}>âš¡</div>
+                <div className="icon-box" style={{ background: `${THEME.colors.brand.violet}15`, color: THEME.colors.brand.violet }}>⚡</div>
                 <div className="stat-content" style={{ flex: 1 }}>
-                    <div className="stat-label">ENERGÃA</div>
+                    <div className="stat-label">ENERGÍA</div>
                     <div className="stat-value">{Math.round(avgEnergy * 100)}%</div>
                     <div className="energy-bar-bg">
                         <div className="energy-bar-fill" style={{ width: `${avgEnergy * 100}%` }} />

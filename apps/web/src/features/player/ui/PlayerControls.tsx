@@ -21,7 +21,7 @@ export const PlayerControls: React.FC<Props> = ({
 }) => (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 32, marginTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            {/* Prev â€” blocked in live */}
+            {/* Prev — blocked in live */}
             <button
                 onClick={onPrev}
                 title={isLive ? "Bloqueado en modo Live" : "Anterior"}
@@ -36,7 +36,7 @@ export const PlayerControls: React.FC<Props> = ({
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" /></svg>
             </button>
 
-            {/* Play/Pause â€” always allowed */}
+            {/* Play/Pause — always allowed */}
             <button
                 onClick={onPlayPause}
                 style={{
@@ -58,7 +58,7 @@ export const PlayerControls: React.FC<Props> = ({
                 }
             </button>
 
-            {/* Next â€” blocked in live */}
+            {/* Next — blocked in live */}
             <button
                 onClick={onNext}
                 title={isLive ? "Bloqueado en modo Live" : "Siguiente"}
@@ -73,7 +73,7 @@ export const PlayerControls: React.FC<Props> = ({
             </button>
         </div>
 
-        {/* Volume â€” ALWAYS UNLOCKED */}
+        {/* Volume — ALWAYS UNLOCKED */}
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill={THEME.colors.text.muted}><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" /></svg>
             <input

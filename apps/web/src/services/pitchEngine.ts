@@ -1,11 +1,11 @@
 /**
- * PitchEngine â€” Professional Pitch & Tempo Engine
+ * PitchEngine — Professional Pitch & Tempo Engine
  * 
  * Uses SoundTouchJS (WSOLA algorithm) for independent pitch and tempo control.
  * This replaces the old `playbackRate` hack that changed both pitch & speed together.
  * 
  * Architecture:
- *   AudioBuffer â†’ SoundTouch WSOLA â†’ ScriptProcessorNode â†’ GainNode â†’ Destination
+ *   AudioBuffer → SoundTouch WSOLA → ScriptProcessorNode → GainNode → Destination
  *   
  * Controls:
  *   - pitchSemitones: chromatic shift (independent of tempo)
@@ -159,7 +159,7 @@ export class PitchEngine {
         this.seek(percent);
     }
 
-    // â”€â”€ Property accessors â”€â”€
+    // ── Property accessors ──
 
     set pitchSemitones(value: number) {
         this._pitchSemitones = value;
@@ -191,7 +191,7 @@ export class PitchEngine {
     get durationMs() { return (this.audioBuffer?.duration ?? 0) * 1000; }
     get currentUrl() { return this._currentUrl; }
 
-    // â”€â”€ Fade support (for crossfade / fade-out) â”€â”€
+    // ── Fade support (for crossfade / fade-out) ──
 
     fadeVolumeTo(target: number, durationMs: number): Promise<void> {
         return new Promise((resolve) => {
@@ -215,7 +215,7 @@ export class PitchEngine {
         });
     }
 
-    // â”€â”€ Event handlers â”€â”€
+    // ── Event handlers ──
 
     onTimeUpdate(cb: (currentTimeSec: number, percent: number) => void) {
         this._onTimeUpdate = cb;

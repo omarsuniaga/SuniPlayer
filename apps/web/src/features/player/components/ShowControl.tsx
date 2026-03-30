@@ -11,6 +11,10 @@ interface ShowControlProps {
     curveVisible: boolean;
     setCurveVisible: (v: boolean) => void;
     hasCurve: boolean;
+    isMirrorOpen: boolean;
+    onToggleMirror: () => void;
+    mirrorMode: 'docked' | 'floating';
+    onToggleMirrorMode: () => void;
     onToggleQueue: () => void;
 }
 
@@ -20,6 +24,8 @@ export const ShowControl: React.FC<ShowControlProps> = ({
     splMeterEnabled, setSplMeterEnabled,
     curveVisible, setCurveVisible,
     hasCurve,
+    isMirrorOpen, onToggleMirror,
+    mirrorMode, onToggleMirrorMode,
     onToggleQueue
 }) => {
     const ControlButton = ({ active, label, onClick, icon }: any) => (
@@ -83,6 +89,25 @@ export const ShowControl: React.FC<ShowControlProps> = ({
                     icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 3v18h18M18 9l-5 5-2-2-5 5"/></svg>}
                 />
             )}
+
+            <div className="nav-separator" style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />
+
+            <ControlButton 
+                active={isMirrorOpen} 
+                label="CAMERA" 
+                onClick={onToggleMirror}
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>}
+            />
+
+            <ControlButton 
+                active={mirrorMode === 'floating'} 
+                label={mirrorMode === 'floating' ? "FLOAT" : "DOCK"} 
+                onClick={onToggleMirrorMode}
+                icon={mirrorMode === 'floating' ? 
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> :
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6M3 10h18M3 14h18"/></svg>
+                }
+            />
             
             <div className="nav-separator" style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />
             

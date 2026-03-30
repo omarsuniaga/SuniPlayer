@@ -77,7 +77,7 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                             <label style={{ fontSize: 10, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Duration</label>
                             {totalLibMin < targetMin && (
-                                <span style={{ fontSize: 10, color: THEME.colors.status.warning, fontWeight: 700 }}>âš ï¸ Insufficient music</span>
+                                <span style={{ fontSize: 10, color: THEME.colors.status.warning, fontWeight: 700 }}>⚠️ Insufficient music</span>
                             )}
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} className="duration-grid">
@@ -195,9 +195,9 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
                 </div>
             </section>
 
-            {/* â”€â”€ Action Button â”€â”€ */}
+            {/* ── Action Button ── */}
             {!hasShow ? (
-                // No active show â€” offer "New Show"
+                // No active show — offer "New Show"
                 <div
                     style={{
                         position: "relative",
@@ -235,7 +235,7 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
                     </button>
                 </div>
             ) : !hasGeneratedSet ? (
-                // Show exists, set is empty â€” Generate the active set
+                // Show exists, set is empty — Generate the active set
                 <div
                     style={{
                         position: "relative",
@@ -273,7 +273,7 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
                     </button>
                 </div>
             ) : (
-                // Show exists and set has tracks â€” offer "+ Add Set N"
+                // Show exists and set has tracks — offer "+ Add Set N"
                 <div
                     style={{
                         position: "relative",

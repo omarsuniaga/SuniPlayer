@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, LayoutChangeEvent, Text } from 'react-native';
 import { colors } from '../theme/colors';
-import { TrackMarker } from '@suniplayer/core';
+import { TrackMarker, usePlayerStore } from '@suniplayer/core';
 
 interface WaveformProps {
   durationMs: number;
@@ -27,6 +27,7 @@ export const Waveform: React.FC<WaveformProps> = ({
   color = colors.accent,
 }) => {
   const [containerWidth, setContainerWidth] = useState(0);
+  const { waveScale } = usePlayerStore();
 
   // Generate or use provided frequencies.
   // We use useMemo to ensure random frequencies are stable across re-renders.
@@ -84,13 +85,14 @@ export const Waveform: React.FC<WaveformProps> = ({
       <View style={styles.barsContainer} pointerEvents="none">
         {data.map((val, i) => {
           const isActive = i < activeBarIndex;
+          const h = Math.min(1.0, val * waveScale);
           return (
             <View
               key={i}
               style={[
                 styles.bar,
                 {
-                  height: `${Math.max(15, val * 100)}%`, // Minimum height for visibility
+                  height: `${Math.max(15, h * 100)}%`, // Minimum height for visibility
                   backgroundColor: isActive ? color : colors.bgElevated,
                 },
               ]}

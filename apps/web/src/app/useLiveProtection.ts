@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { usePlayerStore } from "../store/usePlayerStore";
 
 /**
- * useLiveProtection â€” Prevents accidental window/tab closing during LIVE mode.
+ * useLiveProtection — Prevents accidental window/tab closing during LIVE mode.
  */
 export function useLiveProtection() {
     const mode = usePlayerStore(s => s.mode);

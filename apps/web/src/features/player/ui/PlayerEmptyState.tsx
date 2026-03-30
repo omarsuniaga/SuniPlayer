@@ -26,7 +26,7 @@ export const PlayerEmptyState: React.FC<Props> = ({ onQuickLoad, onGoToBuilder }
             <h2 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 8px" }}>No hay set cargado</h2>
             <p style={{ fontSize: 14, color: THEME.colors.text.muted, margin: 0, lineHeight: 1.6 }}>
                 Genera un set en el Builder y pulsa<br />
-                <strong style={{ color: THEME.colors.text.secondary }}>"Send to Player"</strong>, o carga uno rÃ¡pido aquÃ­.
+                <strong style={{ color: THEME.colors.text.secondary }}>"Send to Player"</strong>, o carga uno rápido aquí.
             </p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 280 }}>
@@ -43,7 +43,7 @@ export const PlayerEmptyState: React.FC<Props> = ({ onQuickLoad, onGoToBuilder }
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" />
                 </svg>
-                Generar Set RÃ¡pido (45 min)
+                Generar Set Rápido (45 min)
             </button>
             <button
                 onClick={onGoToBuilder}
@@ -56,7 +56,7 @@ export const PlayerEmptyState: React.FC<Props> = ({ onQuickLoad, onGoToBuilder }
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = THEME.colors.surfaceHover}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
             >
-                Ir al Builder â†’
+                Ir al Builder →
             </button>
         </div>
     </div>

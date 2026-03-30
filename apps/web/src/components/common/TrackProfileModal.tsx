@@ -32,7 +32,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     const mode = usePlayerStore(s => s.mode);
     const wasPlayingRef = useRef(false);
 
-    // En Live Mode la mÃºsica no se interrumpe al abrir propiedades
+    // En Live Mode la música no se interrumpe al abrir propiedades
     useEffect(() => {
         if (mode === "live") return;
         wasPlayingRef.current = usePlayerStore.getState().playing;
@@ -117,7 +117,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
         }
         
         if (!url) {
-            alert("No se puede analizar: El archivo no tiene una ruta vÃ¡lida.");
+            alert("No se puede analizar: El archivo no tiene una ruta válida.");
             return;
         }
 
@@ -194,7 +194,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     };
 
     const removeSheetItem = async (id: string) => {
-        if (!confirm("Â¿Deseas eliminar este archivo?")) return;
+        if (!confirm("¿Deseas eliminar este archivo?")) return;
         try {
             await deleteAsset(id);
             setEdit(prev => ({
@@ -272,7 +272,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                                 <div>
-                                    <label style={labelStyle}>TÃ­tulo</label>
+                                    <label style={labelStyle}>Título</label>
                                     <input value={edit.title} onChange={e => setEdit({...edit, title: e.target.value})} style={inputStyle} />
                                 </div>
                                 <div>
@@ -291,7 +291,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                     <input value={edit.key} onChange={e => setEdit({...edit, key: e.target.value})} style={inputStyle} />
                                 </div>
                                 <div>
-                                    <label style={labelStyle}>EnergÃ­a</label>
+                                    <label style={labelStyle}>Energía</label>
                                     <div style={{ display: "flex", alignItems: "center", gap: 10, height: 40 }}>
                                         <input type="range" min={0} max={1} step={0.1} value={edit.energy} onChange={e => setEdit({...edit, energy: parseFloat(e.target.value)})} style={{ flex: 1, accentColor: THEME.colors.brand.cyan }} />
                                         <span style={{ fontSize: 13, color: THEME.colors.brand.cyan, fontWeight: 700 }}>{Math.round((edit.energy || 0)*10)}</span>
@@ -302,9 +302,9 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                             <div style={{ padding: "16px 20px", borderRadius: THEME.radius.lg, background: "rgba(255,255,255,0.02)", border: `1px solid ${THEME.colors.border}` }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 14 }}>
                                     <div>
-                                        <label style={{ ...labelStyle, marginBottom: 4 }}>TransposiciÃ³n y Tempo HD</label>
+                                        <label style={{ ...labelStyle, marginBottom: 4 }}>Transposición y Tempo HD</label>
                                         <div style={{ fontSize: 12, color: THEME.colors.text.muted, lineHeight: 1.5 }}>
-                                            Ajusta el tono y la velocidad de forma independiente sin pÃ©rdida de calidad (WSOLA).
+                                            Ajusta el tono y la velocidad de forma independiente sin pérdida de calidad (WSOLA).
                                         </div>
                                     </div>
                                     <div style={{ display: "flex", gap: 8 }}>
@@ -385,17 +385,17 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, color: THEME.colors.text.dim }}>
                                         <span>-20% lento</span>
                                         <span>Normal</span>
-                                        <span>+20% rÃ¡pido</span>
+                                        <span>+20% rápido</span>
                                     </div>
                                 </div>
 
                                 <div style={{ marginTop: 16, fontSize: 12, color: THEME.colors.text.muted }}>
                                     {parsedSourceKey
-                                        ? <>Original: <strong style={{ color: "white" }}>{sourceKey}</strong> Â· Objetivo: <strong style={{ color: "white" }}>{targetKey}</strong></>
+                                        ? <>Original: <strong style={{ color: "white" }}>{sourceKey}</strong> · Objetivo: <strong style={{ color: "white" }}>{targetKey}</strong></>
                                         : <>Escribe un tono valido como `C# Major` o `A Minor` para calcular semitonos.</>}
                                 </div>
 
-                                {/* â”€â”€ Preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                                {/* ── Preview ────────────────────────────────────────────────────────────── */}
                                 <div style={{
                                     marginTop: 16,
                                     padding: "14px 16px",
@@ -412,8 +412,8 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                         </div>
                                         <div style={{ fontSize: 12, color: THEME.colors.text.dim }}>
                                             {transposeSemitones === 0 && playbackTempo === 1.0
-                                                ? "Sin cambios â€” tono y tempo originales"
-                                                : `${transposeSemitones > 0 ? "+" : ""}${transposeSemitones} st Â· ${playbackTempo.toFixed(2)}x Â· 30 seg`}
+                                                ? "Sin cambios — tono y tempo originales"
+                                                : `${transposeSemitones > 0 ? "+" : ""}${transposeSemitones} st · ${playbackTempo.toFixed(2)}x · 30 seg`}
                                         </div>
                                     </div>
 
@@ -472,7 +472,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
 
                             <div>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                                    <label style={{ ...labelStyle, marginBottom: 0 }}>CategorÃ­as / Tags</label>
+                                    <label style={{ ...labelStyle, marginBottom: 0 }}>Categorías / Tags</label>
                                     <div style={{ display: "flex", gap: 8 }}>
                                         <input 
                                             placeholder="+ Nueva" 
@@ -511,20 +511,20 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                 border: `1px solid ${THEME.colors.border}`,
                                 marginTop: 8
                             }}>
-                                <label style={{ ...labelStyle, color: THEME.colors.brand.cyan, marginBottom: 12 }}>EstadÃ­sticas de Rendimiento</label>
+                                <label style={{ ...labelStyle, color: THEME.colors.brand.cyan, marginBottom: 12 }}>Estadísticas de Rendimiento</label>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.2fr", gap: 16 }}>
                                     <div>
                                         <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", fontWeight: 700 }}>Veces Tocado</div>
                                         <div style={{ fontSize: 20, fontWeight: 900, color: "white", marginTop: 4 }}>{edit.playCount || 0}</div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", fontWeight: 700 }}>InversiÃ³n Total</div>
+                                        <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", fontWeight: 700 }}>Inversión Total</div>
                                         <div style={{ fontSize: 20, fontWeight: 900, color: "white", marginTop: 4 }}>{fmtFull(edit.totalPlayTimeMs || 0)}</div>
                                     </div>
                                     <div style={{ textAlign: "right" }}>
-                                        <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", fontWeight: 700 }}>Ãšltima SesiÃ³n</div>
+                                        <div style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", fontWeight: 700 }}>Última Sesión</div>
                                         <div style={{ fontSize: 13, fontWeight: 700, color: THEME.colors.text.secondary, marginTop: 4 }}>
-                                            {edit.lastPlayedAt ? new Date(edit.lastPlayedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : "â€”"}
+                                            {edit.lastPlayedAt ? new Date(edit.lastPlayedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : "—"}
                                         </div>
                                     </div>
                                 </div>
@@ -534,7 +534,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
 
                     {activeTab === "notes" && (
                         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                            <label style={labelStyle}>Notas para el show (se mostrarÃ¡n durante la previa)</label>
+                            <label style={labelStyle}>Notas para el show (se mostrarán durante la previa)</label>
                             <textarea
                                 value={edit.notes || ""}
                                 onChange={e => setEdit({...edit, notes: e.target.value})}
@@ -555,7 +555,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                             <div>
                                 <h4 style={{ margin: 0, fontSize: 16 }}>Recortar Segmento</h4>
                                 <p style={{ fontSize: 13, color: THEME.colors.text.muted, marginTop: 8, maxWidth: 300, lineHeight: 1.5 }}>
-                                    Ajusta el punto de inicio y fin para esta canciÃ³n. El set se adaptarÃ¡ automÃ¡ticamente.
+                                    Ajusta el punto de inicio y fin para esta canción. El set se adaptará automáticamente.
                                 </p>
                             </div>
                             
@@ -595,7 +595,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                     </svg>
                                 </div>
                                 <h4 style={{ margin: 0, fontSize: 16 }}>Partituras y Documentos</h4>
-                                <p style={{ fontSize: 13, color: THEME.colors.text.muted, marginTop: 4 }}>Sube PDFs o imÃ¡genes de tus arreglos.</p>
+                                <p style={{ fontSize: 13, color: THEME.colors.text.muted, marginTop: 4 }}>Sube PDFs o imágenes de tus arreglos.</p>
                             </div>
 
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -630,7 +630,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                     marginTop: 8
                                 }}>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    <span style={{ fontSize: 14, fontWeight: 600 }}>{isUploadingSheet ? "Subiendo..." : "AÃ±adir Archivo(s)"}</span>
+                                    <span style={{ fontSize: 14, fontWeight: 600 }}>{isUploadingSheet ? "Subiendo..." : "Añadir Archivo(s)"}</span>
                                     <input type="file" multiple accept="application/pdf,image/*" onChange={handleSheetUpload} disabled={isUploadingSheet} style={{ display: "none" }} />
                                 </label>
                             </div>
