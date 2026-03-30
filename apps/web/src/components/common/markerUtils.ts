@@ -1,4 +1,4 @@
-import type { TrackMarker } from \"@suniplayer/core\";
+import type { TrackMarker } from "@suniplayer/core";
 
 const HIT_TOLERANCE_PX = 12;
 
@@ -32,7 +32,7 @@ export function findNearbyMarker(
 
 /**
  * Returns CSS animation-duration in seconds for the blinking border.
- * distanceSec=15 → 2s (slow), distanceSec=0 → 0.25s (fast).
+ * distanceSec=15 â†’ 2s (slow), distanceSec=0 â†’ 0.25s (fast).
  */
 export function blinkDurationSec(distanceSec: number): number {
     const clamped = Math.max(0, Math.min(15, distanceSec));

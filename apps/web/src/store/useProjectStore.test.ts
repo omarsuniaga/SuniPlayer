@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { TRACKS } from \"@suniplayer/core\";
+import { TRACKS } from "@suniplayer/core";
 import { useBuilderStore } from "./useBuilderStore";
 import { usePlayerStore } from "./usePlayerStore";
 import { useHistoryStore } from "./useHistoryStore";

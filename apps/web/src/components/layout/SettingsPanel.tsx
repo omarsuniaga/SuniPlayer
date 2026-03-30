@@ -6,7 +6,7 @@ import { THEME } from "../../data/theme.ts";
 import { PedalConfig } from "../settings/PedalConfig";
 import { VERSION_INFO } from "../../version";
 
-// ── Toggle Switch ────────────────────────────────────────────────────────────
+// â”€â”€ Toggle Switch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Toggle: React.FC<{
     label: string;
     description?: string;
@@ -44,7 +44,7 @@ const Toggle: React.FC<{
     </div>
 );
 
-// ── Slider Row ───────────────────────────────────────────────────────────────
+// â”€â”€ Slider Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SliderRow: React.FC<{
     label: string;
     value: number;
@@ -74,7 +74,7 @@ const SliderRow: React.FC<{
     </div>
 );
 
-// ── Accordion Section ────────────────────────────────────────────────────────
+// â”€â”€ Accordion Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const AccordionSection: React.FC<{ 
     title: string; 
     icon: React.ReactNode; 
@@ -121,7 +121,7 @@ const AccordionSection: React.FC<{
     </div>
 );
 
-// ── Settings Panel ───────────────────────────────────────────────────────────
+// â”€â”€ Settings Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const SettingsPanel: React.FC = () => {
     const showSettings = useProjectStore(s => s.showSettings);
     const setShowSettings = useProjectStore(s => s.setShowSettings);
@@ -222,23 +222,23 @@ export const SettingsPanel: React.FC = () => {
                 <div style={{ flex: 1, overflowY: "auto", padding: "0 24px 32px" }}>
 
                     <AccordionSection 
-                        title="Reproducción" 
+                        title="ReproducciÃ³n" 
                         icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>}
                         isOpen={openSection === "audio"}
                         onToggle={() => toggle("audio")}
                     >
                         <Toggle label="Auto-siguiente" checked={autoNext} onChange={setAutoNext} />
                         <Toggle label="Crossfade" checked={crossfade} onChange={v => { setCrossfade(v); if (v) setAutoNext(true); }} />
-                        {crossfade && <SliderRow label="Duración Crossfade" value={crossfadeMs} min={500} max={10000} step={500} unit=" ms" onChange={setCrossfadeMs} />}
+                        {crossfade && <SliderRow label="DuraciÃ³n Crossfade" value={crossfadeMs} min={500} max={10000} step={500} unit=" ms" onChange={setCrossfadeMs} />}
                         <SliderRow label="Volumen por defecto" value={Math.round(defaultVol * 100)} min={0} max={100} unit="%" onChange={v => { setDefaultVol(v / 100); setVol(v / 100); }} />
                         <Toggle label="Efecto Fade" checked={fadeEnabled} onChange={setFadeEnabled} />
                         {fadeEnabled && (
                             <>
-                                <SliderRow label="Duración Fade-IN" value={fadeInMs} min={500} max={10000} step={500} unit=" ms" onChange={setFadeInMs} />
-                                <SliderRow label="Duración Fade-OUT" value={fadeOutMs} min={500} max={10000} step={500} unit=" ms" onChange={setFadeOutMs} />
+                                <SliderRow label="DuraciÃ³n Fade-IN" value={fadeInMs} min={500} max={10000} step={500} unit=" ms" onChange={setFadeInMs} />
+                                <SliderRow label="DuraciÃ³n Fade-OUT" value={fadeOutMs} min={500} max={10000} step={500} unit=" ms" onChange={setFadeOutMs} />
                             </>
                         )}
-                        <Toggle label="Sonómetro (dB SPL)" checked={splMeterEnabled} onChange={setSplMeterEnabled} />
+                        <Toggle label="SonÃ³metro (dB SPL)" checked={splMeterEnabled} onChange={setSplMeterEnabled} />
                         <Toggle label="Modo Tablet" checked={performanceMode} onChange={setPerformanceMode} />
                     </AccordionSection>
 
@@ -248,14 +248,14 @@ export const SettingsPanel: React.FC = () => {
                         isOpen={openSection === "builder"}
                         onToggle={() => toggle("builder")}
                     >
-                        <SliderRow label="Duración del set" value={targetMin} min={15} max={180} unit=" min" onChange={setTargetMin} />
-                        <SliderRow label="BPM mínimo" value={bpmMin} min={40} max={bpmMax - 5} unit=" bpm" onChange={setBpmMin} />
-                        <SliderRow label="BPM máximo" value={bpmMax} min={bpmMin + 5} max={220} unit=" bpm" onChange={setBpmMax} />
+                        <SliderRow label="DuraciÃ³n del set" value={targetMin} min={15} max={180} unit=" min" onChange={setTargetMin} />
+                        <SliderRow label="BPM mÃ­nimo" value={bpmMin} min={40} max={bpmMax - 5} unit=" bpm" onChange={setBpmMin} />
+                        <SliderRow label="BPM mÃ¡ximo" value={bpmMax} min={bpmMin + 5} max={220} unit=" bpm" onChange={setBpmMax} />
                     </AccordionSection>
 
                     <AccordionSection 
                         title="Pedalera Bluetooth" 
-                        icon={<span style={{fontSize: 14}}>🦶</span>}
+                        icon={<span style={{fontSize: 14}}>ðŸ¦¶</span>}
                         isOpen={openSection === "pedal"}
                         onToggle={() => toggle("pedal")}
                     >
@@ -287,7 +287,7 @@ export const SettingsPanel: React.FC = () => {
                     >
                         <div style={{ backgroundColor: "rgba(0,0,0,0.2)", borderRadius: THEME.radius.md, padding: "12px", border: `1px solid ${THEME.colors.border}`, display: "flex", flexDirection: "column", gap: 8 }}>
                            {[
-                               ["Versión", VERSION_INFO.tag],
+                               ["VersiÃ³n", VERSION_INFO.tag],
                                ["Build Date", VERSION_INFO.buildDate],
                                ["Build Time", `${VERSION_INFO.buildTime} (UTC-4)`],
                            ].map(([k, v]) => (
@@ -306,7 +306,7 @@ export const SettingsPanel: React.FC = () => {
                         onToggle={() => toggle("system")}
                     >
                         <button onClick={resetApp} style={{ width: "100%", padding: "12px", borderRadius: THEME.radius.md, border: `1px solid ${THEME.colors.status.error}60`, backgroundColor: `${THEME.colors.status.error}10`, color: THEME.colors.status.error, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                            Reiniciar aplicación y limpiar caché
+                            Reiniciar aplicaciÃ³n y limpiar cachÃ©
                         </button>
                     </AccordionSection>
 

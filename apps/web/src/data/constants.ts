@@ -1,4 +1,4 @@
-import { Track } from \"@suniplayer/core\";
+import { Track } from "@suniplayer/core";
 import generatedTracks from "./tracks.json";
 
 interface MaybeDefaultTracks {

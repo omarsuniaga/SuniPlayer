@@ -31,7 +31,7 @@ export const LiveUnlockModal: React.FC<LiveUnlockModalProps> = ({ onConfirm, onC
             }}
         />
 
-        {/* Dialog / Ventana de confirmación */}
+        {/* Dialog / Ventana de confirmaciÃ³n */}
         <div
             style={{
                 position: "relative",
@@ -69,16 +69,16 @@ export const LiveUnlockModal: React.FC<LiveUnlockModalProps> = ({ onConfirm, onC
                 </div>
                 <div>
                     <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "white" }}>Salir del Modo Show</h3>
-                    <p style={{ fontSize: 13, color: THEME.colors.text.muted, margin: "4px 0 0" }}>Protección de escenario activa</p>
+                    <p style={{ fontSize: 13, color: THEME.colors.text.muted, margin: "4px 0 0" }}>ProtecciÃ³n de escenario activa</p>
                 </div>
             </div>
 
             {/* Content */}
             <p style={{ fontSize: 15, color: THEME.colors.text.secondary, lineHeight: 1.6, margin: 0 }}>
-                Estás por desactivar el bloqueo durante una <strong style={{ color: "white" }}>presentación en vivo</strong>.
-                Esto permitirá modificar el repertorio y los controles críticos.
+                EstÃ¡s por desactivar el bloqueo durante una <strong style={{ color: "white" }}>presentaciÃ³n en vivo</strong>.
+                Esto permitirÃ¡ modificar el repertorio y los controles crÃ­ticos.
                 <br /><br />
-                ¿Confirmás que querés volver al <strong style={{ color: THEME.colors.brand.cyan }}>Modo Edit</strong>?
+                Â¿ConfirmÃ¡s que querÃ©s volver al <strong style={{ color: THEME.colors.brand.cyan }}>Modo Edit</strong>?
             </p>
 
             {/* Action Buttons */}
@@ -116,7 +116,7 @@ export const LiveUnlockModal: React.FC<LiveUnlockModalProps> = ({ onConfirm, onC
                         transition: "all 0.2s",
                     }}
                 >
-                    Sí, Desbloquear
+                    SÃ­, Desbloquear
                 </button>
             </div>
         </div>

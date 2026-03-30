@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import type { TrackMarker } from \"@suniplayer/core\";
+import type { TrackMarker } from "@suniplayer/core";
 import { findNearbyMarker, getBubbleState } from "./markerUtils";
 import { MarkerDot } from "./MarkerDot";
 import { MarkerBubble } from "./MarkerBubble";
@@ -112,7 +112,7 @@ export const MarkerLayer: React.FC<MarkerLayerProps> = ({
         isLongPress.current = false;
     }, [durationMs, markers, isLive, onSeek, getPosMs]);
 
-    // ── Modal handlers ───────────────────────────────────────────────────────
+    // â”€â”€ Modal handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const handleSave = useCallback((saved: TrackMarker) => {
         const existing = markers.find(m => m.id === saved.id);
         const updated = existing
@@ -132,7 +132,7 @@ export const MarkerLayer: React.FC<MarkerLayerProps> = ({
         setModal({ marker, mode: isLive ? "readonly" : "edit" });
     }, [isLive]);
 
-    // ── Bubble stacking: group markers by posMs ──────────────────────────────
+    // â”€â”€ Bubble stacking: group markers by posMs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Group markers sharing the same posMs bucket (within 500ms)
     const bubbleGroups = new Map<string, TrackMarker[]>();
     for (const m of markers) {

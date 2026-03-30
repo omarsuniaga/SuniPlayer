@@ -9,13 +9,13 @@ export interface AudioLoadOptions {
 }
 
 /**
- * IAudioEngine — Contract for audio playback with pitch/tempo control.
+ * IAudioEngine â€” Contract for audio playback with pitch/tempo control.
  *
  * Semitone convention: -12 = one octave down, +12 = one octave up.
  * Tempo convention: 1.0 = normal speed, 0.8 = 20% slower, 1.2 = 20% faster.
  *
  * iOS note: AVAudioUnitTimePitch.pitch uses CENTS (1 semitone = 100 cents).
- * Multiply semitones × 100 when setting pitch in AVAudioEngine adapters.
+ * Multiply semitones Ã— 100 when setting pitch in AVAudioEngine adapters.
  */
 export interface IAudioEngine {
     /** Load a track URL and prepare for playback. Resolves when ready. */
@@ -28,7 +28,7 @@ export interface IAudioEngine {
     /** Set pitch in semitones. Applies immediately even while playing. */
     setPitch(semitones: number): void;
 
-    /** Set tempo factor (0.8–1.2). Applies immediately even while playing. */
+    /** Set tempo factor (0.8â€“1.2). Applies immediately even while playing. */
     setTempo(rate: number): void;
 
     setVolume(volume: number): void;

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useProjectStore, Track, useSettingsStore } from "@suniplayer/core";
 import { THEME } from "../../data/theme";
-import { fmt } from \"@suniplayer/core\";
+import { fmt } from "@suniplayer/core";
 
 export const MiniPlayer: React.FC = () => {
     const { pQueue, ci, pos, playing, setPlaying, setCi, setPos, setView } = useProjectStore();
@@ -12,7 +12,7 @@ export const MiniPlayer: React.FC = () => {
     const ct = pQueue[ci];
     if (!ct) return null;
 
-    // Función para saltar de tema con estilo (Graceful Skip)
+    // FunciÃ³n para saltar de tema con estilo (Graceful Skip)
     const handleNextGraceful = () => {
         if (!playing) {
             if (ci < pQueue.length - 1) { setCi(ci + 1); setPos(0); }
@@ -66,7 +66,7 @@ export const MiniPlayer: React.FC = () => {
                     {ct.title}
                 </div>
                 <div style={{ fontSize: 11, color: THEME.colors.brand.cyan, fontWeight: 700 }}>
-                    {ct.artist || "Artista Local"} • {fmt(pos)} / {fmt(ct.duration_ms)}
+                    {ct.artist || "Artista Local"} â€¢ {fmt(pos)} / {fmt(ct.duration_ms)}
                 </div>
             </div>
 
@@ -81,7 +81,7 @@ export const MiniPlayer: React.FC = () => {
                         display: "flex", alignItems: "center", justifyContent: "center"
                     }}
                 >
-                    {playing ? "⏸" : "▶"}
+                    {playing ? "â¸" : "â–¶"}
                 </button>
                 <button 
                     onClick={handleNextGraceful}

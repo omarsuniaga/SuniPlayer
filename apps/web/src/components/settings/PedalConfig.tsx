@@ -3,14 +3,14 @@ import { useSettingsStore, PedalAction } from "../../store/useSettingsStore";
 import { useDebugStore } from "../../store/useDebugStore";
 import { THEME } from "../../data/theme";
 
-// ── Action definitions ────────────────────────────────────────────────────────
+// â”€â”€ Action definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PEDAL_ACTIONS: { action: PedalAction; label: string }[] = [
-    { action: "next",       label: "Siguiente canción" },
-    { action: "prev",       label: "Canción anterior" },
+    { action: "next",       label: "Siguiente canciÃ³n" },
+    { action: "prev",       label: "CanciÃ³n anterior" },
     { action: "play_pause", label: "Play / Pause" },
     { action: "stop",       label: "Detener audio" },
     { action: "vol_up",     label: "Volumen +" },
-    { action: "vol_down",   label: "Volumen −" },
+    { action: "vol_down",   label: "Volumen âˆ’" },
 ];
 
 export const PedalConfig: React.FC = () => {
@@ -45,7 +45,7 @@ export const PedalConfig: React.FC = () => {
 
     const forceiPadFocus = (fromAction?: string) => {
         if (fromAction) {
-            addLog(`Botón pulsado: ${fromAction}`);
+            addLog(`BotÃ³n pulsado: ${fromAction}`);
         }
         const el = document.getElementById("suni-pedal-focus") as HTMLInputElement;
         if (el) {
@@ -61,7 +61,7 @@ export const PedalConfig: React.FC = () => {
     return (
         <div style={{ position: "relative", zIndex: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "20px 0 8px" }}>
-                <span style={{ fontSize: 18 }}>🦶</span>
+                <span style={{ fontSize: 18 }}>ðŸ¦¶</span>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.colors.text.muted, flex: 1 }}>
                     Pedalera Bluetooth
                 </span>
@@ -73,7 +73,7 @@ export const PedalConfig: React.FC = () => {
             <div style={{ backgroundColor: "rgba(0,0,0,0.3)", borderRadius: THEME.radius.md, padding: "12px", border: `1px solid ${THEME.colors.border}`, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.brand.violet }}>DIAGNÓSTICO IPAD</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.brand.violet }}>DIAGNÃ“STICO IPAD</span>
                         <div style={{ 
                             fontSize: 9, padding: "2px 6px", borderRadius: 4, 
                             backgroundColor: isFocused ? `${THEME.colors.status.success}20` : `${THEME.colors.status.error}20`,
@@ -84,13 +84,13 @@ export const PedalConfig: React.FC = () => {
                             {isFocused ? "LISTO" : "DESCONECTADO"}
                         </div>
                     </div>
-                    <span style={{ fontSize: 10, color: THEME.colors.text.muted }}>Señal: <strong style={{ color: THEME.colors.brand.cyan }}>{lastEvent}</strong></span>
+                    <span style={{ fontSize: 10, color: THEME.colors.text.muted }}>SeÃ±al: <strong style={{ color: THEME.colors.brand.cyan }}>{lastEvent}</strong></span>
                 </div>
 
                 {!isFocused && (
                     <button 
                         id="btn-activate-ipad"
-                        onClick={() => forceiPadFocus("ACTIVACIÓN")}
+                        onClick={() => forceiPadFocus("ACTIVACIÃ“N")}
                         style={{
                             width: "100%", padding: "14px", borderRadius: THEME.radius.sm,
                             border: `2px solid ${THEME.colors.brand.cyan}`,
@@ -99,13 +99,13 @@ export const PedalConfig: React.FC = () => {
                             transition: "all 0.2s"
                         }}
                     >
-                        PULSA AQUÍ PARA CONECTAR PEDALERA
+                        PULSA AQUÃ PARA CONECTAR PEDALERA
                     </button>
                 )}
 
                 <input 
                     type="text" 
-                    placeholder="Prueba tu pedal aquí..."
+                    placeholder="Prueba tu pedal aquÃ­..."
                     style={{
                         width: "100%", background: "rgba(255,255,255,0.1)", border: "none",
                         borderRadius: 4, padding: "10px", fontSize: 14, color: "white",
@@ -131,7 +131,7 @@ export const PedalConfig: React.FC = () => {
             )}
 
             <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "0 0 12px" }}>
-                Conecta tu pedalera y asigna cada pedal. Si usas iPad, asegúrate de que el estado sea <strong>LISTO</strong>.
+                Conecta tu pedalera y asigna cada pedal. Si usas iPad, asegÃºrate de que el estado sea <strong>LISTO</strong>.
             </p>
 
             {PEDAL_ACTIONS.map(({ action, label }) => {
@@ -156,7 +156,7 @@ export const PedalConfig: React.FC = () => {
                                 textTransform: "uppercase"
                             }}
                         >
-                            {isLearning ? "Oído..." : (binding ? "Cambiar" : "Aprender")}
+                            {isLearning ? "OÃ­do..." : (binding ? "Cambiar" : "Aprender")}
                         </button>
                     </div>
                 );

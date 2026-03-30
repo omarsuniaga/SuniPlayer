@@ -109,7 +109,7 @@ export const ShowRecoveryManager: React.FC = () => {
                             <strong style={{ fontSize: 13 }}>Recovery session available</strong>
                             <span style={{ fontSize: 12, color: THEME.colors.text.muted }}>
                                 Last snapshot: {new Date(snapshot.capturedAt).toLocaleString()}
-                                {snapshot.warnings.requiresAudioReconnect ? " · custom audio will need reconnect on iPad after a reload" : ""}
+                                {snapshot.warnings.requiresAudioReconnect ? " Â· custom audio will need reconnect on iPad after a reload" : ""}
                             </span>
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

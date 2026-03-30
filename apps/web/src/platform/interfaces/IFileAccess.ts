@@ -20,7 +20,7 @@ export type FileSource =
     | { type: "url"; url: string }; // from a known URL
 
 /**
- * IFileAccess — Contract for audio file access and import.
+ * IFileAccess â€” Contract for audio file access and import.
  *
  * Web: fetch HEAD for existence, blob URL for imports
  * iOS: NSFileManager + UIDocumentPickerViewController
@@ -29,7 +29,7 @@ export type FileSource =
 export interface IFileAccess {
     /**
      * Check if an audio file exists.
-     * filePath is bare (e.g. "Song.mp3") — implementation resolves to full URL.
+     * filePath is bare (e.g. "Song.mp3") â€” implementation resolves to full URL.
      */
     checkExists(filePath: string): Promise<boolean>;
 

@@ -1,15 +1,15 @@
 /**
- * ImportZone — Zona de importación profesional con soporte para persistencia binaria.
+ * ImportZone â€” Zona de importaciÃ³n profesional con soporte para persistencia binaria.
  */
 import React, { useRef, useState, useCallback, useEffect, useImperativeHandle, forwardRef } from "react";
 import { useProjectStore } from "../../store/useProjectStore";
 import { useLibraryStore } from "../../store/useLibraryStore";
 import { THEME } from "../../data/theme.ts";
-import { Track } from \"@suniplayer/core\";
+import { Track } from "@suniplayer/core";
 import { ImportCandidate, getRelativeAudioPath, isSupportedAudioFile, parseTrackName } from "../../features/library/lib/audioImport";
 import { analyzeAudio } from "../../services/analysisService.ts";
 
-// ── Tipos y Constantes ────────────────────────────────────────────────────────
+// â”€â”€ Tipos y Constantes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MOODS = ["calm", "happy", "melancholic", "energetic"] as const;
 type Mood = typeof MOODS[number];
@@ -17,8 +17,8 @@ type Mood = typeof MOODS[number];
 const MOOD_LABELS: Record<Mood, string> = {
     calm:        "Tranquilo",
     happy:       "Alegre",
-    melancholic: "Melancólico",
-    energetic:   "Enérgico",
+    melancholic: "MelancÃ³lico",
+    energetic:   "EnÃ©rgico",
 };
 
 interface PendingTrack {
@@ -34,9 +34,11 @@ interface PendingTrack {
     fileName: string;
     waveform?: number[];
     file: File;
+    startTime?: number;
+    endTime?: number;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function readDuration(file: File): Promise<number> {
     return new Promise((resolve) => {
@@ -57,7 +59,7 @@ function formatDuration(ms: number): string {
     return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 }
 
-// ── Componente Principal ──────────────────────────────────────────────────────
+// â”€â”€ Componente Principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ImportZoneProps {
     onClose?: () => void;
@@ -92,7 +94,7 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
         }
     }, [externalFiles, pending.length, processing]);
 
-    // Exponer métodos al padre (Library)
+    // Exponer mÃ©todos al padre (Library)
     useImperativeHandle(ref, () => ({
         openFilePicker: () => inputRef.current?.click(),
         openFolderPicker: () => openFolderPicker(),
@@ -117,8 +119,8 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
             for (const { file, relativePath } of arr) {
                 const blobUrl = URL.createObjectURL(file);
                 
-                // Usar el nombre del archivo real como título por defecto
-                // Quitamos la extensión (.mp3, .wav, etc.)
+                // Usar el nombre del archivo real como tÃ­tulo por defecto
+                // Quitamos la extensiÃ³n (.mp3, .wav, etc.)
                 const fileNameClean = file.name.replace(/\.[^/.]+$/, "");
                 const { title: parsedTitle, artist: parsedArtist } = parseTrackName(file.name);
                 
@@ -149,7 +151,7 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
                     autoStartTime = analysis.startTime || 0;
                     autoEndTime = analysis.endTime || duration_ms;
                 } catch (e) {
-                    console.error("Análisis fallido para", file.name, e);
+                    console.error("AnÃ¡lisis fallido para", file.name, e);
                 }
 
                 tracks.push({
@@ -165,8 +167,8 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
                     fileName: getRelativeAudioPath(file, relativePath),
                     waveform,
                     file,
-                    startTime: autoStartTime, // 🟢 Aplicar Auto-Trim
-                    endTime: autoEndTime,     // 🟢 Aplicar Auto-Trim
+                    startTime: autoStartTime, // ðŸŸ¢ Aplicar Auto-Trim
+                    endTime: autoEndTime,     // ðŸŸ¢ Aplicar Auto-Trim
                 });
             }
         } finally {
@@ -209,7 +211,7 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
             for (const p of pending) {
                 setResults(prev => [...prev, { title: `Guardando ${p.title}...`, ok: true }]);
                 
-                // Guardado físico real
+                // Guardado fÃ­sico real
                 await storage.saveAudioFile(p.id, p.file);
                 await storage.saveAnalysis(p.id, {
                     id: p.id, bpm: p.bpm, key: p.key, energy: p.energy, timestamp: Date.now()
@@ -225,11 +227,11 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
                 newTracks.push(track);
             }
         } catch (e) {
-            console.error("Error en importación crítica:", e);
+            console.error("Error en importaciÃ³n crÃ­tica:", e);
         }
 
         appendToQueue(newTracks);
-        setResults(newTracks.map(t => ({ title: `${t.title} - ¡LISTO!`, ok: true })));
+        setResults(newTracks.map(t => ({ title: `${t.title} - Â¡LISTO!`, ok: true })));
         setPending([]);
         setProcessing(false);
         if (onClose) setTimeout(onClose, 2000);
@@ -238,8 +240,8 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
     if (results.length > 0) {
         return (
             <div style={{ padding: 30, textAlign: "center" }}>
-                <h3 style={{ color: THEME.colors.brand.cyan }}>¡Importación Exitosa!</h3>
-                {results.map((r, i) => <div key={i} style={{ fontSize: 12, opacity: 0.7 }}>✓ {r.title}</div>)}
+                <h3 style={{ color: THEME.colors.brand.cyan }}>Â¡ImportaciÃ³n Exitosa!</h3>
+                {results.map((r, i) => <div key={i} style={{ fontSize: 12, opacity: 0.7 }}>âœ“ {r.title}</div>)}
             </div>
         );
     }
@@ -279,9 +281,9 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
                     backgroundColor: dragging ? "rgba(6,182,212,0.05)" : "transparent"
                 }}
             >
-                <div style={{ fontSize: 40, marginBottom: 10 }}>📁</div>
-                <div style={{ fontWeight: 700 }}>Arrastrá tus MP3 o hacé click acá</div>
-                <div style={{ fontSize: 12, opacity: 0.6, marginTop: 5 }}>Los archivos se guardarán permanentemente en el navegador</div>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>ðŸ“</div>
+                <div style={{ fontWeight: 700 }}>ArrastrÃ¡ tus MP3 o hacÃ© click acÃ¡</div>
+                <div style={{ fontSize: 12, opacity: 0.6, marginTop: 5 }}>Los archivos se guardarÃ¡n permanentemente en el navegador</div>
             </div>
         </div>
     );

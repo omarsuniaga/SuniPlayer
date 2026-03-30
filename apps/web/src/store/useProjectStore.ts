@@ -1,22 +1,22 @@
 /**
- * useProjectStore — Backward-compatible composite hook
+ * useProjectStore â€” Backward-compatible composite hook
  *
  * Combines all domain stores into a single API so existing components
  * continue to work without changes.  Performance-critical code (useAudio)
  * should import domain stores directly to minimise re-renders.
  *
  * Domain stores:
- *   useBuilderStore  — view, targetMin, venue, curve, genSet, search, fMood
- *   usePlayerStore   — pQueue, ci, playing, pos, vol, elapsed, tTarget, mode
- *   useSettingsStore — autoNext, crossfade, showSettings, bpmMin, bpmMax, defaultVol
- *   useHistoryStore  — history
- *   useLibraryStore  — customTracks
+ *   useBuilderStore  â€” view, targetMin, venue, curve, genSet, search, fMood
+ *   usePlayerStore   â€” pQueue, ci, playing, pos, vol, elapsed, tTarget, mode
+ *   useSettingsStore â€” autoNext, crossfade, showSettings, bpmMin, bpmMax, defaultVol
+ *   useHistoryStore  â€” history
+ *   useLibraryStore  â€” customTracks
  */
-import { Track, SetHistoryItem, Show } from \"@suniplayer/core\";
-import { TRACKS, VENUES } from \"@suniplayer/core\";
-import { buildSet } from \"@suniplayer/core\";
-import { sumTrackDurationMs, sumTrackDurationSeconds } from \"@suniplayer/core\";
-import { getEffectiveDuration } from \"@suniplayer/core\";
+import { Track, SetHistoryItem, Show } from "@suniplayer/core";
+import { TRACKS, VENUES } from "@suniplayer/core";
+import { buildSet } from "@suniplayer/core";
+import { sumTrackDurationMs, sumTrackDurationSeconds } from "@suniplayer/core";
+import { getEffectiveDuration } from "@suniplayer/core";
 
 import { useBuilderStore } from "./useBuilderStore.ts";
 import { usePlayerStore } from "./usePlayerStore.ts";
@@ -33,7 +33,7 @@ export {
     useLibraryStore,
 };
 
-// ── Combined state type ────────────────────────────────────────────────────
+// â”€â”€ Combined state type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type View = "builder" | "player" | "history" | "library";
 
@@ -135,11 +135,11 @@ export interface ProjectState {
     resetApp: () => void;
 }
 
-// ── Cross-domain actions (module-level, use .getState() — no hooks needed) ─
+// â”€â”€ Cross-domain actions (module-level, use .getState() â€” no hooks needed) â”€
 
 /** Reset all stores to defaults and clear local storage */
 export function resetApp() {
-    if (!confirm("¿Estás seguro de que deseas reiniciar la aplicación? Se borrarán todos los sets generados, el historial y las canciones importadas.")) return;
+    if (!confirm("Â¿EstÃ¡s seguro de que deseas reiniciar la aplicaciÃ³n? Se borrarÃ¡n todos los sets generados, el historial y las canciones importadas.")) return;
     
     // Clear persistences manually if needed, but setState handles the runtime
     useBuilderStore.setState({ genSet: [], targetMin: 45, curve: "steady", venue: "lobby" });
@@ -303,7 +303,7 @@ export function setDefaultVol(v: number) {
     usePlayerStore.getState().setVol(v);
 }
 
-// ── Composite hook — backward-compatible shim ──────────────────────────────
+// â”€â”€ Composite hook â€” backward-compatible shim â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function useProjectStore(): ProjectState;
 export function useProjectStore<T>(selector: (s: ProjectState) => T): T;

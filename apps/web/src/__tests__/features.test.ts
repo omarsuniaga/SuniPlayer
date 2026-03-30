@@ -1,24 +1,24 @@
 /**
- * SuniPlayer — Feature Acceptance Tests
+ * SuniPlayer â€” Feature Acceptance Tests
  *
- * Estas pruebas verifican los comportamientos esperados de la aplicación
- * desde la perspectiva del músico que la usa.
+ * Estas pruebas verifican los comportamientos esperados de la aplicaciÃ³n
+ * desde la perspectiva del mÃºsico que la usa.
  *
- * Organización:
- *   F1 — Biblioteca de canciones (Library)
- *   F2 — Generador de sets (Set Builder)
- *   F3 — Reproductor (Player)
- *   F4 — Modo Live
- *   F5 — Historial de sets
- *   F6 — Personalización de canciones
- *   F7 — Persistencia de sesión (Show Session Storage)
- *   F8 — Pedalera Bluetooth (Pedal Bindings)
- *   F9 — Configuración general
+ * OrganizaciÃ³n:
+ *   F1 â€” Biblioteca de canciones (Library)
+ *   F2 â€” Generador de sets (Set Builder)
+ *   F3 â€” Reproductor (Player)
+ *   F4 â€” Modo Live
+ *   F5 â€” Historial de sets
+ *   F6 â€” PersonalizaciÃ³n de canciones
+ *   F7 â€” Persistencia de sesiÃ³n (Show Session Storage)
+ *   F8 â€” Pedalera Bluetooth (Pedal Bindings)
+ *   F9 â€” ConfiguraciÃ³n general
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { TRACKS, VENUES } from \"@suniplayer/core\";
+import { TRACKS, VENUES } from "@suniplayer/core";
 import {
     appendToQueue,
     doGen,
@@ -33,11 +33,11 @@ import { useHistoryStore } from "../store/useHistoryStore";
 import { useLibraryStore } from "../store/useLibraryStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useSettingsStore } from "../store/useSettingsStore";
-import type { Track } from \"@suniplayer/core\";
+import type { Track } from "@suniplayer/core";
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const resetAll = () => {
     localStorage.clear();
@@ -48,7 +48,7 @@ const resetAll = () => {
     useLibraryStore.setState(useLibraryStore.getInitialState(), true);
 };
 
-/** Crea un track de prueba con valores mínimos válidos */
+/** Crea un track de prueba con valores mÃ­nimos vÃ¡lidos */
 const makeTrack = (overrides: Partial<Track> = {}): Track => ({
     id: `test-${Math.random().toString(36).slice(2)}`,
     title: "Test Track",
@@ -66,28 +66,28 @@ const makeTrack = (overrides: Partial<Track> = {}): Track => ({
 const totalDurationSec = (tracks: Track[]) =>
     tracks.reduce((sum, t) => sum + t.duration_ms / 1000, 0);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F1 — Biblioteca de canciones
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// F1 â€” Biblioteca de canciones
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("F1 — Biblioteca de canciones", () => {
+describe("F1 â€” Biblioteca de canciones", () => {
     beforeEach(resetAll);
 
-    it("empieza vacía al iniciar la app por primera vez", () => {
+    it("empieza vacÃ­a al iniciar la app por primera vez", () => {
         const { customTracks } = useLibraryStore.getState();
         expect(customTracks).toHaveLength(0);
     });
 
-    it("permite agregar una canción importada por el usuario", () => {
-        const track = makeTrack({ isCustom: true, title: "Mi Canción" });
+    it("permite agregar una canciÃ³n importada por el usuario", () => {
+        const track = makeTrack({ isCustom: true, title: "Mi CanciÃ³n" });
         useLibraryStore.getState().addCustomTrack(track);
 
         const { customTracks } = useLibraryStore.getState();
         expect(customTracks).toHaveLength(1);
-        expect(customTracks[0].title).toBe("Mi Canción");
+        expect(customTracks[0].title).toBe("Mi CanciÃ³n");
     });
 
-    it("permite eliminar una canción importada", () => {
+    it("permite eliminar una canciÃ³n importada", () => {
         const track = makeTrack({ isCustom: true });
         useLibraryStore.getState().addCustomTrack(track);
         useLibraryStore.getState().removeCustomTrack(track.id);
@@ -95,7 +95,7 @@ describe("F1 — Biblioteca de canciones", () => {
         expect(useLibraryStore.getState().customTracks).toHaveLength(0);
     });
 
-    it("permite actualizar el BPM, tono u otros metadatos de una canción", () => {
+    it("permite actualizar el BPM, tono u otros metadatos de una canciÃ³n", () => {
         const track = makeTrack({ isCustom: true, bpm: 100 });
         useLibraryStore.getState().addCustomTrack(track);
         useLibraryStore.getState().updateTrack(track.id, { bpm: 120, key: "Am" });
@@ -110,14 +110,14 @@ describe("F1 — Biblioteca de canciones", () => {
         useLibraryStore.getState().addCustomTrack(track);
         useLibraryStore.getState().addCustomTrack(track);
 
-        // La biblioteca no debería deduplicar automáticamente (el UI previene duplicados)
+        // La biblioteca no deberÃ­a deduplicar automÃ¡ticamente (el UI previene duplicados)
         // pero al menos el primer track debe estar
         expect(
             useLibraryStore.getState().customTracks.some((t) => t.id === "fixed-id")
         ).toBe(true);
     });
 
-    it("registra métricas de reproducción (playCount, playTimeMs)", () => {
+    it("registra mÃ©tricas de reproducciÃ³n (playCount, playTimeMs)", () => {
         const track = makeTrack({ id: "metric-track", isCustom: true });
         useLibraryStore.getState().addCustomTrack(track);
         
@@ -149,10 +149,10 @@ describe("F1 — Biblioteca de canciones", () => {
         expect(parsed.state.customTracks[0].title).toBe("Persistida");
     });
 
-    it("los tags de categoría disponibles incluyen los predeterminados del sistema", () => {
+    it("los tags de categorÃ­a disponibles incluyen los predeterminados del sistema", () => {
         const { availableTags } = useLibraryStore.getState();
         expect(availableTags).toContain("Jazz");
-        expect(availableTags).toContain("Clásico");
+        expect(availableTags).toContain("ClÃ¡sico");
         expect(availableTags).toContain("Bolero");
     });
 
@@ -168,26 +168,26 @@ describe("F1 — Biblioteca de canciones", () => {
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F2 — Generador de sets
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// F2 â€” Generador de sets
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("F2 — Generador de sets (Set Builder)", () => {
+describe("F2 â€” Generador de sets (Set Builder)", () => {
     beforeEach(resetAll);
 
-    it("genera un set con canciones del catálogo", () => {
+    it("genera un set con canciones del catÃ¡logo", () => {
         doGen();
         expect(useBuilderStore.getState().genSet.length).toBeGreaterThan(0);
     });
 
-    it("el set generado tiene duración cercana al objetivo configurado", () => {
+    it("el set generado tiene duraciÃ³n cercana al objetivo configurado", () => {
         useBuilderStore.setState({ targetMin: 30 });
         doGen();
 
         const { genSet } = useBuilderStore.getState();
         const totalSec = totalDurationSec(genSet);
         const targetSec = 30 * 60;
-        const toleranceSec = 5 * 60; // ±5 minutos
+        const toleranceSec = 5 * 60; // Â±5 minutos
 
         expect(totalSec).toBeGreaterThan(targetSec - toleranceSec);
         expect(totalSec).toBeLessThan(targetSec + toleranceSec);
@@ -203,10 +203,10 @@ describe("F2 — Generador de sets (Set Builder)", () => {
 
     it("el filtro BPM excluye tracks fuera del rango cuando hay suficientes tracks dentro", () => {
         // El set builder tiene un fallback: si el filtro deja < 3 tracks,
-        // usa todo el catálogo. Este test verifica el comportamiento del filtro
-        // cuando el catálogo tiene tracks con BPM variado.
-        // Con el catálogo actual de desarrollo (todos bpm=0), el filtro
-        // activa el fallback y usa el catálogo completo — esto es diseño intencional.
+        // usa todo el catÃ¡logo. Este test verifica el comportamiento del filtro
+        // cuando el catÃ¡logo tiene tracks con BPM variado.
+        // Con el catÃ¡logo actual de desarrollo (todos bpm=0), el filtro
+        // activa el fallback y usa el catÃ¡logo completo â€” esto es diseÃ±o intencional.
         useSettingsStore.setState({ bpmMin: 80, bpmMax: 100 });
         doGen();
 
@@ -224,16 +224,16 @@ describe("F2 — Generador de sets (Set Builder)", () => {
         doGen();
         const eventSet = [...useBuilderStore.getState().genSet];
 
-        // Los sets no tienen que ser idénticos (diferentes sesgos de energía)
+        // Los sets no tienen que ser idÃ©nticos (diferentes sesgos de energÃ­a)
         const lobbyIds = lobbySet.map((t) => t.id).join(",");
         const eventIds = eventSet.map((t) => t.id).join(",");
         // Al menos uno debe ser diferente en sets largos
-        // (esto puede fallar muy raramente si el catálogo es muy pequeño)
+        // (esto puede fallar muy raramente si el catÃ¡logo es muy pequeÃ±o)
         expect(typeof lobbyIds).toBe("string");
         expect(typeof eventIds).toBe("string");
     });
 
-    it("genera sets con distintas curvas de energía", () => {
+    it("genera sets con distintas curvas de energÃ­a", () => {
         for (const curve of ["steady", "ascending", "descending", "wave"]) {
             useBuilderStore.setState({ curve });
             doGen();
@@ -241,7 +241,7 @@ describe("F2 — Generador de sets (Set Builder)", () => {
         }
     });
 
-    it("el catálogo built-in tiene canciones con todos los campos obligatorios", () => {
+    it("el catÃ¡logo built-in tiene canciones con todos los campos obligatorios", () => {
         const required = ["id", "title", "artist", "duration_ms", "bpm", "key", "energy", "mood"];
         for (const track of TRACKS.slice(0, 10)) {
             for (const field of required) {
@@ -253,18 +253,18 @@ describe("F2 — Generador de sets (Set Builder)", () => {
         }
     });
 
-    it("el catálogo built-in tiene al menos 5 canciones para poder generar sets", () => {
-        // El catálogo de producción debería tener muchas más canciones.
-        // Este mínimo garantiza que el algoritmo pueda funcionar.
+    it("el catÃ¡logo built-in tiene al menos 5 canciones para poder generar sets", () => {
+        // El catÃ¡logo de producciÃ³n deberÃ­a tener muchas mÃ¡s canciones.
+        // Este mÃ­nimo garantiza que el algoritmo pueda funcionar.
         expect(TRACKS.length).toBeGreaterThanOrEqual(5);
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F3 — Reproductor (Player)
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// F3 â€” Reproductor (Player)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("F3 — Reproductor", () => {
+describe("F3 â€” Reproductor", () => {
     beforeEach(resetAll);
 
     it("enviar el set generado al reproductor carga la cola y navega a la vista player", () => {
@@ -275,7 +275,7 @@ describe("F3 — Reproductor", () => {
         expect(usePlayerStore.getState().pQueue.length).toBeGreaterThan(0);
     });
 
-    it("al enviar al player, el índice arranca en 0 y no está reproduciendo", () => {
+    it("al enviar al player, el Ã­ndice arranca en 0 y no estÃ¡ reproduciendo", () => {
         doGen();
         toPlayer();
 
@@ -314,7 +314,7 @@ describe("F3 — Reproductor", () => {
         expect(usePlayerStore.getState().vol).toBe(0);
     });
 
-    it("play/pause alterna el estado de reproducción", () => {
+    it("play/pause alterna el estado de reproducciÃ³n", () => {
         usePlayerStore.getState().setPlaying(true);
         expect(usePlayerStore.getState().playing).toBe(true);
 
@@ -322,7 +322,7 @@ describe("F3 — Reproductor", () => {
         expect(usePlayerStore.getState().playing).toBe(false);
     });
 
-    it("se puede agregar tracks a la cola sin interrumpir la reproducción", () => {
+    it("se puede agregar tracks a la cola sin interrumpir la reproducciÃ³n", () => {
         doGen();
         toPlayer();
         usePlayerStore.getState().setPlaying(true);
@@ -331,27 +331,27 @@ describe("F3 — Reproductor", () => {
         const before = usePlayerStore.getState().pQueue.length;
         appendToQueue([makeTrack({ title: "Extra" })]);
 
-        // La cola creció
+        // La cola creciÃ³
         expect(usePlayerStore.getState().pQueue.length).toBeGreaterThan(before);
-        // El índice actual no cambió
+        // El Ã­ndice actual no cambiÃ³
         expect(usePlayerStore.getState().ci).toBe(1);
-        // La reproducción no se detuvo
+        // La reproducciÃ³n no se detuvo
         expect(usePlayerStore.getState().playing).toBe(true);
     });
 
-    it("appendToQueue inserta los tracks DESPUÉS del track actual (no al final)", () => {
+    it("appendToQueue inserta los tracks DESPUÃ‰S del track actual (no al final)", () => {
         const q = [makeTrack({ id: "a" }), makeTrack({ id: "b" }), makeTrack({ id: "c" })];
         usePlayerStore.setState({ pQueue: q, ci: 0 });
 
         appendToQueue([makeTrack({ id: "extra" })]);
 
         const newQueue = usePlayerStore.getState().pQueue;
-        // "extra" debe estar en posición 1 (justo después del ci=0)
+        // "extra" debe estar en posiciÃ³n 1 (justo despuÃ©s del ci=0)
         expect(newQueue[1].id).toBe("extra");
         expect(newQueue[0].id).toBe("a");
     });
 
-    it("la posición de reproducción persiste en localStorage", () => {
+    it("la posiciÃ³n de reproducciÃ³n persiste en localStorage", () => {
         usePlayerStore.setState({ pos: 42_000 });
 
         const stored = JSON.parse(localStorage.getItem("suniplayer-player")!);
@@ -359,11 +359,11 @@ describe("F3 — Reproductor", () => {
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F4 — Modo Live
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// F4 â€” Modo Live
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("F4 — Modo Live", () => {
+describe("F4 â€” Modo Live", () => {
     beforeEach(resetAll);
 
     it("el modo por defecto es 'edit'", () => {
@@ -375,7 +375,7 @@ describe("F4 — Modo Live", () => {
         expect(usePlayerStore.getState().mode).toBe("live");
     });
 
-    it("el stack de canciones prioritarias empieza vacío", () => {
+    it("el stack de canciones prioritarias empieza vacÃ­o", () => {
         expect(usePlayerStore.getState().stackOrder).toHaveLength(0);
     });
 
@@ -398,14 +398,14 @@ describe("F4 — Modo Live", () => {
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F5 — Historial de sets
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// F5 â€” Historial de sets
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("F5 — Historial de sets", () => {
+describe("F5 â€” Historial de sets", () => {
     beforeEach(resetAll);
 
-    it("el historial empieza vacío", () => {
+    it("el historial empieza vacÃ­o", () => {
         expect(useHistoryStore.getState().history).toHaveLength(0);
     });
 
@@ -421,7 +421,7 @@ describe("F5 — Historial de sets", () => {
         expect(history[0].createdAt).toBeTruthy();
     });
 
-    it("los sets más recientes aparecen primero en el historial", () => {
+    it("los sets mÃ¡s recientes aparecen primero en el historial", () => {
         doGen();
         saveSet();
         useBuilderStore.setState({ targetMin: 60 });
@@ -430,17 +430,17 @@ describe("F5 — Historial de sets", () => {
 
         const { history } = useHistoryStore.getState();
         expect(history).toHaveLength(2);
-        // El más reciente (60min) está en posición 0
+        // El mÃ¡s reciente (60min) estÃ¡ en posiciÃ³n 0
         expect(history[0].name).toContain("60min");
     });
 
     it("no guarda un set si no hay canciones generadas", () => {
-        // genSet está vacío → saveSet no debe agregar nada
+        // genSet estÃ¡ vacÃ­o â†’ saveSet no debe agregar nada
         saveSet();
         expect(useHistoryStore.getState().history).toHaveLength(0);
     });
 
-    it("el historial guarda la duración total del set en ms", () => {
+    it("el historial guarda la duraciÃ³n total del set en ms", () => {
         doGen();
         saveSet();
 
@@ -469,14 +469,14 @@ describe("F5 — Historial de sets", () => {
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F6 — Personalización de canciones
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// F6 â€” PersonalizaciÃ³n de canciones
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("F6 — Personalización de canciones", () => {
+describe("F6 â€” PersonalizaciÃ³n de canciones", () => {
     beforeEach(resetAll);
 
-    it("las notas de actuación se guardan en el track de la cola", () => {
+    it("las notas de actuaciÃ³n se guardan en el track de la cola", () => {
         doGen();
         toPlayer();
 
@@ -487,7 +487,7 @@ describe("F6 — Personalización de canciones", () => {
         expect(updated?.notes).toBe("Comenzar suave, pedir aplauso al final");
     });
 
-    it("las notas se sincronizan también en el genSet del builder", () => {
+    it("las notas se sincronizan tambiÃ©n en el genSet del builder", () => {
         doGen();
         toPlayer();
 
@@ -510,7 +510,7 @@ describe("F6 — Personalización de canciones", () => {
         expect(updated?.endTime).toBe(120_000);
     });
 
-    it("el trim actualiza el tTarget del player (duración total del set)", () => {
+    it("el trim actualiza el tTarget del player (duraciÃ³n total del set)", () => {
         doGen();
         toPlayer();
 
@@ -524,7 +524,7 @@ describe("F6 — Personalización de canciones", () => {
         // tTarget se recalcula como suma de duraciones efectivas de todos los tracks
         const expectedTotal = pQueue.reduce((acc, t, i) =>
             i === 0
-                ? acc + 60 // endTime=60_000ms → 60s
+                ? acc + 60 // endTime=60_000ms â†’ 60s
                 : acc + t.duration_ms / 1000,
             0
         );
@@ -537,7 +537,7 @@ describe("F6 — Personalización de canciones", () => {
         const customTrack = makeTrack({ isCustom: true, bpm: 100 });
         useLibraryStore.getState().addCustomTrack(customTrack);
 
-        // Simular que está en la cola
+        // Simular que estÃ¡ en la cola
         usePlayerStore.setState({ pQueue: [customTrack], ci: 0 });
         useBuilderStore.setState({ genSet: [customTrack] });
 
@@ -553,14 +553,14 @@ describe("F6 — Personalización de canciones", () => {
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F7 — Persistencia de sesión
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// F7 â€” Persistencia de sesiÃ³n
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("F7 — Persistencia de sesión (Show Session Storage)", () => {
+describe("F7 â€” Persistencia de sesiÃ³n (Show Session Storage)", () => {
     beforeEach(resetAll);
 
-    it("el player persiste cola, índice, posición y volumen", () => {
+    it("el player persiste cola, Ã­ndice, posiciÃ³n y volumen", () => {
         const tracks = TRACKS.slice(0, 3);
         usePlayerStore.setState({ pQueue: tracks, ci: 1, pos: 30_000, vol: 0.7 });
 
@@ -578,14 +578,14 @@ describe("F7 — Persistencia de sesión (Show Session Storage)", () => {
         expect(stored.state.playing).toBeUndefined();
     });
 
-    it("el elapsed NO se persiste (contador de reproducción es efímero)", () => {
+    it("el elapsed NO se persiste (contador de reproducciÃ³n es efÃ­mero)", () => {
         usePlayerStore.setState({ elapsed: 9_999 });
 
         const stored = JSON.parse(localStorage.getItem("suniplayer-player")!);
         expect(stored.state.elapsed).toBeUndefined();
     });
 
-    it("la configuración del builder persiste venue, curve y targetMin", () => {
+    it("la configuraciÃ³n del builder persiste venue, curve y targetMin", () => {
         useBuilderStore.setState({ venue: "dinner", curve: "ascending", targetMin: 60 });
 
         const stored = JSON.parse(localStorage.getItem("suniplayer-builder")!);
@@ -594,7 +594,7 @@ describe("F7 — Persistencia de sesión (Show Session Storage)", () => {
         expect(stored.state.targetMin).toBe(60);
     });
 
-    it("los filtros de búsqueda del builder NO se persisten (ephemeral)", () => {
+    it("los filtros de bÃºsqueda del builder NO se persisten (ephemeral)", () => {
         useBuilderStore.setState({ search: "jazz", fMood: "happy" });
 
         const stored = JSON.parse(localStorage.getItem("suniplayer-builder")!);
@@ -603,40 +603,40 @@ describe("F7 — Persistencia de sesión (Show Session Storage)", () => {
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F8 — Pedalera Bluetooth
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// F8 â€” Pedalera Bluetooth
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("F8 — Pedalera Bluetooth", () => {
+describe("F8 â€” Pedalera Bluetooth", () => {
     beforeEach(resetAll);
 
     it("empieza sin ninguna tecla asignada", () => {
         expect(useSettingsStore.getState().pedalBindings).toEqual({});
     });
 
-    it("se puede asignar una tecla a la acción 'siguiente canción'", () => {
-        useSettingsStore.getState().setPedalBinding("next", { key: "PageDown", label: "Pág↓" });
+    it("se puede asignar una tecla a la acciÃ³n 'siguiente canciÃ³n'", () => {
+        useSettingsStore.getState().setPedalBinding("next", { key: "PageDown", label: "PÃ¡gâ†“" });
 
         expect(useSettingsStore.getState().pedalBindings.next).toEqual({
             key: "PageDown",
-            label: "Pág↓",
+            label: "PÃ¡gâ†“",
         });
     });
 
     it("se pueden asignar las 5 acciones disponibles", () => {
         // Assign directly
-        useSettingsStore.getState().setPedalBinding("next", { key: "PageDown", label: "Pág↓" });
-        useSettingsStore.getState().setPedalBinding("prev", { key: "PageUp", label: "Pág↑" });
+        useSettingsStore.getState().setPedalBinding("next", { key: "PageDown", label: "PÃ¡gâ†“" });
+        useSettingsStore.getState().setPedalBinding("prev", { key: "PageUp", label: "PÃ¡gâ†‘" });
         useSettingsStore.getState().setPedalBinding("play_pause", { key: " ", label: "Espacio" });
-        useSettingsStore.getState().setPedalBinding("vol_up", { key: "ArrowUp", label: "↑" });
-        useSettingsStore.getState().setPedalBinding("vol_down", { key: "ArrowDown", label: "↓" });
+        useSettingsStore.getState().setPedalBinding("vol_up", { key: "ArrowUp", label: "â†‘" });
+        useSettingsStore.getState().setPedalBinding("vol_down", { key: "ArrowDown", label: "â†“" });
 
         const pb = useSettingsStore.getState().pedalBindings;
         expect(Object.keys(pb)).toHaveLength(5);
     });
 
     it("borrar todo elimina todas las asignaciones", () => {
-        useSettingsStore.getState().setPedalBinding("next", { key: "PageDown", label: "Pág↓" });
+        useSettingsStore.getState().setPedalBinding("next", { key: "PageDown", label: "PÃ¡gâ†“" });
         useSettingsStore.getState().clearPedalBindings();
 
         expect(useSettingsStore.getState().pedalBindings).toEqual({});
@@ -649,14 +649,14 @@ describe("F8 — Pedalera Bluetooth", () => {
         expect(stored.state.pedalBindings.play_pause).toEqual({ key: " ", label: "Espacio" });
     });
 
-    it("learningAction NO persiste (es estado efímero de UI)", () => {
+    it("learningAction NO persiste (es estado efÃ­mero de UI)", () => {
         useSettingsStore.getState().setLearningAction("vol_up");
 
         const stored = JSON.parse(localStorage.getItem("suniplayer-settings")!);
         expect(stored.state.learningAction).toBeUndefined();
     });
 
-    it("cancelar el learn mode no guarda ningún binding", () => {
+    it("cancelar el learn mode no guarda ningÃºn binding", () => {
         useSettingsStore.getState().setLearningAction("prev");
         useSettingsStore.getState().setLearningAction(null); // cancelar
 
@@ -665,23 +665,23 @@ describe("F8 — Pedalera Bluetooth", () => {
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F9 — Configuración general
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// F9 â€” ConfiguraciÃ³n general
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("F9 — Configuración general", () => {
+describe("F9 â€” ConfiguraciÃ³n general", () => {
     beforeEach(resetAll);
 
-    it("el rango BPM por defecto es razonable para música en vivo", () => {
+    it("el rango BPM por defecto es razonable para mÃºsica en vivo", () => {
         const { bpmMin, bpmMax } = useSettingsStore.getState();
         expect(bpmMin).toBeGreaterThanOrEqual(40);
         expect(bpmMax).toBeLessThanOrEqual(240);
         expect(bpmMin).toBeLessThan(bpmMax);
     });
 
-    it("cambiar el BPM mínimo y máximo no rompe la generación del set", () => {
+    it("cambiar el BPM mÃ­nimo y mÃ¡ximo no rompe la generaciÃ³n del set", () => {
         // El set builder aplica el filtro BPM, pero tiene un fallback:
-        // si quedan < 3 tracks tras el filtro, usa el catálogo completo.
+        // si quedan < 3 tracks tras el filtro, usa el catÃ¡logo completo.
         // En ambos casos siempre debe poder generar un set.
         useSettingsStore.setState({ bpmMin: 100, bpmMax: 120 });
         doGen();
@@ -690,11 +690,11 @@ describe("F9 — Configuración general", () => {
         expect(genSet.length).toBeGreaterThan(0);
     });
 
-    it("el volumen por defecto está en un nivel audible (>0)", () => {
+    it("el volumen por defecto estÃ¡ en un nivel audible (>0)", () => {
         expect(useSettingsStore.getState().defaultVol).toBeGreaterThan(0);
     });
 
-    it("la configuración persiste en localStorage", () => {
+    it("la configuraciÃ³n persiste en localStorage", () => {
         useSettingsStore.setState({ bpmMin: 70, bpmMax: 130, defaultVol: 0.9 });
 
         const stored = JSON.parse(localStorage.getItem("suniplayer-settings")!);
@@ -703,7 +703,7 @@ describe("F9 — Configuración general", () => {
         expect(stored.state.defaultVol).toBe(0.9);
     });
 
-    it("autoNext viene desactivado o activado según la preferencia guardada", () => {
+    it("autoNext viene desactivado o activado segÃºn la preferencia guardada", () => {
         useSettingsStore.getState().setAutoNext(false);
         expect(useSettingsStore.getState().autoNext).toBe(false);
 
@@ -719,12 +719,12 @@ describe("F9 — Configuración general", () => {
         expect(useSettingsStore.getState().crossfade).toBe(false);
     });
 
-    it("el tiempo de crossfade es positivo cuando está configurado", () => {
+    it("el tiempo de crossfade es positivo cuando estÃ¡ configurado", () => {
         useSettingsStore.getState().setCrossfadeMs(2000);
         expect(useSettingsStore.getState().crossfadeMs).toBe(2000);
     });
 
-    it("los venues disponibles cubren los escenarios principales del músico", () => {
+    it("los venues disponibles cubren los escenarios principales del mÃºsico", () => {
         const venueIds = VENUES.map((v) => v.id);
         expect(venueIds).toContain("lobby");
         expect(venueIds).toContain("dinner");

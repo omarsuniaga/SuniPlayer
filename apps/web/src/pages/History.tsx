@@ -3,7 +3,7 @@ import { useHistoryStore } from "../store/useHistoryStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useBuilderStore } from "../store/useBuilderStore";
 import { THEME } from "../data/theme.ts";
-import type { SetEntry, Show, Track } from \"@suniplayer/core\";
+import type { SetEntry, Show, Track } from "@suniplayer/core";
 import { StatsDashboard } from "../features/history/ui/StatsDashboard";
 
 export const History: React.FC = () => {
@@ -29,11 +29,11 @@ export const History: React.FC = () => {
             <header style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
                 <div>
                     <h2 style={{ fontSize: 32, fontWeight: 800, margin: 0, letterSpacing: "-0.03em" }}>Historial de Shows</h2>
-                    <p style={{ color: THEME.colors.text.muted, fontSize: 16, marginTop: 4 }}>Reportes y estadísticas de tus sesiones en vivo</p>
+                    <p style={{ color: THEME.colors.text.muted, fontSize: 16, marginTop: 4 }}>Reportes y estadÃ­sticas de tus sesiones en vivo</p>
                 </div>
                 {history.length > 0 && (
                     <button
-                        onClick={() => confirm("¿Seguro que querés borrar todo el historial?") && clearHistory()}
+                        onClick={() => confirm("Â¿Seguro que querÃ©s borrar todo el historial?") && clearHistory()}
                         style={{
                             padding: "10px 20px",
                             borderRadius: THEME.radius.md,
@@ -51,7 +51,7 @@ export const History: React.FC = () => {
                 )}
             </header>
 
-            {/* Panel de Estadísticas */}
+            {/* Panel de EstadÃ­sticas */}
             <StatsDashboard />
 
             {history.length === 0 ? (
@@ -85,11 +85,11 @@ export const History: React.FC = () => {
                                     gap: 12,
                                 }}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                        <span style={{ fontSize: 16 }}>📅</span>
+                                        <span style={{ fontSize: 16 }}>ðŸ“…</span>
                                         <span style={{ fontSize: 15, fontWeight: 700 }}>{show.name}</span>
                                     </div>
                                     <span style={{ fontSize: 12, color: THEME.colors.text.muted, whiteSpace: "nowrap" }}>
-                                        {show.sets.length} set{show.sets.length !== 1 ? "s" : ""} · {totalTracks} songs · {totalMin} min
+                                        {show.sets.length} set{show.sets.length !== 1 ? "s" : ""} Â· {totalTracks} songs Â· {totalMin} min
                                     </span>
                                 </div>
 
@@ -114,7 +114,7 @@ export const History: React.FC = () => {
                                                     {setEntry.label}
                                                 </div>
                                                 <div style={{ fontSize: 11, color: THEME.colors.text.muted, marginTop: 2 }}>
-                                                    {setMin} min · {setEntry.tracks.length} songs
+                                                    {setMin} min Â· {setEntry.tracks.length} songs
                                                 </div>
 
                                                 {/* Track pills */}

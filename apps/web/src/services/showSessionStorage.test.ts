@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTargetKey, getTransposeSemitones } from "../features/library/lib/transpose";
-import type { Track } from \"@suniplayer/core\";
+import type { Track } from "@suniplayer/core";
 import { applyShowSessionSnapshot, buildShowSessionSnapshot, hasRecoverableShowSession } from "./showSessionStorage";
 import { useBuilderStore } from "../store/useBuilderStore";
 import { useHistoryStore } from "../store/useHistoryStore";

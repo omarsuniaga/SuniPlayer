@@ -11,7 +11,7 @@ export class LocalLibraryService {
         const metadata = await mm.parseBlob(file);
         const duration_ms = (metadata.format.duration || 0) * 1000;
         
-        // 2. Generar ID único
+        // 2. Generar ID Ãºnico
         const id = crypto.randomUUID();
         
         // 3. Guardar el archivo real en IndexedDB (Persistencia)

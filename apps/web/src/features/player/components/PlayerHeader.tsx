@@ -1,7 +1,7 @@
 import React from "react";
 import { Track } from "@suniplayer/core";
 import { THEME } from "../../../data/theme";
-import { fmt } from \"@suniplayer/core\";
+import { fmt } from "@suniplayer/core";
 
 interface PlayerHeaderProps {
     track: Track | null;
@@ -42,7 +42,7 @@ export const PlayerHeader: React.FC<PlayerHeaderProps> = ({
                             letterSpacing: 1,
                             border: "1px solid rgba(139, 92, 246, 0.2)"
                         }}>
-                            {currentSetMetadata.setLabel.toUpperCase()} • {currentSetMetadata.totalSetsInShow} SETS
+                            {currentSetMetadata.setLabel.toUpperCase()} â€¢ {currentSetMetadata.totalSetsInShow} SETS
                         </div>
                     ) : (
                         <div style={{ 

@@ -1,4 +1,4 @@
-// EnergyCurveChart — Animated SVG energy curve for Builder buttons and Player dashboard
+// EnergyCurveChart â€” Animated SVG energy curve for Builder buttons and Player dashboard
 import React from "react";
 
 export type CurveType = "steady" | "ascending" | "descending" | "wave";
@@ -6,7 +6,7 @@ export type CurveType = "steady" | "ascending" | "descending" | "wave";
 interface Props {
     type: CurveType;
     size: "mini" | "large";
-    /** 0–1: position of the playhead along the curve. Only shown in large mode. */
+    /** 0â€“1: position of the playhead along the curve. Only shown in large mode. */
     playheadPct?: number;
     active?: boolean;
 }
@@ -43,7 +43,7 @@ const FILL_PATH: Record<CurveType, string> = {
     wave:       "M10,30 C55,30 55,8 100,8 C145,8 145,52 190,52 L190,56 L10,56 Z",
 };
 
-// Given pct (0–1), return the approximate (x, y) point along each curve
+// Given pct (0â€“1), return the approximate (x, y) point along each curve
 function curvePoint(type: CurveType, pct: number): { x: number; y: number } {
     const t = Math.max(0, Math.min(1, pct));
     const x = 10 + t * 180;
@@ -51,19 +51,19 @@ function curvePoint(type: CurveType, pct: number): { x: number; y: number } {
         case "steady":
             return { x, y: 45 };
         case "ascending":
-            // Quadratic Bézier: P0=(10,52) P1=(100,52) P2=(190,8)
+            // Quadratic BÃ©zier: P0=(10,52) P1=(100,52) P2=(190,8)
             return {
                 x: (1 - t) * (1 - t) * 10 + 2 * (1 - t) * t * 100 + t * t * 190,
                 y: (1 - t) * (1 - t) * 52 + 2 * (1 - t) * t * 52 + t * t * 8,
             };
         case "descending":
-            // Quadratic Bézier: P0=(10,8) P1=(100,52) P2=(190,52)
+            // Quadratic BÃ©zier: P0=(10,8) P1=(100,52) P2=(190,52)
             return {
                 x: (1 - t) * (1 - t) * 10 + 2 * (1 - t) * t * 100 + t * t * 190,
                 y: (1 - t) * (1 - t) * 8  + 2 * (1 - t) * t * 52 + t * t * 52,
             };
         case "wave": {
-            // Cubic Bézier: P0=(10,30) P1=(55,30) P2=(55,8) P3=(100,8)
+            // Cubic BÃ©zier: P0=(10,30) P1=(55,30) P2=(55,8) P3=(100,8)
             // then: P0=(100,8) P1=(145,8) P2=(145,52) P3=(190,52)
             const half = 0.5;
             if (t <= half) {

@@ -1,5 +1,5 @@
 /**
- * AudioStreamerService — Gestión optimizada de descargas.
+ * AudioStreamerService â€” GestiÃ³n optimizada de descargas.
  * Eliminada dependencia de Cache API para evitar errores de entorno.
  */
 
@@ -18,10 +18,10 @@ export class AudioStreamerService {
     static async fetchWithProgress(
         url: string,
         onProgress: (p: DownloadProgress) => void,
-        trackId?: string // Agregamos trackId para búsqueda en storage
+        trackId?: string // Agregamos trackId para bÃºsqueda en storage
     ): Promise<string> {
-        // 🚀 CORTOCIRCUITO: Blob URLs vivas no necesitan re-procesarse.
-        // Re-fetchear un blob crea una nueva URL → isNewSrc=true → audio.load() → posición reseteada + sin fade.
+        // ðŸš€ CORTOCIRCUITO: Blob URLs vivas no necesitan re-procesarse.
+        // Re-fetchear un blob crea una nueva URL â†’ isNewSrc=true â†’ audio.load() â†’ posiciÃ³n reseteada + sin fade.
         if (url.startsWith('blob:')) {
             onProgress({ percentage: 100, speedKbps: 0, loadedBytes: 0, totalBytes: 0 });
             return url;
@@ -37,12 +37,12 @@ export class AudioStreamerService {
             console.warn("[AudioStreamer] Fetch failed, attempting local recovery for:", trackId);
         }
 
-        // 🛡️ RECUPERACIÓN LOCAL: Si falló el fetch o la URL era un blob muerto
+        // ðŸ›¡ï¸ RECUPERACIÃ“N LOCAL: Si fallÃ³ el fetch o la URL era un blob muerto
         if (trackId) {
             const { storage } = await import("../platform/index");
             const localBlob = await storage.getAudioFile(trackId);
             if (localBlob) {
-                console.log("[AudioStreamer] 🛡️ Successfully recovered track from local storage:", trackId);
+                console.log("[AudioStreamer] ðŸ›¡ï¸ Successfully recovered track from local storage:", trackId);
                 onProgress({ percentage: 100, speedKbps: 0, loadedBytes: localBlob.size, totalBytes: localBlob.size });
                 return URL.createObjectURL(localBlob);
             }

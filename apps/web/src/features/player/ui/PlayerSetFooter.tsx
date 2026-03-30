@@ -1,9 +1,9 @@
 // src/features/player/ui/PlayerSetFooter.tsx
 import React from "react";
-import { Track } from \"@suniplayer/core\";
+import { Track } from "@suniplayer/core";
 import { THEME } from "../../../data/theme.ts";
-import { fmtM } from \"@suniplayer/core\";
-import { sumTrackDurationMs } from \"@suniplayer/core\";
+import { fmtM } from "@suniplayer/core";
+import { sumTrackDurationMs } from "@suniplayer/core";
 
 interface Props {
     pQueue: Track[];
@@ -42,7 +42,7 @@ export const PlayerSetFooter: React.FC<Props> = ({ pQueue, ci, pos, qTot, isLive
             </div>
         </div>
 
-        {/* Export Set Button — Edit mode only */}
+        {/* Export Set Button â€” Edit mode only */}
         {!isLive && (
             <button
                 onClick={onExport}
@@ -80,7 +80,7 @@ export const PlayerSetFooter: React.FC<Props> = ({ pQueue, ci, pos, qTot, isLive
         {/* Mode Toggle Button */}
         <button
             onClick={onModeToggle}
-            title={isLive ? "Haz clic para desbloquear (pedirá confirmación)" : "Activar modo Live — bloquea la reproducción"}
+            title={isLive ? "Haz clic para desbloquear (pedirÃ¡ confirmaciÃ³n)" : "Activar modo Live â€” bloquea la reproducciÃ³n"}
             style={{
                 display: "flex",
                 alignItems: "center",

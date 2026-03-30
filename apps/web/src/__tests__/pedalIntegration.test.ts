@@ -3,7 +3,7 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { useDebugStore } from "../store/useDebugStore";
 import { handlePedalEvent } from "../services/usePedalBindings";
 
-// Mock del store de reproducción
+// Mock del store de reproducciÃ³n
 vi.mock("../store/usePlayerStore", () => ({
     usePlayerStore: {
         getState: () => ({
@@ -19,7 +19,7 @@ vi.mock("../store/usePlayerStore", () => ({
     }
 }));
 
-describe("Lógica de Pedalera (Unit Test)", () => {
+describe("LÃ³gica de Pedalera (Unit Test)", () => {
     beforeEach(() => {
         useSettingsStore.getState().clearPedalBindings();
         useSettingsStore.setState({ learningAction: null });
@@ -36,7 +36,7 @@ describe("Lógica de Pedalera (Unit Test)", () => {
         // 2. Activar modo aprendizaje en el store real
         useSettingsStore.setState({ learningAction: 'next' });
 
-        // 3. Ejecutar lógica (ahora solo requiere event, addLog y setLastEvent)
+        // 3. Ejecutar lÃ³gica (ahora solo requiere event, addLog y setLastEvent)
         handlePedalEvent(
             event,
             addLog,
@@ -44,12 +44,12 @@ describe("Lógica de Pedalera (Unit Test)", () => {
         );
 
         // 4. Verificaciones
-        // Verificar que el store realmente cambió
+        // Verificar que el store realmente cambiÃ³
         expect(useSettingsStore.getState().pedalBindings.next?.key).toBe("ArrowRight");
         expect(useSettingsStore.getState().learningAction).toBeNull();
     });
 
-    it("debe ejecutar la acción mapeada en modo normal", () => {
+    it("debe ejecutar la acciÃ³n mapeada en modo normal", () => {
         // 1. Mapear 'play_pause' a la tecla ' ' (Espacio)
         useSettingsStore.getState().setPedalBinding('play_pause', { key: ' ', label: 'Espacio' });
         
@@ -58,14 +58,14 @@ describe("Lógica de Pedalera (Unit Test)", () => {
 
         const event = new KeyboardEvent("keydown", { key: " " });
 
-        // 2. Ejecutar lógica en modo normal
+        // 2. Ejecutar lÃ³gica en modo normal
         handlePedalEvent(
             event,
             addLog,
             setLastEvent
         );
 
-        // 3. Verificación de logs (la acción se ejecutó)
+        // 3. VerificaciÃ³n de logs (la acciÃ³n se ejecutÃ³)
         expect(addLog).toHaveBeenCalledWith(expect.stringContaining("play_pause"));
     });
 });

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Track } from \"@suniplayer/core\";
+import { Track } from "@suniplayer/core";
 
 /**
- * usePreviewPlayer — Independent audio player for library previews.
+ * usePreviewPlayer â€” Independent audio player for library previews.
  * Doesn't affect the main playback engine.
  */
 export function usePreviewPlayer() {
@@ -39,7 +39,7 @@ export function usePreviewPlayer() {
                 setIsPlaying(true);
             }
         } else {
-            // New track — reset and play
+            // New track â€” reset and play
             audioRef.current.pause();
             const url = track.blob_url ?? `/audio/${encodeURIComponent(track.file_path)}`;
             audioRef.current.src = url;

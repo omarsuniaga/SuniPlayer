@@ -3,7 +3,7 @@ import { PitchEngine } from '../../services/pitchEngine';
 import type { IAudioEngine, AudioLoadOptions } from '../interfaces/IAudioEngine';
 
 /**
- * BrowserAudioEngine — wraps PitchEngine (SoundTouchJS + Web Audio API)
+ * BrowserAudioEngine â€” wraps PitchEngine (SoundTouchJS + Web Audio API)
  * to satisfy the IAudioEngine interface.
  *
  * iOS equivalent: NativeAudioEngine wrapping AVAudioEngine + AVAudioUnitTimePitch

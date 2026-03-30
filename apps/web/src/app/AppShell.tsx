@@ -20,12 +20,12 @@ export const AppShell: React.FC = () => {
     useWakeLock();
     const [isLargeScreen, setIsLargeScreen] = React.useState(window.innerWidth >= 1024);
 
-    // ⏱️ GLOBAL SHOW TIMER: Indestructible en Modo Show
+    // â±ï¸ GLOBAL SHOW TIMER: Indestructible en Modo Show
     React.useEffect(() => {
         let interval: ReturnType<typeof setInterval> | null = null;
         
         if (isLive) {
-            console.log("[AppShell] ⏱️ Show Timer Started");
+            console.log("[AppShell] â±ï¸ Show Timer Started");
             interval = setInterval(() => {
                 setElapsed((prev: number) => prev + 1);
             }, 1000);
@@ -55,7 +55,7 @@ export const AppShell: React.FC = () => {
             overflow: "hidden",
             position: "relative"
         }}>
-            {/* 🟣 SHOW MODE PERIMETER BORDER (Soft Violet) */}
+            {/* ðŸŸ£ SHOW MODE PERIMETER BORDER (Soft Violet) */}
             {isLive && (
                 <div className="live-border-overlay" />
             )}

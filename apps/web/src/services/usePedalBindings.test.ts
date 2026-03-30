@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handlePedalEvent } from "./usePedalBindings";
 import { useSettingsStore } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
-import type { Track } from \"@suniplayer/core\";
+import type { Track } from "@suniplayer/core";
 
 const makeTrack = (id: string): Track => ({
     id,
@@ -37,7 +37,7 @@ describe("usePedalBindings", () => {
     });
 
     it("'next' binding advances ci by 1", () => {
-        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
+        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "â†’" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
         const event = fireKey("ArrowRight");
@@ -47,7 +47,7 @@ describe("usePedalBindings", () => {
     });
 
     it("'next' at last track does not advance (no wrap)", () => {
-        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
+        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "â†’" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1")], ci: 0 });
 
         const event = fireKey("ArrowRight");
@@ -57,7 +57,7 @@ describe("usePedalBindings", () => {
     });
 
     it("'prev' at ci=0 stays at 0 (no-op)", () => {
-        useSettingsStore.getState().setPedalBinding("prev", { key: "ArrowLeft", label: "←" });
+        useSettingsStore.getState().setPedalBinding("prev", { key: "ArrowLeft", label: "â†" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
         const event = fireKey("ArrowLeft");
@@ -80,7 +80,7 @@ describe("usePedalBindings", () => {
     });
 
     it("ignores keypresses when target is an INPUT element", () => {
-        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
+        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "â†’" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
         const input = document.createElement("input");
@@ -109,23 +109,23 @@ describe("usePedalBindings", () => {
         expect(useSettingsStore.getState().learningAction).toBeNull();
         expect(useSettingsStore.getState().pedalBindings.vol_up).toEqual({
             key: "PageUp",
-            label: "Pág↑",
+            label: "PÃ¡gâ†‘",
         });
     });
 
     it("conflict: saving a key already assigned to another action still saves, allowing PedalConfig to detect the duplicate", () => {
         // Pre-assign 'next' to ArrowRight
-        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
+        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "â†’" });
         // Now learn 'prev' and press ArrowRight (same key)
         useSettingsStore.getState().setLearningAction("prev");
 
         const event = fireKey("ArrowRight");
         handlePedalEvent(event, vi.fn(), vi.fn());
 
-        // The binding should still be saved — conflict resolution is the UI's job
+        // The binding should still be saved â€” conflict resolution is the UI's job
         expect(useSettingsStore.getState().pedalBindings.prev).toEqual({
             key: "ArrowRight",
-            label: "→",
+            label: "â†’",
         });
         // And the store should now have two actions sharing the same key
         // PedalConfig's useEffect will detect this and show the conflict UI

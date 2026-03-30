@@ -10,7 +10,7 @@ interface SplMeterProps {
 const TARGET_LEVELS = {
     studio: { ideal: 75, warn: 85, max: 95, label: "Estudio Reference" },
     small: { ideal: 80, warn: 90, max: 100, label: "Recinto Cerrado" },
-    hall: { ideal: 90, warn: 100, max: 110, label: "Auditorio/Salón" },
+    hall: { ideal: 90, warn: 100, max: 110, label: "Auditorio/SalÃ³n" },
     open: { ideal: 100, warn: 110, max: 120, label: "Espacio Abierto" }
 };
 
@@ -107,7 +107,7 @@ export const SplMeter: React.FC<SplMeterProps> = ({ target, expanded, onToggleEx
                 fontSize: 12, color: "#ff4d4d", display: "flex", alignItems: "center", gap: 8 
             }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19 9 2V5l-9-2-9 2v10"/><path d="M12 3v18"/></svg>
-                Habilita el Micrófono para medir decibelios.
+                Habilita el MicrÃ³fono para medir decibelios.
             </div>
         );
     }
@@ -207,7 +207,7 @@ export const SplMeter: React.FC<SplMeterProps> = ({ target, expanded, onToggleEx
                          Entorno: <span style={{ color: color }}>{config.label}</span>
                     </div>
                     <div style={{ fontSize: 9, color: THEME.colors.text.muted, opacity: 0.5, fontStyle: "italic" }}>
-                        {showNumbers ? "MÁXIMA PRECISIÓN ACTIVA" : "AGUARDANDO NIVEL DE REFERENCIA..."}
+                        {showNumbers ? "MÃXIMA PRECISIÃ“N ACTIVA" : "AGUARDANDO NIVEL DE REFERENCIA..."}
                     </div>
                 </div>
             )}
@@ -271,9 +271,9 @@ export const SplMeter: React.FC<SplMeterProps> = ({ target, expanded, onToggleEx
                     }} />
                     <span style={{ fontSize: 10, fontWeight: 800, color: showNumbers ? (displayLevel > config.warn ? color : THEME.colors.text.secondary) : THEME.colors.text.muted, letterSpacing: 0.5 }}>
                         {!showNumbers ? `ESPERANDO NIVEL > ${config.ideal} dB` : 
-                         displayLevel > config.max ? "ESTADO: CRÍTICO - VOLUMEN PELIGROSO" : 
-                         displayLevel > config.warn ? "ESTADO: PRECAUCIÓN - NIVEL ALTO" : 
-                         "ESTADO: ÓPTIMO - RENDIMIENTO CALIBRADO"}
+                         displayLevel > config.max ? "ESTADO: CRÃTICO - VOLUMEN PELIGROSO" : 
+                         displayLevel > config.warn ? "ESTADO: PRECAUCIÃ“N - NIVEL ALTO" : 
+                         "ESTADO: Ã“PTIMO - RENDIMIENTO CALIBRADO"}
                     </span>
                 </div>
             )}

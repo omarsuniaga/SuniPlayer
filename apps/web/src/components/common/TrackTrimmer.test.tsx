@@ -1,6 +1,6 @@
 // src/components/common/TrackTrimmer.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TRACKS } from \"@suniplayer/core\";
+import { TRACKS } from "@suniplayer/core";
 
 // Mock dependencies
 vi.mock("../../services/waveformService", () => ({

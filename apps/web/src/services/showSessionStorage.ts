@@ -1,4 +1,4 @@
-import type { Track, Show } from \"@suniplayer/core\";
+import type { Track, Show } from "@suniplayer/core";
 import { 
     useBuilderStore, 
     usePlayerStore, 
@@ -24,7 +24,7 @@ export interface ShowSessionSnapshot {
 }
 
 /**
- * buildShowSessionSnapshot — Captura el estado actual desde localStorage
+ * buildShowSessionSnapshot â€” Captura el estado actual desde localStorage
  * Sanitiza datos y maneja entries malformadas
  */
 export function buildShowSessionSnapshot(): ShowSessionSnapshot {
@@ -41,7 +41,7 @@ export function buildShowSessionSnapshot(): ShowSessionSnapshot {
     let history = historyRaw ? JSON.parse(historyRaw).state : { history: [] };
 
     // Sanitize blob URLs: remove temporary blob URLs and mark as sourceMissing
-    const sanitizeTrack = (track: any) => {
+    const sanitizeTrack = (track: Track): Track => {
         if (!track) return track;
         const isBlob = !!(track.blob_url && track.blob_url.startsWith('blob:'));
         return {
@@ -119,7 +119,7 @@ export function buildShowSessionSnapshot(): ShowSessionSnapshot {
 }
 
 /**
- * applyShowSessionSnapshot — Aplica los datos recuperados a los stores actuales
+ * applyShowSessionSnapshot â€” Aplica los datos recuperados a los stores actuales
  */
 export function applyShowSessionSnapshot(snapshot: ShowSessionSnapshot): void {
     if (!snapshot) return;
@@ -130,7 +130,7 @@ export function applyShowSessionSnapshot(snapshot: ShowSessionSnapshot): void {
     if (snapshot.settings) useSettingsStore.setState(snapshot.settings);
     if (snapshot.history) useHistoryStore.setState(snapshot.history);
     
-    console.log("[ShowRecovery] 🩹 Snapshot applied successfully");
+    console.log("[ShowRecovery] ðŸ©¹ Snapshot applied successfully");
 }
 
 export async function saveShowSessionSnapshot(snapshot: ShowSessionSnapshot): Promise<void> {
@@ -164,7 +164,7 @@ export function hasActiveSession(snapshot: ShowSessionSnapshot | null): boolean 
 }
 
 /**
- * requestPersistentStorage — Pide permiso al navegador para persistencia duradera
+ * requestPersistentStorage â€” Pide permiso al navegador para persistencia duradera
  */
 export async function requestPersistentStorage(): Promise<boolean> {
     if (navigator.storage && navigator.storage.persist) {

@@ -4,7 +4,7 @@ import {
     blinkDurationSec,
     getBubbleState,
 } from "./markerUtils";
-import type { TrackMarker } from \"@suniplayer/core\";
+import type { TrackMarker } from "@suniplayer/core";
 
 const marker = (id: string, posMs: number): TrackMarker => ({
     id,
@@ -12,12 +12,12 @@ const marker = (id: string, posMs: number): TrackMarker => ({
     comment: "test",
 });
 
-// ── findNearbyMarker ─────────────────────────────────────────────────────────
+// â”€â”€ findNearbyMarker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 describe("findNearbyMarker", () => {
     const markers = [marker("a", 30000), marker("b", 90000)];
     // waveformWidth=800, durationMs=120000
-    // posMs=30000 → x = 30000/120000*800 = 200px
-    // posMs=90000 → x = 90000/120000*800 = 600px
+    // posMs=30000 â†’ x = 30000/120000*800 = 200px
+    // posMs=90000 â†’ x = 90000/120000*800 = 600px
     // tolerance = 12/800*120000 = 1800ms
 
     it("returns null when list is empty", () => {
@@ -25,19 +25,19 @@ describe("findNearbyMarker", () => {
     });
 
     it("returns marker when click is within tolerance", () => {
-        // 205px → posMs=30750, delta to marker a = 750ms < 1800ms → hit
+        // 205px â†’ posMs=30750, delta to marker a = 750ms < 1800ms â†’ hit
         expect(findNearbyMarker(205, 800, 120000, markers)?.id).toBe("a");
     });
 
     it("returns null when click is outside tolerance", () => {
-        // 220px → posMs=33000, delta = 3000ms > 1800ms → miss
+        // 220px â†’ posMs=33000, delta = 3000ms > 1800ms â†’ miss
         expect(findNearbyMarker(220, 800, 120000, markers)).toBeNull();
     });
 
     it("returns nearest marker when two are within tolerance", () => {
         const close = [marker("x", 30000), marker("y", 31200)];
         // tolerance = 1800ms
-        // click at 202px → posMs=30300; delta x=300ms, delta y=900ms → x wins
+        // click at 202px â†’ posMs=30300; delta x=300ms, delta y=900ms â†’ x wins
         expect(findNearbyMarker(202, 800, 120000, close)?.id).toBe("x");
     });
 
@@ -46,7 +46,7 @@ describe("findNearbyMarker", () => {
     });
 });
 
-// ── blinkDurationSec ─────────────────────────────────────────────────────────
+// â”€â”€ blinkDurationSec â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 describe("blinkDurationSec", () => {
     it("returns ~2s at 15s distance", () => {
         expect(blinkDurationSec(15)).toBeCloseTo(2, 1);
@@ -65,13 +65,13 @@ describe("blinkDurationSec", () => {
     });
 });
 
-// ── getBubbleState ───────────────────────────────────────────────────────────
+// â”€â”€ getBubbleState â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 describe("getBubbleState", () => {
     it("returns hidden when marker is >15s ahead", () => {
         expect(getBubbleState(30000, 10000)).toBe("hidden");
     });
 
-    it("returns visible when marker is ≤15s ahead", () => {
+    it("returns visible when marker is â‰¤15s ahead", () => {
         expect(getBubbleState(30000, 20000)).toBe("visible");
     });
 

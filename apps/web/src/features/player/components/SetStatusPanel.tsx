@@ -1,6 +1,6 @@
 import React from "react";
 import { THEME } from "../../../data/theme.ts";
-import { fmtM } from \"@suniplayer/core\";
+import { fmtM } from "@suniplayer/core";
 
 interface SetStatusPanelProps {
     isLive: boolean;

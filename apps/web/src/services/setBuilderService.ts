@@ -1,4 +1,4 @@
-import { Track } from \"@suniplayer/core\";
+import { Track } from "@suniplayer/core";
 
 /** Generate a waveform visualization array for the Wave component */
 export function genWave(seed: number, n = 100): number[] {
@@ -14,7 +14,7 @@ export function genWave(seed: number, n = 100): number[] {
     return d;
 }
 
-// ── Mood distance matrix (lower = more compatible) ────────────────────────────
+// â”€â”€ Mood distance matrix (lower = more compatible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const MOOD_DIST: Record<string, Record<string, number>> = {
     happy: { happy: 0, calm: 1, melancholic: 2, energetic: 1 },
     calm: { happy: 1, calm: 0, melancholic: 1, energetic: 2 },
@@ -39,14 +39,14 @@ interface BuildOpts {
     curve?: string;
     /** Tolerance in SECONDS around the target. Default: adaptive */
     tol?: number;
-    /** BPM range filter — tracks outside this range are excluded before generation */
+    /** BPM range filter â€” tracks outside this range are excluded before generation */
     bpmMin?: number;
     bpmMax?: number;
-    /** Venue type — biases the energy range of selected tracks */
+    /** Venue type â€” biases the energy range of selected tracks */
     venue?: string;
 }
 
-// ── Venue → energy range bias ─────────────────────────────────────────────────
+// â”€â”€ Venue â†’ energy range bias â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const VENUE_ENERGY: Record<string, [number, number]> = {
     lobby:    [0.3,  0.7],   // Neutral ambient, not too intense
     dinner:   [0.2,  0.6],   // Quiet dinner, soft music
@@ -69,7 +69,7 @@ export function buildSet(
 ): Track[] {
     const { curve = "steady", bpmMin, bpmMax, venue } = opts;
 
-    // ── Pre-filter by BPM range ───────────────────────────────────────────────
+    // â”€â”€ Pre-filter by BPM range â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const bpmFiltered = (bpmMin !== undefined || bpmMax !== undefined)
         ? repo.filter(t =>
             (bpmMin === undefined || t.bpm >= bpmMin) &&
@@ -77,7 +77,7 @@ export function buildSet(
         )
         : repo;
 
-    // ── Pre-filter by venue energy range ─────────────────────────────────────
+    // â”€â”€ Pre-filter by venue energy range â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     let workRepo = bpmFiltered.length >= 3 ? bpmFiltered : repo;
     if (venue && VENUE_ENERGY[venue]) {
         const [eMin, eMax] = VENUE_ENERGY[venue];
@@ -97,7 +97,7 @@ export function buildSet(
     let bestScore = -Infinity;
     let bestDist = Infinity; // distance from target when no valid set found
 
-    // ── Phase 1: Monte Carlo (600 iterations) ────────────────────────────────
+    // â”€â”€ Phase 1: Monte Carlo (600 iterations) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     for (let attempt = 0; attempt < 600; attempt++) {
         const shuffled = [...workRepo].sort(() => Math.random() - 0.5);
         const candidate: Track[] = [];
@@ -116,20 +116,20 @@ export function buildSet(
         const dist = Math.abs(tot - target);
 
         if (tot >= mn && tot <= mx && candidate.length > 0) {
-            // Valid set — score it
+            // Valid set â€” score it
             const score = scoreTransitions(candidate) - (dist / 60);
             if (score > bestScore) {
                 bestScore = score;
                 best = [...candidate];
             }
         } else if (!best && dist < bestDist) {
-            // Not yet valid — track the closest attempt as fallback
+            // Not yet valid â€” track the closest attempt as fallback
             bestDist = dist;
             best = [...candidate];
         }
     }
 
-    // ── Phase 2: Greedy fallback (always produces a result) ──────────────────
+    // â”€â”€ Phase 2: Greedy fallback (always produces a result) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (!best || best.length === 0) {
         best = [];
         let tot = 0;
@@ -157,7 +157,7 @@ export function buildSet(
     return applyCurve(best, curve);
 }
 
-// ── Energy curve ordering ─────────────────────────────────────────────────────
+// â”€â”€ Energy curve ordering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function applyCurve(tracks: Track[], curve: string): Track[] {
     if (tracks.length === 0) return tracks;
 

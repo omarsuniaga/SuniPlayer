@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { TrackMarker } from \"@suniplayer/core\";
+import type { TrackMarker } from "@suniplayer/core";
 
 interface MarkerDotProps {
     marker: TrackMarker;
@@ -11,7 +11,7 @@ export const MarkerDot: React.FC<MarkerDotProps> = ({ marker, durationMs, onClic
     const [hovered, setHovered] = useState(false);
     const leftPct = durationMs > 0 ? (marker.posMs / durationMs) * 100 : 0;
     const truncated = marker.comment.length > 40
-        ? marker.comment.slice(0, 40) + "…"
+        ? marker.comment.slice(0, 40) + "â€¦"
         : marker.comment;
 
     return (

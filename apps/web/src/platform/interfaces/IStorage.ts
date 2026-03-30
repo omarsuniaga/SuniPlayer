@@ -10,7 +10,7 @@ export interface AnalysisData {
 }
 
 /**
- * IStorage — Contract for caching audio analysis results and waveforms.
+ * IStorage â€” Contract for caching audio analysis results and waveforms.
  *
  * Web: IndexedDB (via idb library)
  * iOS: Core Data or SQLite (recommended: SQLite with GRDB.swift)

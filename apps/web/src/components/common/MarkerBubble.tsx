@@ -1,5 +1,5 @@
 import React from "react";
-import type { TrackMarker } from \"@suniplayer/core\";
+import type { TrackMarker } from "@suniplayer/core";
 import { blinkDurationSec, BubbleState } from "./markerUtils";
 
 interface MarkerBubbleProps {
@@ -7,7 +7,7 @@ interface MarkerBubbleProps {
     durationMs: number;
     playheadMs: number;
     state: BubbleState;           // "visible" | "fading"
-    stackIndex: number;           // 0, 1, 2… for side-by-side layout
+    stackIndex: number;           // 0, 1, 2â€¦ for side-by-side layout
 }
 
 export const MarkerBubble: React.FC<MarkerBubbleProps> = ({
@@ -23,7 +23,7 @@ export const MarkerBubble: React.FC<MarkerBubbleProps> = ({
     const opacity = 1;
 
     // Horizontal offset for stacked bubbles (same posMs)
-    const BUBBLE_WIDTH = 280; // max px — actual width adjusts to text
+    const BUBBLE_WIDTH = 280; // max px â€” actual width adjusts to text
     const offsetX = stackIndex * (BUBBLE_WIDTH + 8);
 
     return (

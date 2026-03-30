@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { THEME } from "../../data/theme.ts";
 import { getAsset } from "../../services/assetStorage.ts";
 import { useProjectStore } from "../../store/useProjectStore.ts";
-import { fmt } from \"@suniplayer/core\";
+import { fmt } from "@suniplayer/core";
 
 interface SheetMusicViewerProps {
     items: { id: string; type: "pdf" | "image"; name: string }[];

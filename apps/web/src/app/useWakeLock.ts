@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 
 /**
- * useWakeLock — Prevents the device screen from dimming or locking.
+ * useWakeLock â€” Prevents the device screen from dimming or locking.
  * Robust implementation that handles visibility changes and initial user interaction.
  */
 export function useWakeLock() {
@@ -12,16 +12,16 @@ export function useWakeLock() {
         if ("wakeLock" in navigator && !wakeLockRef.current) {
             try {
                 wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
-                console.log("[WakeLock] 🛡️ Screen lock active and protected");
+                console.log("[WakeLock] ðŸ›¡ï¸ Screen lock active and protected");
 
                 // If the lock is released (e.g. by the system), clear our ref
                 wakeLockRef.current.addEventListener("release", () => {
-                    console.log("[WakeLock] 🔓 Screen lock was released");
+                    console.log("[WakeLock] ðŸ”“ Screen lock was released");
                     wakeLockRef.current = null;
                 });
             } catch (err: any) {
                 // This usually happens if the tab is not active or no user gesture yet
-                console.warn(`[WakeLock] ⚠️ Failed to acquire lock: ${err.message}`);
+                console.warn(`[WakeLock] âš ï¸ Failed to acquire lock: ${err.message}`);
             }
         }
     }, []);

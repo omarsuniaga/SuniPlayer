@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useProjectStore, usePlayerStore, Track } from "@suniplayer/core";
 import { THEME } from "../../data/theme";
-import { fmt } from \"@suniplayer/core\";
+import { fmt } from "@suniplayer/core";
 import { LiveUnlockModal } from "../player/LiveUnlockModal";
-import { sumTrackDurationMs } from \"@suniplayer/core\";
+import { sumTrackDurationMs } from "@suniplayer/core";
 import { InstallButton } from "../common/InstallButton";
 
 export const Navbar: React.FC = () => {
@@ -21,7 +21,7 @@ export const Navbar: React.FC = () => {
     
     const [showUnlockModal, setShowUnlockModal] = useState(false);
 
-    // Cálculos de tiempo total
+    // CÃ¡lculos de tiempo total
     const qTot = sumTrackDurationMs(pQueue);
     const currentProgressMs = sumTrackDurationMs(pQueue.slice(0, ci)) + pos;
     const totalRemainingMs = Math.max(0, qTot - currentProgressMs);
@@ -55,7 +55,7 @@ export const Navbar: React.FC = () => {
                 />
             )}
 
-            {/* ── Left side: Logo & Timers ── */}
+            {/* â”€â”€ Left side: Logo & Timers â”€â”€ */}
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{
@@ -69,7 +69,7 @@ export const Navbar: React.FC = () => {
                     <span style={{ fontSize: 16, fontWeight: 900, color: "white" }} className="nav-logo-text">SuniPlayer</span>
                 </div>
 
-                {/* ⏱️ DUAL SHOW TIMER */}
+                {/* â±ï¸ DUAL SHOW TIMER */}
                 {pQueue.length > 0 && (
                     <div style={{ 
                         display: "flex", alignItems: "center", 
@@ -98,7 +98,7 @@ export const Navbar: React.FC = () => {
                 )}
             </div>
 
-            {/* ── Right side: Show Toggle & Settings ── */}
+            {/* â”€â”€ Right side: Show Toggle & Settings â”€â”€ */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <InstallButton />
                 <button

@@ -1,6 +1,6 @@
 import React from "react";
 import { THEME } from "../../../data/theme.ts";
-import { Track } from \"@suniplayer/core\";
+import { Track } from "@suniplayer/core";
 
 interface SetlistSidebarProps {
     showQueue: boolean;

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { TrackMarker } from \"@suniplayer/core\";
+import type { TrackMarker } from "@suniplayer/core";
 
 const DURATION_MS = 120000;
 
@@ -9,7 +9,7 @@ const makeMarker = (posMs: number): TrackMarker => ({
     comment: "Test comment",
 });
 
-describe("MarkerLayer — short click on empty area", () => {
+describe("MarkerLayer â€” short click on empty area", () => {
     it("calls onSeek when clicking empty area in edit mode", () => {
         const onSeek = vi.fn();
         // Simulate clicking empty area in edit mode
@@ -36,7 +36,7 @@ describe("MarkerLayer — short click on empty area", () => {
     });
 });
 
-describe("MarkerLayer — short click on existing marker", () => {
+describe("MarkerLayer â€” short click on existing marker", () => {
     it("opens modal (does not seek) when clicking near a marker", () => {
         const onSeek = vi.fn();
         const marker = makeMarker(60000);

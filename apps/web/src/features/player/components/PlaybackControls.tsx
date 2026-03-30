@@ -20,7 +20,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
     onPlayPause, onPrev, onNext, onStop
 }) => (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: performanceMode ? 60 : 32 }}>
-        {/* Botón Stop — Bloqueado en Live Mode */}
+        {/* BotÃ³n Stop â€” Bloqueado en Live Mode */}
         <button 
             onClick={() => { if (!isLive) onStop(); }} 
             title={isLive ? "Stop bloqueado en Live Mode" : "Detener"}

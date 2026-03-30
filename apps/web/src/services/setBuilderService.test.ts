@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TRACKS } from \"@suniplayer/core\";
+import { TRACKS } from "@suniplayer/core";
 import { buildSet } from "./setBuilderService";
 
 describe("buildSet", () => {
@@ -9,7 +9,7 @@ describe("buildSet", () => {
         const toleranceSeconds = 90;
 
         const result = buildSet(TRACKS, targetSeconds, { tol: toleranceSeconds, curve: "steady" });
-        // Note: total library is ~2458s — target must be achievable
+        // Note: total library is ~2458s â€” target must be achievable
         const totalSeconds = result.reduce((sum, track) => sum + track.duration_ms / 1000, 0);
 
         expect(totalSeconds).toBeGreaterThanOrEqual(targetSeconds - toleranceSeconds);
