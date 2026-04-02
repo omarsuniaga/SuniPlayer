@@ -1,107 +1,102 @@
 # TESTING.md — SuniPlayer Testing Strategy
 
-## Proposito
+## Propósito
 
-SuniPlayer es una herramienta orientada a performance en vivo. Un fallo durante un show no es un bug menor: es un riesgo de producto. Esta estrategia separa claramente lo que hoy puede validarse en el repo de lo que se quiere alcanzar en la siguiente etapa.
-
----
-
-## 1. Estado actual de validacion
-
-Hoy el repositorio cuenta con una validacion automatizada base ya operativa.
-
-### Disponible hoy
-
-- `npm run lint`
-- `npm run typecheck`
-- `npm run test`
-- `npm run build`
-- `npm run validate`
-- GitHub Actions base ejecutando `npm run validate`
-
-### No implementado aun como sistema estable de validacion
-
-- CI automatizada para quality gates
-
-### Implicacion
-
-Hoy la validacion real del proyecto depende principalmente de:
-
-- lint, typecheck, test y build exitosos
-- revision manual
-- comprobacion funcional del flujo principal en desarrollo
+SuniPlayer es una herramienta de performance en vivo. Un fallo en flujo crítico no es un detalle: afecta la experiencia de escenario. Esta guía separa la validación **realmente disponible hoy** de la estrategia objetivo.
 
 ---
 
-## 2. Gaps actuales
+## 1. Estado actual de validación
 
-Antes de hablar de autonomia fuerte o calidad repetible, el proyecto necesita:
+La base de validación operativa del repo hoy gira alrededor de `pnpm`.
 
-1. ampliar la cobertura de tests automatizados
-2. cubrir mejor flujos de player y persistencia
-3. endurecer los quality gates para cambios de arquitectura
-4. incorporar reportes mas claros de regresion
-5. sumar pruebas de escenarios mas cercanos a show real
+### Scripts disponibles
 
-Hasta entonces, cualquier afirmacion de calidad debe entenderse como parcial.
+- `pnpm lint:web`
+- `pnpm typecheck:web`
+- `pnpm test:web`
+- `pnpm build:web`
+- `pnpm validate:core`
+- `pnpm validate:web`
+- `pnpm validate:native`
+- `pnpm validate`
 
----
+### Qué valida cada uno
 
-## 3. Estrategia minima inmediata
+- **core**: typecheck + tests del dominio compartido
+- **web**: lint + typecheck + test + build
+- **native**: typecheck + test + `expo doctor`
+- **validate**: ejecuta core + web + native como gate principal
 
-Esta es la estrategia recomendada para la etapa actual del proyecto.
+### Qué NO asumir
 
-### 3.1 Validacion tecnica minima
-
-- lint, typecheck, test y build deben pasar siempre
-- cambios de contratos de datos deben revisarse manualmente
-- cambios en flujo builder > player > history deben verificarse manualmente
-
-### 3.2 Escenarios manuales criticos actuales
-
-Antes de considerar aceptable un cambio importante, deberia comprobarse manualmente:
-
-- [ ] la app abre sin errores visibles
-- [ ] puedo generar un set de 45 minutos
-- [ ] el set cae dentro de la tolerancia esperada
-- [ ] puedo enviar el set al player
-- [ ] play / pause funcionan en la simulacion actual
-- [ ] next / previous funcionan
-- [ ] el timer avanza correctamente
-- [ ] historial guarda y muestra sets del prototipo
-- [ ] no se rompe el flujo al cambiar entre builder, player e historial
-- [ ] una recarga inesperada ofrece restaurar la ultima sesion de show
-
-### 3.3 Areas mas sensibles hoy
-
-- algoritmo de set builder
-- consistencia de tiempos y duraciones
-- store global y flujo de cola
-- integridad del historial
-- legibilidad de la UI en modo escenario
+- `build` raíz **no** equivale a un build nativo completo
+- `validate:native` no reemplaza una prueba real en dispositivo
+- una validación verde no elimina la necesidad de revisar escenarios de show
 
 ---
 
-## 4. Estrategia objetivo de testing
+## 2. Estrategia mínima inmediata
 
-Con la base actual de validacion ya disponible, la estrategia debe evolucionar a este modelo.
+Antes de considerar aceptable un cambio importante, debería quedar cubierto al menos esto:
 
-### 4.1 Prioridades de testing
+- la app arranca sin errores visibles
+- el builder genera un set dentro de tolerancia
+- el set se puede enviar al player
+- play / pause / next / previous funcionan
+- el timer avanza correctamente
+- el historial conserva el contexto esperado
+- la recarga no borra silenciosamente una sesión de show
+- los contratos compartidos no se rompen entre web y native
 
-1. zero-crash en flujo critico
+---
+
+## 3. Escenarios críticos manuales
+
+### Builder
+
+- generar un set de 45 minutos
+- respetar tolerancia y filtros de venue / BPM / mood
+- evitar duplicación de tracks dentro del mismo show
+
+### Player
+
+- recibir el set desde el builder
+- navegar la cola sin inconsistencias
+- mantener timer y track actual en sincronía
+
+### Persistencia
+
+- conservar contexto ligero del player
+- conservar shows o sets guardados
+- restaurar la última sesión sin reanudar playback automáticamente
+
+### Native
+
+- `expo doctor` no reporta problemas del repo
+- `typecheck` y tests de native siguen limpios
+- el flujo principal no depende de supuestos de web-only
+
+---
+
+## 4. Estrategia objetivo
+
+### Prioridades
+
+1. zero-crash en flujo crítico
 2. integridad de datos
 3. exactitud del set builder
 4. fiabilidad del player
-5. correccion de la UI
+5. coherencia de UI entre superficies
 
-### 4.2 Tipos de tests objetivo
+### Tipos de tests objetivo
 
 #### Unit tests
 
 Cubren:
 
-- servicios de generacion de sets
-- stores de Zustand
+- servicios de generación de sets
+- stores compartidos
 - utilidades de tiempo y formato
 - mapeos de datos y contratos
 
@@ -110,8 +105,8 @@ Cubren:
 Cubren:
 
 - generar set > enviar al player > reproducir
-- guardar set > recuperar historial
-- cambiar track > mantener consistencia de cola y timer
+- guardar show > recuperar historial
+- cambiar track > mantener cola y timer
 
 #### Smoke tests
 
@@ -127,100 +122,61 @@ Cubren:
 
 - set de 45 min
 - cambio de track en mitad del flujo
-- reordenamiento o seleccion de cola
-- reinicio de sesion
-- recuperacion de estado
-- importacion de archivos o carpeta local sin romper el builder
-- restauracion de snapshot de show despues de recarga o cierre inesperado
+- reordenamiento o selección de cola
+- reinicio de sesión
+- recuperación de estado
 
 ---
 
-## 5. Definition of Done de validacion
+## 5. Definition of Done de validación
 
-Una tarea no deberia considerarse totalmente validada si no cumple lo siguiente, segun las capacidades disponibles del repo.
+Una tarea no debería considerarse lista si no cumple lo siguiente, según el alcance afectado:
 
-### Hoy
-
-- `npm run build` pasa
+- pasa el script de validación correspondiente
 - el flujo manual afectado fue comprobado
 - no contradice `MVP_SCOPE.md`
 - no rompe contratos documentados en `DATA_MODEL.md` o `DECISIONS.md`
-
-### Objetivo proximo
-
-- `npm run lint` pasa
-- `npm run typecheck` pasa
-- `npm run test` pasa
-- `npm run build` pasa
-- se actualizaron docs si hubo cambio estructural
+- si cambió comportamiento o arquitectura, se actualizó documentación
 
 ---
 
-## 6. Escenarios criticos del MVP
+## 6. Primeros tests recomendados
 
-Estos escenarios vienen del caracter de herramienta de escenario y deben protegerse incluso antes de tener gran cobertura automatizada.
+### Core
 
-- generar un set de 45 min dentro de tolerancia
-- enviar el set al player sin perder datos
-- reproducir y navegar por la cola sin inconsistencias
-- mostrar tiempo restante del set
-- conservar sets guardados en el flujo oficial
-- evitar errores catastroficos en mitad del uso
+- `buildSet` genera sets dentro de tolerancia
+- no devuelve sets vacíos si hay material disponible
+- respeta máximos y filtros de venue / BPM / mood
+- no repite tracks dentro de un mismo show
 
----
+### Builder store
 
-## 7. Primeros tests recomendados
+- enviar set al player resetea estado esperado
+- guardar set agrega entrada al historial / show
+- cambiar el show activo actualiza exclusiones
+- persistir contexto ligero no reanuda playback automáticamente
 
-Cuando se incorpore el runner de tests, los primeros casos deberian concentrarse en el core del producto.
+### Player / audio
 
-### Set builder
-
-- genera set dentro de tolerancia
-- no devuelve set vacio si hay tracks
-- respeta maximo de tracks
-- respeta curvas de energia
-- no repite tracks en el mismo set
-
-### Store principal
-
-- enviar set al player resetea posicion y timer correctamente
-- guardar set agrega entrada al historial
-- cambiar track actual actualiza el estado esperado
-- persistir contexto ligero del player sin reanudar playback automaticamente
-- restaurar snapshots de show sin reanudar playback automaticamente
-
-### Audio hook
-
-- entra en modo simulacion cuando falla `play()` del navegador
-- sale de simulacion cuando el track emite `canplay`
-- aplica `playbackRate` segun `transposeSemitones` cuando el track tiene transposicion guardada
-
-### Player
-
-- renderiza estado vacio sin queue cargada
-- renderiza metadata del track actual cuando hay queue
+- renderiza estado vacío correctamente
+- renderiza metadata del track actual cuando hay cola
+- mantiene progreso, timer y navegación consistentes
 
 ### Utilidades
 
 - formato de tiempo consistente
-- conversion de duraciones consistente
-- deteccion de archivos de audio soportados y parsing de nombres
-- calculo de semitonos entre `key` y `targetKey`
+- conversión de duraciones consistente
+- detección de archivos soportados
+- cálculo de semitonos consistente
 
 ---
 
-## 8. Metricas objetivo
+## 7. Métricas objetivo
 
-| Metrica | Objetivo inicial | Estado actual |
+| Métrica | Objetivo inicial | Estado actual |
 |---------|------------------|---------------|
-| Build estable | 100% en cambios normales | Operativo |
+| Build web estable | 100% en cambios normales | Operativo |
 | Type errors | 0 | Operativo |
 | Lint warnings | 0 | Operativo |
-| Cobertura de tests | > 80% en core con el tiempo | Inicial |
-| Fallos criticos de flujo | 0 en prueba manual seria | Pendiente |
-
----
-
-## 9. Nota de plataforma
-
-Si el proyecto migra formalmente a Expo / React Native, esta estrategia debera adaptarse a esa plataforma. Hasta que esa decision quede tomada en `DECISIONS.md`, este documento debe priorizar la realidad actual del repo.
+| Cobertura de tests | Creciendo, empezando por core | Inicial |
+| Fallos críticos de flujo | 0 en prueba manual seria | Pendiente |

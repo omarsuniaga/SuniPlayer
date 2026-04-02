@@ -370,7 +370,6 @@ export function PlayerScreen() {
       initialVolume: startVolume,
       title: currentTrack.title,
       artist: currentTrack.artist,
-      artwork: currentTrack.artwork,
       duration: currentTrack.duration_ms,
     })
       .then(async () => {

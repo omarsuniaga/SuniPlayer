@@ -1,227 +1,231 @@
 # TASKS.md — SuniPlayer Development Backlog
 
-> Ultima actualizacion: Marzo 2026
-> Metodologia: tareas ordenadas por fase, prioridad y dependencia.
+> Última actualización: Abril 2026
+> Metodología: tareas ordenadas por fase, prioridad y dependencia.
 > Estado: TODO | IN_PROGRESS | DONE | BLOCKED
 
 ---
 
-## FASE 0 — Consolidacion tecnica del prototipo (Actual)
+## FASE 0 — Consolidación técnica del prototipo
 
 ### [DONE] T-001: Prototipo UI del reproductor
 - Pantalla principal con controles play/pause/next/prev
-- Waveform visual interactivo
+- Waveform visual interactiva
 - Modo LIVE / EDIT en prototipo
-- Aceptacion: se puede simular un set completo en el prototipo web
+- Aceptación: se puede simular un set completo en el prototipo web
 
 ### [DONE] T-002: Smart Set Builder
-- Algoritmo de generacion de sets por duracion objetivo
-- Seleccion de venue, curva de energia
+- Algoritmo de generación de sets por duración objetivo
+- Selección de venue, curva de energía
 - Panel de repertorio con filtros
-- Aceptacion: genera sets de 45min con +-90seg de tolerancia
+- Aceptación: genera sets de 45 min con tolerancia razonable
 
-### [DONE] T-003: Conexion Builder-Player
-- Boton "Enviar al Player" transfiere set generado
-- Timer se configura automaticamente
+### [DONE] T-003: Conexión Builder-Player
+- Botón "Enviar al Player" transfiere set generado
+- Timer configurado automáticamente
 - Cola del player refleja el set
-- Aceptacion: flujo completo builder > player funciona sin errores
+- Aceptación: flujo completo builder > player funciona sin errores
 
 ### [DONE] T-004: Infraestructura documental y operativa
 - README.md coherente con el estado real del repo
 - TASKS.md y TESTING.md alineados con el MVP actual
-- AGENTS.md conectado a la documentacion oficial
-- Definicion de fuente de verdad documental
-- Aceptacion: un humano o agente puede entender con claridad que existe hoy y que es futuro
+- AGENTS.md conectado a la documentación oficial
+- Definición de fuente de verdad documental
+- Aceptación: un humano o agente puede entender con claridad qué existe hoy y qué es futuro
 
 ### [DONE] T-005: Unificar contratos de datos
 - Normalizar `Track` y entidades relacionadas
 - Estandarizar `duration_ms` como unidad oficial
 - Alinear `types`, `constants`, `services`, `store` y componentes
 - Prioridad: ALTA
-- Estimacion: 2 dias
-- Aceptacion: no existen modelos duplicados de duracion o naming en conflicto
+- Estimación: 2 días
+- Aceptación: no existen modelos duplicados de duración o naming en conflicto
 
-### [DONE] T-006: Separar codigo actual de codigo legacy
+### [DONE] T-006: Separar código actual de código legacy
 - Identificar entrypoint oficial actual
 - Aislar archivos `jsx/js` que ya no son fuente activa
 - Preparar carpeta o estrategia de retiro gradual de legacy
 - Prioridad: ALTA
-- Estimacion: 2 dias
-- Aceptacion: queda claro que archivos son oficiales y cuales son legacy
+- Estimación: 2 días
+- Aceptación: queda claro qué archivos son oficiales y cuáles son legacy
 
 ### [TODO] T-007: Limpiar arquitectura de carpetas
-- Definir estructura destino mas escalable
+- Definir estructura destino más escalable
 - Partir el mega `App.tsx`
 - Reubicar responsabilidades por dominio
 - Prioridad: ALTA
-- Estimacion: 4 dias
-- Aceptacion: la app queda entendible y lista para crecer sin aumentar el caos
+- Estimación: 4 días
+- Aceptación: la app queda entendible y lista para crecer sin aumentar el caos
 
-### [DONE] T-008: Scripts de validacion base
+### [DONE] T-008: Scripts de validación base
 - Agregar `lint`
 - Agregar `typecheck` dedicado
 - Agregar test runner inicial
 - Agregar `validate`
 - Prioridad: ALTA
-- Estimacion: 2 dias
-- Aceptacion: existe una validacion minima automatizada del proyecto
+- Estimación: 2 días
+- Aceptación: existe una validación mínima automatizada del proyecto
 
-### [TODO] T-009: Definir siguiente plataforma con evidencia
-- Determinar si el siguiente paso es continuar web o migrar a Expo
-- Basar la decision en necesidades reales de audio, persistencia y uso movil
-- Registrar decision en `DECISIONS.md`
+### [DONE] T-009: Consolidar estrategia web + native sobre el estado actual
+- Reconocer que `apps/native` ya existe y es una superficie activa
+- Mantener shared core como base de contratos y lógica
+- Evitar seguir presentando native como una migración futura bloqueada
 - Prioridad: ALTA
-- Estimacion: 1 dia de analisis
-- Aceptacion: la siguiente fase de desarrollo queda decidida formalmente
+- Estimación: 1 día
+- Aceptación: el backlog deja de describir native como algo inexistente o bloqueado por definición
 
 ---
 
 ## FASE 1 — Base funcional del MVP
 
 ### [TODO] T-010: Implementar AudioService real inicial
-- Reproduccion real de archivos o simulacion robusta segun plataforma elegida
+- Reproducción real de archivos o simulación robusta según plataforma elegida
 - Play, pause, seek, volume
-- Callback de posicion para actualizar UI
+- Callback de posición para actualizar UI
 - Prioridad: ALTA
-- Estimacion: 3 dias
-- Aceptacion: el player deja de ser solo prototipo visual
+- Estimación: 3 días
+- Aceptación: el player deja de ser solo prototipo visual
 
-### [DONE] T-011: Implementar persistencia local minima
-- Estrategia inicial decidida para etapa web: `localStorage`
+### [DONE] T-011: Implementar persistencia local mínima
+- Estrategia inicial decidida para etapa web: persistencia ligera por plataforma
 - Guardar sets generados
-- Recuperar historial y configuracion basica
+- Recuperar historial y configuración básica
 - Recuperar contexto ligero del player al reiniciar
 - Prioridad: ALTA
-- Estimacion: 3 dias
-- Aceptacion: los datos clave sobreviven al reinicio de la app
+- Estimación: 3 días
+- Aceptación: los datos clave sobreviven al reinicio de la app
 
-### [DONE] T-016: Perfil tonal por cancion
-- Guardar tono base, tono objetivo y semitonos de transposicion en el perfil del track
+### [DONE] T-016: Perfil tonal por canción
+- Guardar tono base, tono objetivo y semitonos de transposición en el perfil del track
 - Mostrar el tono objetivo en vistas relevantes
-- Aplicar transposicion en reproduccion web mediante `playbackRate`
+- Aplicar transposición en reproducción web mediante `playbackRate`
 - Prioridad: MEDIA
-- Estimacion: 2 dias
-- Aceptacion: puedo configurar una cancion para tocarla en otro tono y el ajuste queda guardado
+- Estimación: 2 días
+- Aceptación: puedo configurar una canción para tocarla en otro tono y el ajuste queda guardado
 
-### [DONE] T-017: Recovery de sesion para shows en PWA
+### [DONE] T-017: Recovery de sesión para shows en PWA
 - Guardar snapshots de show en `IndexedDB`
-- Restaurar cola, contexto y configuracion tras recarga inesperada
-- Advertir cuando el audio local requiera reconexion en iPad
+- Restaurar cola, contexto y configuración tras recarga inesperada
+- Advertir cuando el audio local requiera reconexión en iPad
 - Prioridad: ALTA
-- Estimacion: 2 dias
-- Aceptacion: una recarga inesperada no borra silenciosamente la lista ni el contexto de show
+- Estimación: 2 días
+- Aceptación: una recarga inesperada no borra silenciosamente la lista ni el contexto de show
 
 ### [TODO] T-012: Biblioteca musical con datos reales
 - Reemplazar dependencia excesiva de mocks
-- Cargar metadata minima real o semirreal
-- Mejorar busqueda y filtrado
+- Cargar metadata mínima real o semirreal
+- Mejorar búsqueda y filtrado
 - Prioridad: ALTA
-- Estimacion: 4 dias
-- Aceptacion: puedo trabajar con repertorio realista y no solo demo data
+- Estimación: 4 días
+- Aceptación: puedo trabajar con repertorio realista y no solo demo data
 
 ### [TODO] T-013: Set Builder con datos reales
 - Conectar algoritmo con la fuente de datos oficial
 - Guardar sets generados en persistencia local
 - Recuperar sets guardados
 - Prioridad: ALTA
-- Estimacion: 2 dias
-- Aceptacion: genero y reutilizo sets reales desde la app
+- Estimación: 2 días
+- Aceptación: genero y reutilizo sets reales desde la app
 
 ### [TODO] T-014: Timer de set con alertas
-- Cronometro real con alertas visibles
-- Señales claras a 5min y 2min
+- Cronómetro real con alertas visibles
+- Señales claras a 5 min y 2 min
 - Prioridad: MEDIA
-- Estimacion: 2 dias
-- Aceptacion: el timer ayuda realmente a terminar el set a tiempo
+- Estimación: 2 días
+- Aceptación: el timer ayuda realmente a terminar el set a tiempo
 
 ### [TODO] T-015: Endurecer UX de escenario
 - Mejorar legibilidad
 - Reducir clics accidentales
 - Reforzar modo LIVE
 - Prioridad: ALTA
-- Estimacion: 3 dias
-- Aceptacion: la UI resiste mejor uso bajo presion
+- Estimación: 3 días
+- Aceptación: la UI resiste mejor uso bajo presión
 
 ---
 
-## FASE 2 — Validacion en uso real
+## FASE 2 — Validación en uso real
 
-### [TODO] T-020: Primera prueba controlada de sesion real
-- Ejecutar flujo completo en una sesion tipo show
+### [TODO] T-020: Primera prueba controlada de sesión real
+- Ejecutar flujo completo en una sesión tipo show
 - Documentar bugs y fricciones
-- Prioridad: CRITICA
-- Estimacion: 1 dia
-- Aceptacion: sobrevive un set de 45min sin fallo critico
+- Prioridad: CRÍTICA
+- Estimación: 1 día
+- Aceptación: sobrevive un set de 45 min sin fallo crítico
 
-### [TODO] T-021: Recuperacion de sesion y continuidad
+### [TODO] T-021: Recuperación de sesión y continuidad
 - Restaurar estado relevante tras cierre o reinicio
 - Prioridad: ALTA
-- Estimacion: 2 dias
-- Aceptacion: el musico no pierde el contexto de trabajo facilmente
+- Estimación: 2 días
+- Aceptación: el músico no pierde el contexto de trabajo fácilmente
 
 ### [TODO] T-022: Sugerencias por tiempo restante
-- Mostrar tracks o combinaciones segun tiempo faltante
+- Mostrar tracks o combinaciones según tiempo faltante
 - Prioridad: MEDIA
-- Estimacion: 2 dias
-- Aceptacion: la sugerencia ayuda a cerrar el set con menos improvisacion
+- Estimación: 2 días
+- Aceptación: la sugerencia ayuda a cerrar el set con menos improvisación
 
 ### [TODO] T-023: Historial de sesiones
 - Registrar shows o sesiones realizadas
-- Ver historial con datos utiles
+- Ver historial con datos útiles
 - Prioridad: MEDIA
-- Estimacion: 2 dias
-- Aceptacion: puedo revisar sets ejecutados y patrones basicos
+- Estimación: 2 días
+- Aceptación: puedo revisar sets ejecutados y patrones básicos
 
 ---
 
-## FASE 3 — Decision de expansion de plataforma
+## FASE 3 — Consolidación y paridad de plataforma
 
-### [BLOCKED] T-030: Migrar prototipo a Expo / React Native
-- Convertir componentes y flujos al stack movil
-- Implementar navegacion y servicios equivalentes
-- Estado: bloqueado hasta completar T-009
+### [TODO] T-030: Endurecer flujo móvil existente
+- Consolidar navegación y UX base en Expo native
+- Alinear el flujo móvil con el shared core
 - Prioridad: ALTA
-- Estimacion: 5 dias
-- Aceptacion: corre en entorno movil con feature parity basica
+- Estimación: 5 días
+- Aceptación: la app native mantiene paridad funcional básica con la web en el flujo principal
 
-### [BLOCKED] T-031: Implementar audio movil especifico
-- Reproduccion movil segun stack elegido
-- Estado: bloqueado hasta decision de plataforma
+### [TODO] T-031: Consolidar audio móvil específico
+- Reproducción móvil según stack elegido
+- Integración con el contrato compartido de audio
 - Prioridad: ALTA
+- Estimación: 3 días
+- Aceptación: el audio móvil deja de depender de supuestos web-only
 
-### [BLOCKED] T-032: Persistencia movil especifica
-- SQLite u opcion equivalente segun plataforma elegida
-- Estado: bloqueado hasta decision de plataforma
+### [TODO] T-032: Consolidar persistencia móvil específica
+- SQLite u opción equivalente según plataforma
+- Integración con stores compartidos
 - Prioridad: ALTA
+- Estimación: 3 días
+- Aceptación: la persistencia móvil queda definida y no tratada como futuro bloqueado
 
 ---
 
 ## FASE 4 — Capacidades avanzadas
 
-### [TODO] T-040: Crossfade basico entre tracks
+### [TODO] T-040: Crossfade básico entre tracks
 ### [TODO] T-041: Waveform real con datos de audio
-### [TODO] T-042: Historial y metricas de performance
-### [TODO] T-043: Deteccion de aplausos basica
-### [TODO] T-044: Score de reaccion por track
-### [TODO] T-045: Recomendaciones basadas en reaccion
-### [TODO] T-046: Analisis automatico de BPM / tonalidad / mood
+### [TODO] T-042: Historial y métricas de performance
+### [TODO] T-043: Detección de aplausos básica
+### [TODO] T-044: Score de reacción por track
+### [TODO] T-045: Recomendaciones basadas en reacción
+### [TODO] T-046: Análisis automático de BPM / tonalidad / mood
 
 ---
 
 ## Bugs conocidos
 
-| ID | Descripcion | Severidad | Estado |
+| ID | Descripción | Severidad | Estado |
 |----|------------|-----------|--------|
-| B-001 | Cobertura automatizada todavia minima para un flujo tan critico | Media | En seguimiento |
-| B-002 | Aun falta una decision formal sobre la siguiente plataforma | Media | Pendiente |
+| B-001 | Cobertura automatizada todavía mínima para un flujo tan crítico | Media | En seguimiento |
+| B-002 | Falta seguir cerrando paridad y validación específica de native | Media | Pendiente |
 
 ---
 
-## Decisiones tecnicas pendientes
+## Decisiones técnicas pendientes
 
-| Decision | Opciones | Estado |
+| Decisión | Opciones | Estado |
 |----------|---------|--------|
-| Plataforma siguiente | continuar web vs migrar a Expo | Pendiente en T-009 |
-| Audio real inicial | HTML5 Audio / Web Audio vs stack movil | Pendiente en T-010 / T-009 |
-| Persistencia local | localStorage ahora, IndexedDB si el volumen crece, SQLite solo con nueva decision de plataforma | Baseline decidida en ADR 004 |
 | Arquitectura de carpetas | capas actuales vs enfoque por features | Pendiente en T-007 |
+| Flujo nativo objetivo | hardening Expo native actual vs cambio mayor de stack | En consolidación |
+| Persistencia móvil | SQLite u opción equivalente según plataforma | En consolidación |
+| Audio real inicial | HTML5 Audio / Web Audio vs stack móvil | Pendiente en T-010 |
+

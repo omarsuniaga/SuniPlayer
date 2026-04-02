@@ -26,9 +26,11 @@ import { pickSheetFiles, deleteSheetFile, SheetItem } from '../services/sheetSto
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const MOODS = [
-  'neutral', 'alegre', 'tranquilo', 'energético', 'melancólico',
-  'romántico', 'festivo', 'épico', 'latino', 'dark',
+const MOODS: Array<{ value: Track['mood']; label: string }> = [
+  { value: 'happy', label: 'Alegre' },
+  { value: 'calm', label: 'Tranquilo' },
+  { value: 'energetic', label: 'Energético' },
+  { value: 'melancholic', label: 'Melancólico' },
 ];
 
 const KEYS = [
@@ -183,15 +185,15 @@ function TabDetalles({
       <Field label="MOOD">
         <View style={s.chipWrap}>
           {MOODS.map(m => {
-            const active = edit.mood === m;
-            const c = moodColor(m);
+            const active = edit.mood === m.value;
+            const c = moodColor(m.value);
             return (
               <TouchableOpacity
-                key={m}
+                key={m.value}
                 style={[s.chip, active && { backgroundColor: c + '25', borderColor: c }]}
-                onPress={() => setEdit({ ...edit, mood: m })}
+                onPress={() => setEdit({ ...edit, mood: m.value })}
               >
-                <Text style={[s.chipText, active && { color: c }]}>{m}</Text>
+                <Text style={[s.chipText, active && { color: c }]}>{m.label}</Text>
               </TouchableOpacity>
             );
           })}

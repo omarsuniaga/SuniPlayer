@@ -10,7 +10,8 @@
   "sideEffects": false,
   "scripts": {
     "typecheck": "pnpm exec tsc --noEmit",
-    "test": "pnpm exec vitest run --passWithNoTests"
+    "test": "pnpm exec vitest run",
+    "validate": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
     "zustand": "^4.5.0"

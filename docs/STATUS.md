@@ -1,140 +1,98 @@
-# SuniPlayer — Estado del Proyecto (2026-03-29)
+# SuniPlayer — Estado del Proyecto
 
-## Resumen Ejecutivo
+## Resumen ejecutivo
 
-| Plataforma | Estado | Descripción |
-|-----------|--------|-------------|
-| **Web** | ✅ Production-ready | Audio engine dual-channel, set builder, analytics, pedal |
-| **Native (Android/iOS)** | ⚠️ Beta funcional | Player completo, sin pitch shift nativo |
+SuniPlayer ya opera como un **monorepo con shared core real**:
 
----
+- `packages/core` contiene tipos, stores y servicios compartidos
+- `apps/web` es la superficie más madura y la principal referencia de UX
+- `apps/native` existe y es una superficie activa, no una migración futura
 
-## Features Implementadas
+La dirección actual no es “web vs native”, sino:
 
-### 🎵 Audio Engine
-
-| Feature | Web | Native |
-|---------|-----|--------|
-| Reproducción básica | ✅ | ✅ |
-| Dual-channel A/B | ✅ | N/A (RNTP) |
-| Fade In/Out configurable | ✅ | ✅ |
-| Crossfade | ✅ | N/A |
-| Seeking | ✅ | ✅ |
-| Tempo shift | ✅ (soundtouchjs) | ✅ (RNTP rate) |
-| Pitch shift | ✅ (soundtouchjs) | ❌ Stub |
-| Volume + autoGain | ✅ | ✅ |
-| Background audio | ✅ (WakeLock) | ✅ (iOS + Android config) |
-| Barra de buffering | ✅ | ✅ |
-
-### 📚 Biblioteca & Importación
-
-| Feature | Web | Native |
-|---------|-----|--------|
-| Tracks built-in (catalog) | ✅ `tracks.json` | ✅ (via streaming) |
-| Import archivos locales | ✅ (File API) | ✅ (expo-document-picker) |
-| Análisis BPM/Key (librosa) | ✅ | ✅ (core) |
-| Waveform visual | ✅ (canvas) | ✅ (componente) |
-| Marcadores en waveform | ✅ | ✅ |
-| Sheet Music Viewer (PDF) | ✅ | ✅ |
-| Persistencia (IDB/SQLite) | ✅ IndexedDB | ✅ SQLiteStorage |
-| Binary audio storage | ✅ IDB | ✅ Base64 SQLite |
-
-### 🎛 Set Builder
-
-| Feature | Web | Native |
-|---------|-----|--------|
-| Algoritmo Monte Carlo | ✅ (600 iteraciones) | ✅ (via core) |
-| Greedy fallback | ✅ | ✅ |
-| Filtros BPM / mood | ✅ | ✅ |
-| Venue energy bias | ✅ | ✅ |
-| Multi-set Shows | ✅ | ✅ (via core) |
-| Historial de shows | ✅ | ✅ |
-| affinityScore influence | 🔶 Pendiente integración | 🔶 Pendiente |
-
-### 📊 Analytics (SuniAnalytics)
-
-| Métrica | Estado | Notas |
-|---------|--------|-------|
-| `playCount` | ✅ | Incrementa en trackStart |
-| `completePlays` | ✅ | Incrementa en trackEnd natural |
-| `skips` | ✅ | Regla del 30%: solo < 30% del track |
-| `affinityScore` | ✅ | Laplace smoothing, base 50 |
-| Persistencia | ✅ | En Track.* via useLibraryStore |
-| Influir en Builder | 🔶 Pendiente | Integrar topTracks() en buildSet() |
-
-### 🎮 Controles & UX
-
-| Feature | Web | Native |
-|---------|-----|--------|
-| Pedal Bluetooth (HID) | ✅ Learn Mode | N/A |
-| Modo Show (live) | ✅ | ✅ |
-| SPL Meter | ⚠️ UI only | ❌ |
-| Transiciones automáticas | ✅ | ✅ |
-| Auto-fade en play/pause | ✅ | ✅ |
-| PWA (installable) | ✅ | N/A |
+> un core compartido que reduce drift y dos superficies que convergen sobre ese core.
 
 ---
 
-## Pendientes Clave
+## Estado por superficie
 
-### 🔴 Críticos
-| Item | Plataforma | Descripción |
-|------|-----------|-------------|
-| Pitch shift nativo | Native | `setPitch()` es stub. Necesita librería externa (soundtouchjs-rn o similar) |
-| Audio files en `/public/audio/` | Web | Carpeta vacía — tracks demo no funcionan sin deploy a Netlify |
-
-### 🟡 Mejoras importantes
-| Item | Plataforma | Descripción |
-|------|-----------|-------------|
-| Analytics → Builder | Both | `topTracks()` no influye aún en generación de sets |
-| SPL Meter real | Web | Necesita `AudioContext.createAnalyser()` conectado al engine |
-| Waveform nativa integración | Native | `Waveform.tsx` existe pero no está completamente integrado |
-
-### 🟢 Planes documentados (sin ejecutar)
-| Plan | Archivo | Estado |
-|------|---------|--------|
-| Edit Modal Auto-Pause | `2026-03-24-edit-modal-auto-pause.md` | ❌ Pendiente |
-| Energy Curve Toggle | `2026-03-22-energy-curve-toggle.md` | ❌ Pendiente |
+| Superficie | Estado | Lectura correcta |
+|-----------|--------|------------------|
+| **Shared core** | Activo | Fuente canónica de tipos, stores y lógica compartida |
+| **Web** | Maduro | Referencia principal de UI y validación funcional |
+| **Native** | Activo | Superficie móvil real en hardening y paridad |
 
 ---
 
-## Arquitectura
+## Estado funcional por nivel
 
-```
-SuniPlayer/
-├── apps/web/          → React 18 + Vite + Vitest (producción)
-├── apps/native/       → React Native + Expo SDK 55 (beta)
-└── packages/core/     → Tipos, stores, servicios compartidos
-```
+### MVP baseline
 
-### Stores Zustand (packages/core/src/store/)
-- `usePlayerStore` — queue, posición, modo play/live
-- `useBuilderStore` — sets generados, config de venue/curve/BPM, Shows
-- `useLibraryStore` — tracks custom, repertoire, analytics
-- `useHistoryStore` — historial de shows (migración legacy)
-- `useSettingsStore` — fade/crossfade, pedal bindings, SPL, energy curve
+Esto forma parte del núcleo del producto y debe mantenerse estable:
 
-### Audio Engines
-- **Web**: `useAudio.ts` — Dual-channel HTML5 Audio, fade timer por canal (Map)
-- **Native**: `ExpoAudioEngine.ts` — react-native-track-player v4, foreground service
+- biblioteca musical
+- player básico
+- cola de reproducción
+- timer de set
+- builder por duración
+- sugerencias por tiempo restante
+- notas de performance
+- persistencia local
+
+### Post-MVP presente
+
+Estas capacidades ya existen en el repo o forman parte del hardening actual, pero no deben confundirse con el baseline mínimo:
+
+- analytics / métricas de uso
+- pedal bindings
+- waveform visual avanzada
+- multi-set shows
+- stage mirror
+- importación de archivos locales
+- storage específico por plataforma
+
+### Experimental / no baseline
+
+Estas capacidades son útiles, pero no deben venderse como parte del MVP protegido:
+
+- pitch shift nativo si aún depende de stubs o integración incompleta
+- SPL meter real
+- recomendaciones avanzadas basadas en analítica
+- detección de aplausos
+- scoring / ML-like features
 
 ---
 
-## Tests
+## Calidad y validación
 
-| Suite | Runner | Tests |
-|-------|--------|-------|
-| `apps/web/__tests__/features.test.ts` | Vitest 4 | F1-F9, ~800 líneas |
-| `apps/native/__tests__/ExpoAudioEngine.test.ts` | Jest | engine lifecycle, analytics |
-| `apps/native/__tests__/LocalFileAccess.test.ts` | Jest | whitelist, 200MB limit |
-| `apps/native/__tests__/SQLiteStorage.test.ts` | Jest | análisis, waveform, audio binary |
+La validación principal del repo se apoya en `pnpm` y en scripts por paquete:
+
+- `validate:core`
+- `validate:web`
+- `validate:native`
+- `validate`
+
+Lectura correcta:
+
+- el core se valida como core
+- web y native se validan con sus propias capacidades
+- no se debe asumir build nativo completo si el flujo documentado no lo declara
 
 ---
 
-## Deploy
+## Arquitectura vigente
 
-| Target | URL | Trigger |
-|--------|-----|---------|
-| Web (Netlify) | https://suniplayer.netlify.app | Push a `main` |
-| Android APK (EAS) | Ver EAS dashboard | `eas build --platform android --profile preview` |
-| iOS (EAS) | Requiere Apple Developer Account | `eas build --platform ios --profile preview` |
+- el modelo canónico vive en `packages/core`
+- `setBuilderService` ya no debería entenderse como lógica duplicada por app
+- los contratos compartidos deben residir en core y consumirse desde web/native
+- la documentación debe evitar presentar native como “futuro bloqueado”; ya es una superficie activa
+
+---
+
+## Pendientes relevantes
+
+- cerrar paridad de validación y flujo entre web y native
+- seguir endureciendo la cobertura del core
+- consolidar la persistencia por plataforma sin duplicar el modelo de dominio
+- mantener alineados `MVP_SCOPE.md`, `DECISIONS.md`, `ARCHITECTURE.md` y este estado
+

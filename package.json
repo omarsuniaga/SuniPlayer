@@ -20,7 +20,10 @@
     "typecheck": "pnpm typecheck:web && pnpm typecheck:native && pnpm --filter @suniplayer/core typecheck",
     "build:web": "pnpm --filter @suniplayer/web build",
     "build": "pnpm build:web && pnpm typecheck:native",
-    "validate": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "validate:web": "pnpm lint:web && pnpm typecheck:web && pnpm test:web && pnpm build:web",
+    "validate:core": "pnpm --filter @suniplayer/core typecheck && pnpm test:core",
+    "validate:native": "pnpm typecheck:native && pnpm test:native && pnpm --filter native doctor",
+    "validate": "pnpm validate:core && pnpm validate:web && pnpm validate:native"
   },
   "devDependencies": {
     "typescript": "^5.3.0"

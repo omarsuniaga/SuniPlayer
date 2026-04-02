@@ -18,7 +18,7 @@ export { configureStorage } from './store/storage';
 export { TRACKS, VENUES, CURVES, MOODS } from './data/constants';
 
 // Services
-export { buildSet } from './services/setBuilderService';
+export { buildSet, genWave } from './services/setBuilderService';
 export { AnalyticsService } from './services/AnalyticsService';
 // NOTE: setBuilderService uses an internal BuildOpts interface (not exported).
 // If a public BuildSetOptions type is needed, add it to setBuilderService.ts first.

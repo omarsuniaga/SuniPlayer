@@ -6,13 +6,15 @@
 import { StateStorage } from "zustand/middleware";
 import type { IStorage } from '../platform/interfaces/IStorage';
 
-let _impl: IStorage | null = null;
+type StorageImplementation = Partial<IStorage> & StateStorage;
+
+let _impl: StorageImplementation | null = null;
 
 /**
  * Configura la implementación real del storage.
  * Se debe llamar al arrancar la app (web o native).
  */
-export function configureStorage(implementation: IStorage): void {
+export function configureStorage(implementation: StorageImplementation): void {
   _impl = implementation;
 }
 
@@ -38,15 +40,15 @@ const lazyStorage: IStorage & StateStorage = {
   },
 
   // --- SuniPlayer IStorage (Archivos y Análisis) ---
-  getAnalysis: (id: string) => _impl ? _impl.getAnalysis(id) : Promise.resolve(null),
-  saveAnalysis: (id: string, data: any) => _impl ? _impl.saveAnalysis(id, data) : Promise.resolve(),
-  getWaveform: (id: string) => _impl ? _impl.getWaveform(id) : Promise.resolve(null),
-  saveWaveform: (id: string, data: number[]) => _impl ? _impl.saveWaveform(id, data) : Promise.resolve(),
+  getAnalysis: (id: string) => _impl?.getAnalysis ? _impl.getAnalysis(id) : Promise.resolve(null),
+  saveAnalysis: (id: string, data: any) => _impl?.saveAnalysis ? _impl.saveAnalysis(id, data) : Promise.resolve(),
+  getWaveform: (id: string) => _impl?.getWaveform ? _impl.getWaveform(id) : Promise.resolve(null),
+  saveWaveform: (id: string, data: number[]) => _impl?.saveWaveform ? _impl.saveWaveform(id, data) : Promise.resolve(),
   
-  saveAudioFile: (id: string, file: Blob) => _impl ? _impl.saveAudioFile(id, file) : Promise.resolve(),
-  getAudioFile: (id: string) => _impl ? _impl.getAudioFile(id) : Promise.resolve(null),
-  deleteAudioFile: (id: string) => _impl ? _impl.deleteAudioFile(id) : Promise.resolve(),
-  getAllStoredTrackIds: () => _impl ? _impl.getAllStoredTrackIds() : Promise.resolve([]),
+  saveAudioFile: (id: string, file: Blob) => _impl?.saveAudioFile ? _impl.saveAudioFile(id, file) : Promise.resolve(),
+  getAudioFile: (id: string) => _impl?.getAudioFile ? _impl.getAudioFile(id) : Promise.resolve(null),
+  deleteAudioFile: (id: string) => _impl?.deleteAudioFile ? _impl.deleteAudioFile(id) : Promise.resolve(),
+  getAllStoredTrackIds: () => _impl?.getAllStoredTrackIds ? _impl.getAllStoredTrackIds() : Promise.resolve([]),
 };
 
 export function getStorage(): IStorage & StateStorage {

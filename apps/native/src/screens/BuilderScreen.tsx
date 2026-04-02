@@ -124,7 +124,7 @@ export function BuilderScreen() {
   const fullRepo = useMemo(() => {
     const seen = new Set<string>();
     const merged: Track[] = [];
-    for (const t of [...customTracks, ...catalog]) {
+    for (const t of [...customTracks, ...(catalog as Track[])]) {
       if (!seen.has(t.id)) { seen.add(t.id); merged.push(t); }
     }
     return merged;

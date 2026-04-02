@@ -98,7 +98,7 @@ export function LibraryScreen() {
         title: imported.name.replace(/\.[^.]+$/, '').replace(/_/g, ' '),
         artist: 'Desconocido',
         duration_ms: 0,
-        bpm: 120, key: 'C', energy: 0.5, mood: 'neutral',
+        bpm: 120, key: 'C', energy: 0.5, mood: 'calm',
         file_path: imported.url,
         analysis_cached: false,
         isCustom: true,
