@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useSettingsStore, PedalAction } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useDebugStore } from "../store/useDebugStore";
+import { skipToNextGracefully } from "./audioTransport";
 
 /** Maps raw event.key values to human-readable labels */
 function keyLabel(key: string): string {
@@ -95,8 +96,7 @@ export function handlePedalEvent(
                 return;
             }
             if (ci < pQueue.length - 1) {
-                setCi(ci + 1);
-                setPos(0);
+                skipToNextGracefully();
             }
             break;
         case "prev":

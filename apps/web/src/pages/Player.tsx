@@ -14,6 +14,7 @@ import { Track } from "@suniplayer/core";
 import { SheetMusicViewer } from "../components/common/SheetMusicViewer";
 import { Dashboard } from "../components/player/Dashboard";
 import { getWaveformData } from "../services/waveformService";
+import { skipToNextGracefully } from "../services/audioTransport";
 import { StageMirror } from "../components/player/StageMirror";
 
 // Sub-components
@@ -230,7 +231,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
 
                     <VisualizerSection track={ct} performanceMode={performanceMode} isLive={isLive} playing={playing} pos={pos} rem={rem} durMs={durMs} prog={prog} mCol={mCol} currentWave={currentWave} isLoadingWave={isLoadingWave} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} onMarkersChange={(markers) => ct && updateTrackMetadata(ct.id, { markers })} onSeek={(newPosMs) => { if (ct) setPos(newPosMs); }} />
 
-                    <PlaybackControls playing={playing} isLive={isLive} ci={ci} queueLen={pQueue.length} pos={pos} performanceMode={performanceMode} mCol={mCol} onPlayPause={() => setPlaying(!playing)} onPrev={() => { setCi(ci - 1); setPos(0); }} onNext={() => { setCi(ci + 1); setPos(0); }} onStop={() => { setPlaying(false); setPos(0); }} />
+                    <PlaybackControls playing={playing} isLive={isLive} ci={ci} queueLen={pQueue.length} pos={pos} performanceMode={performanceMode} mCol={mCol} onPlayPause={() => setPlaying(!playing)} onPrev={() => { setCi(ci - 1); setPos(0); }} onNext={skipToNextGracefully} onStop={() => { setPlaying(false); setPos(0); }} />
 
                     <VolumeControl vol={vol} mCol={mCol} performanceMode={performanceMode} onVolumeChange={setVol} />
 

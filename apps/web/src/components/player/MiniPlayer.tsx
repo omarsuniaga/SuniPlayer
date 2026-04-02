@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { useProjectStore, useSettingsStore } from "@suniplayer/core";
+import { useProjectStore } from "@suniplayer/core";
 import { THEME } from "../../data/theme";
 import { fmt } from "@suniplayer/core";
 import { useIsMobile } from "../../utils/useMediaQuery";
+import { skipToNextGracefully } from "../../services/audioTransport";
 
 export const MiniPlayer: React.FC = () => {
     const { pQueue, ci, pos, playing, setPlaying, setCi, setPos, setView } = useProjectStore();
-    const { crossfade, crossfadeMs, fadeEnabled, fadeOutMs } = useSettingsStore();
     const isMobile = useIsMobile();
 
     const [minimized, setMinimized] = useState(false);
@@ -15,23 +15,13 @@ export const MiniPlayer: React.FC = () => {
     if (!ct) return null;
     const progress = ct.duration_ms > 0 ? Math.min(100, Math.max(0, (pos / ct.duration_ms) * 100)) : 0;
 
-    // Función para saltar de tema con estilo (Graceful Skip)
     const handleNextGraceful = () => {
         if (!playing) {
             if (ci < pQueue.length - 1) { setCi(ci + 1); setPos(0); }
             return;
         }
 
-        const trackEnd = ct.endTime || ct.duration_ms;
-        const triggerMs = crossfade ? crossfadeMs : (fadeEnabled ? fadeOutMs : 300);
-        const jumpTo = Math.max(0, (trackEnd - triggerMs + 100) / 1000);
-        
-        const audioElements = document.querySelectorAll('audio');
-        audioElements.forEach(audio => {
-            if (!audio.paused) {
-                audio.currentTime = jumpTo;
-            }
-        });
+        skipToNextGracefully();
     };
 
     if (minimized) {
@@ -50,7 +40,7 @@ export const MiniPlayer: React.FC = () => {
                         minHeight: "38px",
                         padding: "0 14px",
                         borderRadius: "999px",
-                        background: "rgba(18, 24, 32, 0.78)",
+                        background: "rgba(18, 24, 32, 0.2)",
                         color: "white",
                         border: `1px solid ${THEME.colors.border}`,
                         cursor: "pointer",
@@ -77,8 +67,9 @@ export const MiniPlayer: React.FC = () => {
                     >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                     </span>
-                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                        Reproductor
+                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em" }}>
+                        {/* Nombre de la pista  */}
+                        {ct.title}
                     </span>
                 </button>
             </div>

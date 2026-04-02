@@ -15,6 +15,10 @@ import {
 } from "@suniplayer/core";
 import { useDownloadStore } from "../store/useDownloadStore";
 import { AudioStreamerService } from "./AudioStreamerService.ts";
+import {
+    registerAudioTransportController,
+    resolveNextTrackIndex,
+} from "./audioTransport";
 
 const TICK_MS = 100;
 
@@ -50,6 +54,32 @@ export function useAudio() {
     }, [playing, ci, vol, pQueue, stackOrder, pos]);
 
     const getActive = () => activeChannel.current === "A" ? channelARef.current : channelBRef.current;
+
+    const skipToNextGracefully = () => {
+        const playerState = usePlayerStore.getState();
+        const nextIndex = resolveNextTrackIndex(playerState);
+        if (nextIndex === null) return;
+
+        const currentTrack = playerState.pQueue[playerState.ci] ?? null;
+        const activeAudio = getActive();
+
+        if (playerState.playing && activeAudio && !activeAudio.paused && currentTrack) {
+            const settingsState = useSettingsStore.getState();
+            const transitionMs = settingsState.crossfade
+                ? settingsState.crossfadeMs
+                : (settingsState.fadeEnabled ? settingsState.fadeOutMs : 300);
+
+            activeChannel.current = activeChannel.current === "A" ? "B" : "A";
+            runFade(activeAudio, currentTrack, "out", transitionMs);
+        }
+
+        playerState.setPos(0);
+        playerState.setCi(nextIndex);
+
+        if (playerState.stackOrder.length > 0) {
+            playerState.setStackOrder(playerState.stackOrder.slice(1));
+        }
+    };
 
     const applyVol = (audio: HTMLAudioElement, track: Track | null, multiplier: number = 1) => {
         if (!audio) return;
@@ -92,6 +122,7 @@ export function useAudio() {
     useEffect(() => {
         channelARef.current = new Audio();
         channelBRef.current = new Audio();
+        registerAudioTransportController({ skipToNextGracefully });
         console.log("[useAudio] 🎧 Audio channels initialized (A/B)");
 
         // Setup event handlers for when audio is ready to play
@@ -159,6 +190,7 @@ export function useAudio() {
             channelBRef.current?.pause();
             fadeTimersRef.current.forEach(id => clearInterval(id));
             fadeTimersRef.current.clear();
+            registerAudioTransportController(null);
         };
     }, []);
 
