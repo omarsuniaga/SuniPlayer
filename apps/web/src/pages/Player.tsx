@@ -202,7 +202,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                     flexDirection: "column", 
                     padding: screenSize.isMobile ? "16px" : "32px", 
                     overflowY: "auto", 
-                    gap: 32, 
+                    gap: screenSize.isMobile ? 16 : 32, 
                     maxWidth: useColumns ? "900px" : "100%", 
                     margin: "0 auto", 
                     width: "100%",

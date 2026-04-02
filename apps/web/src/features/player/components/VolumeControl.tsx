@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { THEME } from "../../../data/theme.ts";
+import { useIsMobile } from "../../../utils/useMediaQuery";
 
 interface VolumeControlProps {
     vol: number;
@@ -11,6 +12,7 @@ interface VolumeControlProps {
 export const VolumeControl: React.FC<VolumeControlProps> = ({
     vol, mCol, performanceMode, onVolumeChange
 }) => {
+    const isMobile = useIsMobile();
     const [prevVol, setPrevVol] = useState(vol > 0 ? vol : 0.5);
     const isMuted = vol === 0;
 
@@ -24,16 +26,14 @@ export const VolumeControl: React.FC<VolumeControlProps> = ({
     };
 
     // Sensibilidad Logarítmica (Percepción humana)
-    // El usuario mueve de 0-100 linealmente, pero nosotros podemos 
-    // aplicar una curva para que el control sea más fino en rangos bajos.
     const displayVol = Math.round(vol * 100);
 
     return (
         <div style={{ 
             display: "flex", 
             alignItems: "center", 
-            gap: 16, 
-            padding: performanceMode ? "10px 20px" : "0 10px",
+            gap: isMobile ? 12 : 16, 
+            padding: isMobile ? "6px 12px" : (performanceMode ? "10px 20px" : "0 10px"),
             backgroundColor: "rgba(255,255,255,0.02)",
             borderRadius: THEME.radius.lg,
             border: `1px solid ${isMuted ? THEME.colors.status.error + "30" : "transparent"}`,
@@ -52,23 +52,23 @@ export const VolumeControl: React.FC<VolumeControlProps> = ({
                     justifyContent: "center",
                     color: isMuted ? THEME.colors.status.error : "rgba(255,255,255,0.5)",
                     transition: "all 0.2s",
-                    padding: 8,
+                    padding: isMobile ? 10 : 8,
                     borderRadius: "50%",
                     backgroundColor: isMuted ? `${THEME.colors.status.error}15` : "transparent"
                 }}
             >
                 {isMuted ? (
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/></svg>
+                    <svg width={isMobile ? 20 : 24} height={isMobile ? 20 : 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5zM23 9l-6 6M17 9l6 6"/></svg>
                 ) : (
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    <svg width={isMobile ? 20 : 24} height={isMobile ? 20 : 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
                 )}
             </button>
 
-            <div style={{ flex: 1, position: "relative", height: performanceMode ? 32 : 12 }}>
+            <div style={{ flex: 1, position: "relative", height: isMobile ? 8 : (performanceMode ? 32 : 12) }}>
                 <div style={{ 
                     position: "absolute", inset: 0, 
                     background: "rgba(255,255,255,0.06)", 
-                    borderRadius: performanceMode ? 16 : 6 
+                    borderRadius: isMobile ? 4 : (performanceMode ? 16 : 6) 
                 }} />
                 
                 {/* Barra de progreso de volumen */}
@@ -76,7 +76,7 @@ export const VolumeControl: React.FC<VolumeControlProps> = ({
                     position: "absolute", top: 0, bottom: 0, left: 0, 
                     width: `${vol * 100}%`, 
                     background: isMuted ? THEME.colors.status.error : THEME.gradients.brand, 
-                    borderRadius: performanceMode ? 16 : 6, 
+                    borderRadius: isMobile ? 4 : (performanceMode ? 16 : 6), 
                     boxShadow: isMuted ? "none" : `0 0 15px ${mCol}40`,
                     transition: "width 0.1s ease-out, background-color 0.3s"
                 }} />
@@ -93,9 +93,9 @@ export const VolumeControl: React.FC<VolumeControlProps> = ({
             </div>
 
             <div style={{ 
-                minWidth: 50, 
+                minWidth: isMobile ? 40 : 50, 
                 textAlign: "right",
-                fontSize: performanceMode ? 22 : 15, 
+                fontSize: isMobile ? 13 : (performanceMode ? 22 : 15), 
                 fontWeight: 900, 
                 fontFamily: THEME.fonts.mono, 
                 color: isMuted ? THEME.colors.status.error : mCol,

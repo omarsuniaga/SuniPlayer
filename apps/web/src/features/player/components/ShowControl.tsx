@@ -1,5 +1,6 @@
 import React from "react";
 import { THEME } from "../../../data/theme.ts";
+import { useIsMobile } from "../../../utils/useMediaQuery";
 
 interface ShowControlProps {
     crossfade: boolean;
@@ -28,40 +29,48 @@ export const ShowControl: React.FC<ShowControlProps> = ({
     mirrorMode, onToggleMirrorMode,
     onToggleQueue
 }) => {
+    const isMobile = useIsMobile();
+
     const ControlButton = ({ active, label, onClick, icon }: any) => (
         <button 
             onClick={onClick}
             style={{
-                flex: 1,
+                flex: isMobile ? "1 1 calc(33.33% - 8px)" : 1,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 gap: 6,
-                padding: "12px 8px",
+                padding: isMobile ? "8px 4px" : "12px 8px",
                 borderRadius: THEME.radius.md,
                 border: `1px solid ${active ? THEME.colors.brand.cyan : "rgba(255,255,255,0.1)"}`,
                 background: active ? `${THEME.colors.brand.cyan}15` : "rgba(255,255,255,0.02)",
                 color: active ? THEME.colors.brand.cyan : THEME.colors.text.muted,
                 cursor: "pointer",
                 transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                minWidth: "60px"
+                minWidth: isMobile ? "0" : "60px"
             }}
         >
-            <div style={{ opacity: active ? 1 : 0.5 }}>{icon}</div>
-            <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: "0.05em" }}>{label}</span>
+            <div style={{ opacity: active ? 1 : 0.5 }}>
+                {React.cloneElement(icon as React.ReactElement, { 
+                    width: isMobile ? 14 : 16, 
+                    height: isMobile ? 14 : 16 
+                })}
+            </div>
+            <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 900, letterSpacing: "0.05em" }}>{label}</span>
         </button>
     );
 
     return (
         <div className="show-control-wrapper" style={{ 
             display: "flex", 
-            gap: 10, 
+            gap: isMobile ? 8 : 10, 
             width: "100%", 
             backgroundColor: "rgba(255,255,255,0.02)", 
             padding: "8px", 
             borderRadius: THEME.radius.lg,
             border: `1px solid ${THEME.colors.border}`,
-            alignItems: "stretch"
+            alignItems: "stretch",
+            flexWrap: isMobile ? "wrap" : "nowrap"
         }}>
             <ControlButton 
                 active={crossfade} 
@@ -90,7 +99,7 @@ export const ShowControl: React.FC<ShowControlProps> = ({
                 />
             )}
 
-            <div className="nav-separator" style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />
+            {!isMobile && <div className="nav-separator" style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />}
 
             <ControlButton 
                 active={isMirrorOpen} 
@@ -104,12 +113,12 @@ export const ShowControl: React.FC<ShowControlProps> = ({
                 label={mirrorMode === 'floating' ? "FLOAT" : "DOCK"} 
                 onClick={onToggleMirrorMode}
                 icon={mirrorMode === 'floating' ? 
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> :
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6M3 10h18M3 14h18"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> :
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6M3 10h18M3 14h18"/></svg>
                 }
             />
             
-            <div className="nav-separator" style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />
+            {!isMobile && <div className="nav-separator" style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />}
             
             <button 
                 className="desktop-only-queue-btn"

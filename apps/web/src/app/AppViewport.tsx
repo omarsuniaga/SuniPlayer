@@ -78,11 +78,7 @@ export const AppViewport: React.FC = () => {
                 <MiniPlayer />
             )}
 
-            {showSettings && (
-                <div style={{ position: "fixed", inset: 0, zIndex: 5000 }}>
-                    <SettingsPanel />
-                </div>
-            )}
+            <SettingsPanel />
 
             <style>{`
                 .view-transition {

@@ -3,6 +3,7 @@ import React from "react";
 import { THEME } from "../../../data/theme.ts";
 import { Wave } from "../../../components/common/Wave.tsx";
 import { fmt } from "@suniplayer/core";
+import { useIsMobile } from "../../../utils/useMediaQuery";
 
 interface Props {
     waveData: number[];
@@ -14,43 +15,54 @@ interface Props {
     onSeek: (e: React.MouseEvent) => void;
 }
 
-export const PlayerWaveform: React.FC<Props> = ({ waveData, prog, mCol, isLive, pos, durationMs, onSeek }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div
-            onClick={onSeek}
-            style={{
-                cursor: "pointer",
-                borderRadius: THEME.radius.xl,
-                padding: "12px 0",
-                backgroundColor: "rgba(255,255,255,0.02)",
-                border: `1px solid ${THEME.colors.border}`,
-                position: "relative",
-                transition: "border-color 0.3s",
-                minHeight: 76,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-            }}
-        >
-            <Wave data={waveData} progress={prog} color={mCol} />
-            {/* Playhead */}
+export const PlayerWaveform: React.FC<Props> = ({ waveData, prog, mCol, isLive, pos, durationMs, onSeek }) => {
+    const isMobile = useIsMobile();
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 4 : 8 }}>
             <div
+                onClick={onSeek}
                 style={{
-                    position: "absolute",
-                    top: 4, bottom: 4,
-                    left: `${prog * 100}%`,
-                    width: 3,
-                    backgroundColor: mCol,
-                    borderRadius: 2,
-                    boxShadow: `0 0 15px ${mCol}`,
-                    transition: "left 0.25s linear",
+                    cursor: "pointer",
+                    borderRadius: THEME.radius.xl,
+                    padding: isMobile ? "8px 0" : "12px 0",
+                    backgroundColor: "rgba(255,255,255,0.02)",
+                    border: `1px solid ${THEME.colors.border}`,
+                    position: "relative",
+                    transition: "border-color 0.3s",
+                    minHeight: isMobile ? 56 : 76,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
                 }}
-            />
+            >
+                <Wave data={waveData} progress={prog} color={mCol} />
+                {/* Playhead */}
+                <div
+                    style={{
+                        position: "absolute",
+                        top: 4, bottom: 4,
+                        left: `${prog * 100}%`,
+                        width: isMobile ? 2 : 3,
+                        backgroundColor: mCol,
+                        borderRadius: 2,
+                        boxShadow: `0 0 15px ${mCol}`,
+                        transition: "left 0.25s linear",
+                    }}
+                />
+            </div>
+            {/* Timestamps */}
+            <div style={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                fontFamily: THEME.fonts.mono, 
+                fontSize: isMobile ? 10 : 12, 
+                color: THEME.colors.text.muted, 
+                padding: "0 8px" 
+            }}>
+                <span>{fmt(pos)}</span>
+                <span>-{fmt(Math.max(0, durationMs - pos))}</span>
+            </div>
         </div>
-        {/* Timestamps */}
-        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: THEME.fonts.mono, fontSize: 12, color: THEME.colors.text.muted, padding: "0 8px" }}>
-            <span>{fmt(pos)}</span>
-            <span>-{fmt(Math.max(0, durationMs - pos))}</span>
-        </div>
-    </div>
-);
+    );
+};

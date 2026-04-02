@@ -1,8 +1,10 @@
 import React from "react";
 import { THEME } from "../../data/theme.ts";
 import { useProjectStore } from "../../store/useProjectStore";
+import { useIsMobile } from "../../utils/useMediaQuery";
 
 const NAV_ITEMS = [
+// ... (rest of items unchanged)
     { id: "player", label: "Player", icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
     )},
@@ -20,17 +22,18 @@ const NAV_ITEMS = [
 export const BottomNav: React.FC = () => {
     const currentView = useProjectStore(s => s.view);
     const setView = useProjectStore(s => s.setView);
+    const isMobile = useIsMobile();
 
     return (
         <nav style={{
-            height: "72px",
-            backgroundColor: "rgba(13, 17, 23, 0.85)",
+            height: isMobile ? "56px" : "72px",
+            backgroundColor: "rgba(13, 17, 23, 0.9)",
             backdropFilter: "blur(12px)",
             borderTop: `1px solid ${THEME.colors.border}`,
             display: "flex",
             justifyContent: "space-around",
             alignItems: "center",
-            padding: "0 16px",
+            padding: isMobile ? "0 8px" : "0 16px",
             position: "relative",
             zIndex: 100,
             paddingBottom: "env(safe-area-inset-bottom)"
@@ -47,24 +50,31 @@ export const BottomNav: React.FC = () => {
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
-                            gap: 4,
+                            gap: isMobile ? 2 : 4,
                             color: isActive ? THEME.colors.brand.cyan : THEME.colors.text.muted,
                             cursor: "pointer",
                             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                             position: "relative",
-                            minWidth: "60px",
-                            transform: isActive ? "translateY(-4px)" : "none"
+                            minWidth: isMobile ? "50px" : "60px",
+                            padding: isMobile ? "4px 0" : "0",
+                            transform: isActive ? "translateY(-2px)" : "none"
                         }}
                     >
                         <div style={{
                             opacity: isActive ? 1 : 0.6,
                             transition: "transform 0.2s",
-                            transform: isActive ? "scale(1.1)" : "scale(1)"
+                            transform: isActive ? "scale(1.05)" : "scale(1)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
                         }}>
-                            {item.icon}
+                            {React.cloneElement(item.icon as React.ReactElement, {
+                                width: isMobile ? 18 : 20,
+                                height: isMobile ? 18 : 20
+                            })}
                         </div>
                         <span style={{ 
-                            fontSize: 10, 
+                            fontSize: isMobile ? 9 : 10, 
                             fontWeight: 800, 
                             textTransform: "uppercase",
                             letterSpacing: "0.05em"
@@ -75,9 +85,9 @@ export const BottomNav: React.FC = () => {
                         {isActive && (
                             <div style={{
                                 position: "absolute",
-                                top: -12,
-                                width: "4px",
-                                height: "4px",
+                                top: isMobile ? -8 : -12,
+                                width: "3px",
+                                height: "3px",
                                 borderRadius: "50%",
                                 backgroundColor: THEME.colors.brand.cyan,
                                 boxShadow: `0 0 10px ${THEME.colors.brand.cyan}`

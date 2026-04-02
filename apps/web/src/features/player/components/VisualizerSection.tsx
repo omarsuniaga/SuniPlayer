@@ -5,6 +5,7 @@ import { Wave } from "../../../components/common/Wave.tsx";
 import { MarkerLayer } from "../../../components/common/MarkerLayer";
 import { fmt } from "@suniplayer/core";
 import { useDownloadStore } from "../../../store/useDownloadStore";
+import { useIsMobile } from "../../../utils/useMediaQuery";
 
 interface VisualizerSectionProps {
     track: Track | null;
@@ -30,12 +31,15 @@ export const VisualizerSection: React.FC<VisualizerSectionProps> = ({
     currentWave, isLoadingWave, fadeEnabled, fadeInMs, fadeOutMs,
     onMarkersChange, onSeek
 }) => {
+    const isMobile = useIsMobile();
     const url = track ? (track.blob_url ?? `/audio/${encodeURIComponent(track.file_path || "")}`) : "";
     const download = useDownloadStore(s => s.activeDownloads[url]);
     const isBuffering = download && download.percentage < 100;
 
+    const waveHeight = isMobile ? 110 : (performanceMode ? 240 : 160);
+
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: performanceMode ? 24 : 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 8 : (performanceMode ? 24 : 12) }}>
             <MarkerLayer
                 markers={track?.markers || []}
                 posMs={pos}
@@ -45,7 +49,7 @@ export const VisualizerSection: React.FC<VisualizerSectionProps> = ({
                 onSeek={onSeek}
             >
                 <div style={{
-                    height: performanceMode ? 240 : 160, backgroundColor: "rgba(255,255,255,0.01)",
+                    height: waveHeight, backgroundColor: "rgba(255,255,255,0.01)",
                     border: `1px solid ${isLive ? THEME.colors.brand.cyan + "20" : THEME.colors.border}`,
                     borderRadius: THEME.radius.xl, position: "relative",
                     opacity: isLoadingWave ? 0.4 : 1, transition: "all 0.3s",
@@ -57,7 +61,7 @@ export const VisualizerSection: React.FC<VisualizerSectionProps> = ({
                         fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} 
                         totalMs={durMs} 
                     />
-                    
+// ... (rest of component unchanged)
                     {/* Buffer Progress Layer */}
                     {download && download.percentage < 100 && (
                         <div style={{ 
@@ -83,38 +87,40 @@ export const VisualizerSection: React.FC<VisualizerSectionProps> = ({
                             zIndex: 20
                         }}>
                             <div className="spinner" style={{
-                                width: 48, height: 48, 
+                                width: isMobile ? 36 : 48, height: isMobile ? 36 : 48, 
                                 border: "4px solid rgba(255,255,255,0.05)",
                                 borderTopColor: THEME.colors.brand.cyan,
                                 borderRadius: "50%",
                                 animation: "spin 0.8s linear infinite",
-                                marginBottom: 16,
+                                marginBottom: isMobile ? 8 : 16,
                                 boxShadow: `0 0 20px ${THEME.colors.brand.cyan}40`
                             }} />
-                            <div style={{ fontSize: 13, fontWeight: 900, color: "white", letterSpacing: 2 }}>
-                                CARGANDO BUFFER...
+                            <div style={{ fontSize: isMobile ? 11 : 13, fontWeight: 900, color: "white", letterSpacing: 2 }}>
+                                {isMobile ? "CARGANDO..." : "CARGANDO BUFFER..."}
                             </div>
-                            <div style={{ fontSize: 11, color: THEME.colors.brand.cyan, marginTop: 6, fontFamily: THEME.fonts.mono, fontWeight: 700 }}>
-                                {(download.speedKbps / 1024).toFixed(1)} MB/s
-                            </div>
+                            {!isMobile && (
+                                <div style={{ fontSize: 11, color: THEME.colors.brand.cyan, marginTop: 6, fontFamily: THEME.fonts.mono, fontWeight: 700 }}>
+                                    {(download.speedKbps / 1024).toFixed(1)} MB/s
+                                </div>
+                            )}
                         </div>
                     ) : download?.percentage === 100 ? (
                         <div style={{ 
-                            position: "absolute", top: 12, right: 12, 
+                            position: "absolute", top: isMobile ? 8 : 12, right: isMobile ? 8 : 12, 
                             display: "flex", alignItems: "center", gap: 6,
-                            padding: "4px 10px", borderRadius: 4,
+                            padding: isMobile ? "2px 6px" : "4px 10px", borderRadius: 4,
                             background: "rgba(0, 255, 255, 0.1)",
                             border: `1px solid ${THEME.colors.brand.cyan}30`,
                             zIndex: 15
                         }}>
-                            <div style={{ width: 6, height: 6, borderRadius: "50%", background: THEME.colors.brand.cyan, boxShadow: `0 0 8px ${THEME.colors.brand.cyan}` }} />
-                            <span style={{ fontSize: 9, fontWeight: 900, color: THEME.colors.brand.cyan, letterSpacing: 1 }}>BUFFER 100% (DISCO)</span>
+                            <div style={{ width: 4, height: 4, borderRadius: "50%", background: THEME.colors.brand.cyan, boxShadow: `0 0 8px ${THEME.colors.brand.cyan}` }} />
+                            <span style={{ fontSize: isMobile ? 7 : 9, fontWeight: 900, color: THEME.colors.brand.cyan, letterSpacing: 1 }}>{isMobile ? "CACHED" : "BUFFER 100% (DISCO)"}</span>
                         </div>
                     ) : null}
 
-                    <div style={{ position: "absolute", top: 0, bottom: 0, left: `${prog * 100}%`, width: 3, background: mCol, boxShadow: `0 0 20px ${mCol}`, zIndex: 5 }} />
+                    <div style={{ position: "absolute", top: 0, bottom: 0, left: `${prog * 100}%`, width: isMobile ? 2 : 3, background: mCol, boxShadow: `0 0 20px ${mCol}`, zIndex: 5 }} />
                     {isLive && playing && (
-                        <div style={{ position: "absolute", top: 12, left: 12, padding: "6px 14px", borderRadius: 6, background: THEME.colors.brand.cyan + "30", border: `1px solid ${THEME.colors.brand.cyan}50`, color: THEME.colors.brand.cyan, fontSize: 10, fontWeight: 900 }}>LIVE MODE PROTECTED</div>
+                        <div style={{ position: "absolute", top: isMobile ? 6 : 12, left: isMobile ? 6 : 12, padding: isMobile ? "3px 8px" : "6px 14px", borderRadius: 6, background: THEME.colors.brand.cyan + "30", border: `1px solid ${THEME.colors.brand.cyan}50`, color: THEME.colors.brand.cyan, fontSize: isMobile ? 8 : 10, fontWeight: 900 }}>LIVE MODE PROTECTED</div>
                     )}
                 </div>
             </MarkerLayer>
@@ -125,7 +131,7 @@ export const VisualizerSection: React.FC<VisualizerSectionProps> = ({
                 }
             `}</style>
 
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: performanceMode ? 16 : 13, fontFamily: THEME.fonts.mono, opacity: 0.5 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: isMobile ? 12 : (performanceMode ? 16 : 13), fontFamily: THEME.fonts.mono, opacity: 0.5 }}>
                 <span>{fmt(pos)}</span>
                 <span>-{fmt(rem)}</span>
             </div>

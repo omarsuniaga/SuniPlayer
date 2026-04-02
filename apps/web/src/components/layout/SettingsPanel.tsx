@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useProjectStore } from "../../store/useProjectStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useLibraryStore } from "../../store/useLibraryStore";
+import { useIsMobile } from "../../utils/useMediaQuery";
 import { THEME } from "../../data/theme.ts";
 import { PedalConfig } from "../settings/PedalConfig";
 import { VERSION_INFO } from "../../version";
@@ -123,7 +124,9 @@ const AccordionSection: React.FC<{
 
 // ── Settings Panel ───────────────────────────────────────────────────────────
 export const SettingsPanel: React.FC = () => {
+    const isMobile = useIsMobile();
     const showSettings = useProjectStore(s => s.showSettings);
+// ... (rest of store selectors)
     const setShowSettings = useProjectStore(s => s.setShowSettings);
     const autoNext = useProjectStore(s => s.autoNext);
     const setAutoNext = useProjectStore(s => s.setAutoNext);
@@ -160,15 +163,22 @@ export const SettingsPanel: React.FC = () => {
 
     const toggle = (id: string) => setOpenSection(openSection === id ? null : id);
 
+    const navHeight = 64;
+    const footerHeight = isMobile ? 56 : 72;
+
     return (
         <>
             {/* Backdrop */}
             <div
                 onClick={() => setShowSettings(false)}
                 style={{
-                    position: "fixed", inset: 0,
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    backdropFilter: "blur(4px)",
+                    position: "fixed", 
+                    top: navHeight,
+                    bottom: footerHeight,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "rgba(0,0,0,0.4)",
+                    backdropFilter: "blur(2px)",
                     zIndex: 800,
                     animation: "fadeIn 0.15s ease-out",
                 }}
@@ -177,10 +187,13 @@ export const SettingsPanel: React.FC = () => {
             {/* Drawer */}
             <div style={{
                 position: "fixed",
-                top: 0, right: 0, bottom: 0,
-                width: "min(400px, 92vw)",
+                top: navHeight, 
+                right: 0, 
+                bottom: footerHeight,
+                width: "min(400px, 100vw)",
                 backgroundColor: "#0D1117",
                 borderLeft: `1px solid ${THEME.colors.border}`,
+                borderTop: isMobile ? `1px solid ${THEME.colors.border}` : "none",
                 zIndex: 810,
                 display: "flex",
                 flexDirection: "column",
