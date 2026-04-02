@@ -55,7 +55,7 @@ export const StatsDashboard: React.FC = () => {
             <style>{`
                 .stats-container {
                     display: grid;
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    grid-template-columns: repeat(3, 1fr);
                     gap: 16px;
                     margin-bottom: 32px;
                     font-family: 'DM Sans', sans-serif;
@@ -78,7 +78,7 @@ export const StatsDashboard: React.FC = () => {
                     border-radius: 12px;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
+                    justifyContent: center;
                     font-size: 18px;
                 }
                 .stat-label {
@@ -113,24 +113,45 @@ export const StatsDashboard: React.FC = () => {
                     background: ${THEME.gradients.brand};
                 }
 
-                @media (max-width: 640px) {
+                @media (max-width: 768px) {
                     .stats-container {
-                        gap: 10px;
-                        grid-template-columns: repeat(3, minmax(180px, 1fr));
-                        overflow-x: auto;
+                        gap: 8px;
+                        grid-template-columns: repeat(3, 1fr);
+                        margin-bottom: 24px;
                     }
                     .stats-card {
-                        padding: 12px;
-                        gap: 10px;
+                        padding: 10px 6px;
+                        gap: 6px;
+                        flex-direction: column;
+                        align-items: center;
+                        text-align: center;
+                    }
+                    .stat-content {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                    }
+                    .stat-label {
+                        font-size: 7px;
+                        margin-bottom: 4px;
+                        white-space: nowrap;
                     }
                     .stat-value {
-                        font-size: 20px;
+                        font-size: 16px;
+                    }
+                    .stat-unit {
+                        font-size: 8px;
+                        margin-left: 2px;
                     }
                     .icon-box {
-                        width: 36px;
-                        height: 36px;
-                        min-width: 36px;
-                        font-size: 16px;
+                        width: 32px;
+                        height: 32px;
+                        min-width: 32px;
+                        font-size: 14px;
+                        border-radius: 8px;
+                    }
+                    .energy-bar-bg {
+                        display: none;
                     }
                 }
             `}</style>
