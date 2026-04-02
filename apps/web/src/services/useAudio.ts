@@ -21,6 +21,7 @@ import {
 } from "./audioTransport";
 
 const TICK_MS = 100;
+type PlaybackTransitionMode = "crossfade" | "fade" | "direct";
 
 export function useAudio() {
     const {
@@ -46,6 +47,7 @@ export function useAudio() {
     const activeChannel = useRef<"A" | "B">("A");
     const fadeTimersRef = useRef<Map<HTMLAudioElement, ReturnType<typeof setInterval>>>(new Map());
     const playbackQueueRef = useRef<{ audio: HTMLAudioElement; track: Track; type: "fade" | "direct"; fadeInMs?: number } | null>(null);
+    const pendingPlaybackModeRef = useRef<PlaybackTransitionMode>("direct");
     
     // Sincronización de estado para intervalos
     const stateRef = useRef({ playing, ci, vol, pQueue, stackOrder, pos });
@@ -68,6 +70,9 @@ export function useAudio() {
             const transitionMs = settingsState.crossfade
                 ? settingsState.crossfadeMs
                 : (settingsState.fadeEnabled ? settingsState.fadeOutMs : 300);
+            pendingPlaybackModeRef.current = settingsState.crossfade
+                ? "crossfade"
+                : (settingsState.fadeEnabled ? "fade" : "direct");
 
             activeChannel.current = activeChannel.current === "A" ? "B" : "A";
             runFade(activeAudio, currentTrack, "out", transitionMs);
@@ -79,6 +84,46 @@ export function useAudio() {
         if (playerState.stackOrder.length > 0) {
             playerState.setStackOrder(playerState.stackOrder.slice(1));
         }
+    };
+
+    const pausePlaybackGracefully = () => {
+        const playerState = usePlayerStore.getState();
+        const activeAudio = getActive();
+        const currentTrack = playerState.pQueue[playerState.ci] ?? null;
+        const settingsState = useSettingsStore.getState();
+
+        if (!playerState.playing) return;
+
+        if (!activeAudio || activeAudio.paused || !currentTrack) {
+            playerState.setPlaying(false);
+            return;
+        }
+
+        if (!settingsState.fadeEnabled || settingsState.fadeOutMs <= 0) {
+            activeAudio.pause();
+            playerState.setPlaying(false);
+            return;
+        }
+
+        runFade(activeAudio, currentTrack, "out", settingsState.fadeOutMs, () => {
+            playerState.setPlaying(false);
+        });
+    };
+
+    const resumePlaybackGracefully = () => {
+        const playerState = usePlayerStore.getState();
+        const settingsState = useSettingsStore.getState();
+
+        if (playerState.playing) return;
+
+        pendingPlaybackModeRef.current = settingsState.fadeEnabled ? "fade" : "direct";
+        playerState.setPlaying(true);
+    };
+
+    const togglePlaybackGracefully = () => {
+        const playerState = usePlayerStore.getState();
+        if (playerState.playing) pausePlaybackGracefully();
+        else resumePlaybackGracefully();
     };
 
     const applyVol = (audio: HTMLAudioElement, track: Track | null, multiplier: number = 1) => {
@@ -122,7 +167,10 @@ export function useAudio() {
     useEffect(() => {
         channelARef.current = new Audio();
         channelBRef.current = new Audio();
-        registerAudioTransportController({ skipToNextGracefully });
+        registerAudioTransportController({
+            skipToNextGracefully,
+            togglePlaybackGracefully,
+        });
         console.log("[useAudio] 🎧 Audio channels initialized (A/B)");
 
         // Setup event handlers for when audio is ready to play
@@ -237,14 +285,16 @@ export function useAudio() {
                     if (audio.paused || isNewSrc) {
                         // Si es nuevo o estaba pausado, queue the playback for when ready
                         console.log(`[useAudio] 📋 Queueing playback for: ${ct.title}, fadeEnabled: ${fadeEnabled}`);
-                        const shouldFadeIn = fadeEnabled || crossfade;
-                        const fadeInDuration = crossfade ? crossfadeMs : fadeInMs;
+                        const transitionMode = pendingPlaybackModeRef.current;
+                        const shouldFadeIn = transitionMode !== "direct";
+                        const fadeInDuration = transitionMode === "crossfade" ? crossfadeMs : fadeInMs;
                         playbackQueueRef.current = {
                             audio,
                             track: ct,
                             type: shouldFadeIn ? "fade" : "direct",
                             fadeInMs: shouldFadeIn ? fadeInDuration : undefined
                         };
+                        pendingPlaybackModeRef.current = "direct";
 
                         // If audio is already ready (cached or quick load), trigger immediately
                         if (audio.readyState >= 2) { // >= HAVE_CURRENT_DATA
@@ -313,6 +363,7 @@ export function useAudio() {
             const triggerMs = crossfade ? crossfadeMs : 300;
             if (remainingMs <= triggerMs) {
                 const oldPlayer = audio;
+                pendingPlaybackModeRef.current = crossfade ? "crossfade" : (fadeEnabled ? "fade" : "direct");
                 activeChannel.current = activeChannel.current === "A" ? "B" : "A";
                 runFade(oldPlayer, ct, "out", triggerMs);
                 

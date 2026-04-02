@@ -3,6 +3,7 @@ import {
     registerAudioTransportController,
     resolveNextTrackIndex,
     skipToNextGracefully,
+    togglePlaybackGracefully,
 } from "./audioTransport";
 
 describe("audioTransport", () => {
@@ -55,15 +56,23 @@ describe("audioTransport", () => {
 
     it("delegates graceful next requests to the registered controller", () => {
         const skipSpy = vi.fn();
+        const toggleSpy = vi.fn();
 
-        registerAudioTransportController({ skipToNextGracefully: skipSpy });
+        registerAudioTransportController({
+            skipToNextGracefully: skipSpy,
+            togglePlaybackGracefully: toggleSpy,
+        });
         skipToNextGracefully();
+        togglePlaybackGracefully();
 
         expect(skipSpy).toHaveBeenCalledTimes(1);
+        expect(toggleSpy).toHaveBeenCalledTimes(1);
 
         registerAudioTransportController(null);
         skipToNextGracefully();
+        togglePlaybackGracefully();
 
         expect(skipSpy).toHaveBeenCalledTimes(1);
+        expect(toggleSpy).toHaveBeenCalledTimes(1);
     });
 });

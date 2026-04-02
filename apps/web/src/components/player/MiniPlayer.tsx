@@ -3,10 +3,10 @@ import { useProjectStore } from "@suniplayer/core";
 import { THEME } from "../../data/theme";
 import { fmt } from "@suniplayer/core";
 import { useIsMobile } from "../../utils/useMediaQuery";
-import { skipToNextGracefully } from "../../services/audioTransport";
+import { skipToNextGracefully, togglePlaybackGracefully } from "../../services/audioTransport";
 
 export const MiniPlayer: React.FC = () => {
-    const { pQueue, ci, pos, playing, setPlaying, setCi, setPos, setView } = useProjectStore();
+    const { pQueue, ci, pos, playing, setCi, setPos, setView } = useProjectStore();
     const isMobile = useIsMobile();
 
     const [minimized, setMinimized] = useState(false);
@@ -143,7 +143,7 @@ export const MiniPlayer: React.FC = () => {
 
                 <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10 }} onClick={e => e.stopPropagation()}>
                     <button
-                        onClick={() => setPlaying(!playing)}
+                        onClick={togglePlaybackGracefully}
                         style={{
                             width: isMobile ? 38 : 42,
                             height: isMobile ? 38 : 42,

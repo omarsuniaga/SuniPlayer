@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useSettingsStore, PedalAction } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useDebugStore } from "../store/useDebugStore";
-import { skipToNextGracefully } from "./audioTransport";
+import { skipToNextGracefully, togglePlaybackGracefully } from "./audioTransport";
 
 /** Maps raw event.key values to human-readable labels */
 function keyLabel(key: string): string {
@@ -110,7 +110,7 @@ export function handlePedalEvent(
             }
             break;
         case "play_pause":
-            setPlaying(!usePlayerStore.getState().playing);
+            togglePlaybackGracefully();
             break;
         case "stop":
             setPlaying(false);

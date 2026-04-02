@@ -8,6 +8,7 @@ type NextTrackSnapshot = {
 
 export interface AudioTransportController {
     skipToNextGracefully: () => void;
+    togglePlaybackGracefully: () => void;
 }
 
 let controller: AudioTransportController | null = null;
@@ -18,6 +19,10 @@ export function registerAudioTransportController(nextController: AudioTransportC
 
 export function skipToNextGracefully() {
     controller?.skipToNextGracefully();
+}
+
+export function togglePlaybackGracefully() {
+    controller?.togglePlaybackGracefully();
 }
 
 export function resolveNextTrackIndex({ ci, pQueue, stackOrder }: NextTrackSnapshot): number | null {
