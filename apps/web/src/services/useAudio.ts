@@ -65,6 +65,7 @@ export function useAudio() {
     const playbackQueueRef = useRef<{ audio: HTMLAudioElement; track: Track; type: "fade" | "direct"; fadeInMs?: number } | null>(null);
     const pendingPlaybackModeRef = useRef<PlaybackTransitionMode>("direct");
     const pendingPauseModeRef = useRef<PauseTransitionMode>("idle");
+    const manualPauseTransitionRef = useRef(false);
     const settingsRef = useRef({
         crossfade,
         crossfadeMs,
@@ -132,27 +133,60 @@ export function useAudio() {
 
         if (!activeAudio || activeAudio.paused || !currentTrack) {
             pendingPauseModeRef.current = "idle";
+            manualPauseTransitionRef.current = false;
             playerState.setPlaying(false);
             return;
         }
 
         if (!settingsState.fadeEnabled || settingsState.fadeOutMs <= 0) {
             pendingPauseModeRef.current = "direct";
+            manualPauseTransitionRef.current = false;
+            activeAudio.pause();
             playerState.setPlaying(false);
             return;
         }
 
         pendingPauseModeRef.current = "fade";
-        playerState.setPlaying(false);
+        manualPauseTransitionRef.current = true;
+        runFade(activeAudio, currentTrack, "out", settingsState.fadeOutMs, () => {
+            manualPauseTransitionRef.current = false;
+            pendingPauseModeRef.current = "idle";
+            playerState.setPlaying(false);
+        });
     };
 
     const resumePlaybackGracefully = () => {
         const playerState = usePlayerStore.getState();
+        const activeAudio = getActive();
+        const currentTrack = playerState.pQueue[playerState.ci] ?? null;
         const settingsState = settingsRef.current;
 
         if (playerState.playing) return;
 
         pendingPauseModeRef.current = "idle";
+        manualPauseTransitionRef.current = false;
+
+        if (activeAudio && currentTrack && activeAudio.src) {
+            const existingTimer = fadeTimersRef.current.get(activeAudio);
+            if (existingTimer) {
+                clearInterval(existingTimer);
+                fadeTimersRef.current.delete(activeAudio);
+            }
+
+            if (settingsState.fadeEnabled && settingsState.fadeInMs > 0) {
+                runFade(activeAudio, currentTrack, "in", settingsState.fadeInMs);
+            } else {
+                applyVol(activeAudio, currentTrack);
+                activeAudio.play().catch((err) => {
+                    console.error("[useAudio] Immediate resume failed:", err?.message ?? err);
+                    playerState.setPlaying(false);
+                });
+            }
+            pendingPlaybackModeRef.current = "direct";
+            playerState.setPlaying(true);
+            return;
+        }
+
         pendingPlaybackModeRef.current = settingsState.fadeEnabled && settingsState.fadeInMs > 0 ? "fade" : "direct";
         playerState.setPlaying(true);
     };
@@ -356,7 +390,7 @@ export function useAudio() {
                     }
                 } else {
                     // 3. PAUSA (¿Debería detenerse?)
-                    if (!audio.paused) {
+                    if (!audio.paused && !manualPauseTransitionRef.current) {
                         const requestedPauseMode = pendingPauseModeRef.current;
                         pendingPauseModeRef.current = "idle";
 
@@ -401,7 +435,7 @@ export function useAudio() {
         const interval = setInterval(() => {
             const audio = getActive();
             const ct = pQueue[ci];
-            if (!audio || audio.paused || !ct) return;
+            if (!audio || audio.paused || !ct || manualPauseTransitionRef.current) return;
 
             const currentMs = audio.currentTime * 1000;
             setPos(Math.floor(currentMs));
