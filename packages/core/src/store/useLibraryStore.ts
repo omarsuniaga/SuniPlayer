@@ -26,6 +26,7 @@ interface LibraryState {
     // ── Repertoire Management ────────────────────────────────────────────────
     repertoire: Track[];
     addToRepertoire: (track: Track) => void;
+    addMultipleToRepertoire: (tracks: Track[]) => void;
     removeFromRepertoire: (trackId: string) => void;
 }
 
@@ -42,6 +43,12 @@ export const useLibraryStore = create<LibraryState>()(
             addToRepertoire: (track) => set((s) => ({ 
                 repertoire: [...s.repertoire.filter(t => t.id !== track.id), track] 
             })),
+
+            addMultipleToRepertoire: (tracks) => set((s) => {
+                const trackIds = new Set(tracks.map(t => t.id));
+                const filteredRepertoire = s.repertoire.filter(t => !trackIds.has(t.id));
+                return { repertoire: [...filteredRepertoire, ...tracks] };
+            }),
 
             removeFromRepertoire: (trackId) => set((s) => ({ 
                 repertoire: s.repertoire.filter(t => t.id !== trackId) 
