@@ -5,7 +5,7 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useLibraryStore } from "../store/useLibraryStore";
 import { THEME } from "../data/theme.ts";
-import catalogTracks from "../data/tracks.json";
+import { catalog as catalogTracks } from "@suniplayer/core";
 import { mc as mcHelper } from "@suniplayer/core";
 import { sumTrackDurationMs } from "@suniplayer/core";
 import { TrackTrimmer } from "../components/common/TrackTrimmer";

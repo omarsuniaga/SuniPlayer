@@ -45,6 +45,27 @@ export function isSupportedAudioFile(file: AudioFileLike): boolean {
     return Boolean(file.type?.startsWith("audio/") || SUPPORTED_AUDIO_FILE_PATTERN.test(file.name));
 }
 
+/**
+ * Parses a filename to extract potential artist and title.
+ * Expected format: "Artist - Title.mp3"
+ */
+export function parseTrackName(filename: string): { title: string; artist: string } {
+    const base = filename.replace(/\.[^/.]+$/, "");
+    const parts = base.split(" - ");
+
+    if (parts.length >= 2) {
+        return {
+            artist: parts[0].trim(),
+            title: parts.slice(1).join(" - ").trim(),
+        };
+    }
+
+    return {
+        artist: "Unknown Artist",
+        title: base.trim(),
+    };
+}
+
 export function getRelativeAudioPath(file: AudioFileLike, fallbackName?: string): string {
     return file.webkitRelativePath || fallbackName || file.name;
 }

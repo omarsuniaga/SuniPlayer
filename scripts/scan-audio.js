@@ -8,8 +8,8 @@ import crypto from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const audioDir = path.resolve(__dirname, '../public/audio');
-const outputFile = path.resolve(__dirname, '../src/data/tracks.json');
+const audioDir = path.resolve(__dirname, '../apps/web/public/audio');
+const outputFile = path.resolve(__dirname, '../packages/core/src/data/tracks.json');
 
 async function scanAudio() {
     console.log(`Scanning audio in: ${audioDir}`);

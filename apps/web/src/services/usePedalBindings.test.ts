@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handlePedalEvent } from "./usePedalBindings";
-import { useSettingsStore } from "../store/useSettingsStore";
-import { usePlayerStore } from "../store/usePlayerStore";
+import { useSettingsStore, usePlayerStore } from "@suniplayer/core";
 import type { Track } from "@suniplayer/core";
 
 const makeTrack = (id: string): Track => ({

@@ -39,7 +39,21 @@ import type { Track } from "@suniplayer/core";
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const resetAll = () => {`r`n    localStorage.clear();`r`n    configureStorage({`r`n        getItem: (name: string) => localStorage.getItem(name),`r`n        setItem: (name: string, value: string) => localStorage.setItem(name, value),`r`n        removeItem: (name: string) => localStorage.removeItem(name),`r`n        getAnalysis: async () => null,`r`n        saveAnalysis: async () => {},`r`n        getWaveform: async () => null,`r`n        saveWaveform: async () => {},`r`n        saveAudioFile: async () => {},`r`n        getAudioFile: async () => null,`r`n        deleteAudioFile: async () => {},`r`n        getAllStoredTrackIds: async () => [],`r`n    });
+const resetAll = () => {
+    localStorage.clear();
+    configureStorage({
+        getItem: (name: string) => localStorage.getItem(name),
+        setItem: (name: string, value: string) => localStorage.setItem(name, value),
+        removeItem: (name: string) => localStorage.removeItem(name),
+        getAnalysis: async () => null,
+        saveAnalysis: async () => {},
+        getWaveform: async () => null,
+        saveWaveform: async () => {},
+        saveAudioFile: async () => {},
+        getAudioFile: async () => null,
+        deleteAudioFile: async () => {},
+        getAllStoredTrackIds: async () => [],
+    });
     useBuilderStore.setState(useBuilderStore.getInitialState(), true);
     usePlayerStore.setState(usePlayerStore.getInitialState(), true);
     useSettingsStore.setState(useSettingsStore.getInitialState(), true);
