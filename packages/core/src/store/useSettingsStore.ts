@@ -33,9 +33,9 @@ interface SettingsState {
     performanceMode: boolean;
     setPerformanceMode: (v: boolean) => void;
 
-    // Immersion / Ring Mode
-    immersionMode: boolean;
-    setImmersionMode: (v: boolean) => void;
+    // Ring Control (HID Mouse Drag)
+    ringControlEnabled: boolean;
+    setRingControlEnabled: (v: boolean) => void;
 
     // Volume
     defaultVol: number;
@@ -114,8 +114,8 @@ export const useSettingsStore = create<SettingsState>()(
             performanceMode: false,
             setPerformanceMode: (performanceMode) => set({ performanceMode }),
 
-            immersionMode: false,
-            setImmersionMode: (immersionMode) => set({ immersionMode }),
+            ringControlEnabled: false,
+            setRingControlEnabled: (ringControlEnabled) => set({ ringControlEnabled }),
 
             defaultVol: 0.85,
             setDefaultVol: (defaultVol) => set({ defaultVol }),
@@ -207,7 +207,7 @@ export const useSettingsStore = create<SettingsState>()(
                 crossExpanded: state.crossExpanded,
                 crossfadeMs: state.crossfadeMs,
                 performanceMode: state.performanceMode,
-                immersionMode: state.immersionMode,
+                ringControlEnabled: state.ringControlEnabled,
                 defaultVol: state.defaultVol,
                 fadeEnabled: state.fadeEnabled,
                 fadeExpanded: state.fadeExpanded,

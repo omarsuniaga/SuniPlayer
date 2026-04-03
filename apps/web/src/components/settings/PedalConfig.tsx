@@ -184,16 +184,16 @@ export const PedalConfig: React.FC = () => {
 const GestureConfig: React.FC = () => {
     const gestureBindings = useSettingsStore(s => s.gestureBindings);
     const setGestureBinding = useSettingsStore(s => s.setGestureBinding);
-    const immersionMode = useSettingsStore(s => s.immersionMode);
-    const setImmersionMode = useSettingsStore(s => s.setImmersionMode);
+    const ringControlEnabled = useSettingsStore(s => s.ringControlEnabled);
+    const setRingControlEnabled = useSettingsStore(s => s.setRingControlEnabled);
 
     const directions: { dir: 'up' | 'down' | 'left' | 'right' | 'click' | 'dblclick', label: string, icon: string }[] = [
         { dir: 'click',    label: 'Botón Anillo (Click)', icon: '🖱️' },
         { dir: 'dblclick', label: 'Doble Click Anillo',  icon: '🖱️×2' },
-        { dir: 'up',       label: 'Gesto Rápido Arriba', icon: '↑' },
-        { dir: 'down',     label: 'Gesto Rápido Abajo',  icon: '↓' },
-        { dir: 'left',     label: 'Gesto Rápido Izq.',   icon: '←' },
-        { dir: 'right',    label: 'Gesto Rápido Der.',   icon: '→' },
+        { dir: 'up',       label: 'Presionar y Arrastrar Arriba', icon: '↑' },
+        { dir: 'down',     label: 'Presionar y Arrastrar Abajo',  icon: '↓' },
+        { dir: 'left',     label: 'Presionar y Arrastrar Izq.',   icon: '←' },
+        { dir: 'right',    label: 'Presionar y Arrastrar Der.',   icon: '→' },
     ];
 
     return (
@@ -201,31 +201,31 @@ const GestureConfig: React.FC = () => {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <span style={{ fontSize: 18 }}>💍</span>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.colors.text.muted, flex: 1 }}>
-                    Anillo Bluetooth (HID Mouse)
+                    Control por Anillo (Drag)
                 </span>
             </div>
 
             <div style={{ 
-                backgroundColor: immersionMode ? `${THEME.colors.brand.cyan}10` : "rgba(255,255,255,0.03)", 
-                padding: "16px", borderRadius: THEME.radius.md, border: `1px solid ${immersionMode ? THEME.colors.brand.cyan : THEME.colors.border}`,
+                backgroundColor: ringControlEnabled ? `${THEME.colors.brand.cyan}10` : "rgba(255,255,255,0.03)", 
+                padding: "16px", borderRadius: THEME.radius.md, border: `1px solid ${ringControlEnabled ? THEME.colors.brand.cyan : THEME.colors.border}`,
                 marginBottom: 20, cursor: "pointer"
-            }} onClick={() => setImmersionMode(!immersionMode)}>
+            }} onClick={() => setRingControlEnabled(!ringControlEnabled)}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: immersionMode ? THEME.colors.brand.cyan : "white" }}>MODO INMERSIVO</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: ringControlEnabled ? THEME.colors.brand.cyan : "white" }}>MODO ANILLO</span>
                     <div style={{ 
-                        width: 40, height: 20, borderRadius: 10, backgroundColor: immersionMode ? THEME.colors.brand.cyan : THEME.colors.border,
+                        width: 40, height: 20, borderRadius: 10, backgroundColor: ringControlEnabled ? THEME.colors.brand.cyan : THEME.colors.border,
                         position: "relative", transition: "all 0.2s"
                     }}>
                         <div style={{ 
                             width: 16, height: 16, borderRadius: "50%", backgroundColor: "white",
-                            position: "absolute", top: 2, left: immersionMode ? 22 : 2, transition: "all 0.2s"
+                            position: "absolute", top: 2, left: ringControlEnabled ? 22 : 2, transition: "all 0.2s"
                         }} />
                     </div>
                 </div>
                 <p style={{ fontSize: 11, color: THEME.colors.text.muted, margin: 0, lineHeight: 1.4 }}>
-                    {immersionMode 
-                        ? "Activado: El cursor se bloquea al hacer click. Los movimientos se traducen 100% a comandos. Pulsa ESC para salir." 
-                        : "Desactivado: El anillo se comporta como un mouse normal. Los gestos requieren velocidad."}
+                    {ringControlEnabled 
+                        ? "Activado: Mantén presionado un botón del anillo y arrastra en una dirección para disparar acciones." 
+                        : "Desactivado: El anillo se comporta como un mouse normal (sin gestos)."}
                 </p>
             </div>
 

@@ -4,99 +4,94 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { executePedalAction } from "./usePedalBindings";
 
 /**
- * useMouseGestureBindings — Advanced detection for HID Mouse / Ring controllers.
- * Detects "Flicks" (rapid relative movements) and mouse buttons without requiring drags.
+ * useMouseGestureBindings — Logic for Bluetooth Ring (HID Mouse).
+ * Only triggers actions when a button is HELD and DRAGGED (mousedown -> move -> mouseup).
  */
 export function useMouseGestureBindings() {
     const addLog = useDebugStore(s => s.addLog);
-    const { gestureBindings, immersionMode, setImmersionMode } = useSettingsStore();
+    const { gestureBindings, ringControlEnabled } = useSettingsStore();
     
-    // Accumulators for movement speed
-    const moveBuffer = useRef<{ x: number, y: number, lastTime: number }>({ x: 0, y: 0, lastTime: 0 });
-    const FLICK_THRESHOLD = 150; // px displacement in short window
-    const FLICK_WINDOW_MS = 150; // reset buffer after this time of inactivity
-    const COOLDOWN_MS = 400;     // prevent rapid fire gestures
-    const lastTriggerTime = useRef(0);
+    const isPressed = useRef(false);
+    const startPos = useRef<{ x: number, y: number } | null>(null);
+    const dragBuffer = useRef({ x: 0, y: 0 });
+    
+    const DRAG_THRESHOLD = 50; // pixels to count as a deliberate gesture
 
     useEffect(() => {
-        const trigger = (direction: "up" | "down" | "left" | "right") => {
-            const now = Date.now();
-            if (now - lastTriggerTime.current < COOLDOWN_MS) return;
+        if (!ringControlEnabled) return;
 
-            const action = gestureBindings[direction];
-            if (action && action !== "none") {
-                executePedalAction(action, addLog);
-                lastTriggerTime.current = now;
-                // Clear buffer after trigger
-                moveBuffer.current = { x: 0, y: 0, lastTime: now };
-            }
+        const handleMouseDown = (e: MouseEvent) => {
+            // Ignorar si el target es un input o botón para no romper el UI normal
+            if ((e.target as HTMLElement).closest('button, input, textarea, select')) return;
+
+            isPressed.current = true;
+            startPos.current = { x: e.screenX, y: e.screenY };
+            dragBuffer.current = { x: 0, y: 0 };
         };
 
         const handleMouseMove = (e: MouseEvent) => {
-            const now = Date.now();
-            
-            // If window expired, reset buffer
-            if (now - moveBuffer.current.lastTime > FLICK_WINDOW_MS) {
-                moveBuffer.current = { x: 0, y: 0, lastTime: now };
-            }
+            if (!isPressed.current) return;
 
-            // Accumulate relative movement (works even without Pointer Lock)
-            moveBuffer.current.x += e.movementX;
-            moveBuffer.current.y += e.movementY;
-            moveBuffer.current.lastTime = now;
-
-            // Check for flicks
-            const absX = Math.abs(moveBuffer.current.x);
-            const absY = Math.abs(moveBuffer.current.y);
-
-            if (absX > FLICK_THRESHOLD && absX > absY) {
-                trigger(moveBuffer.current.x > 0 ? "right" : "left");
-            } else if (absY > FLICK_THRESHOLD && absY > absX) {
-                trigger(moveBuffer.current.y > 0 ? "down" : "up");
-            }
+            // Acumulamos el movimiento relativo
+            dragBuffer.current.x += e.movementX;
+            dragBuffer.current.y += e.movementY;
         };
 
-        const handleClick = (e: MouseEvent) => {
-            // Priority: if immersion mode is ON and we are not locked, LOCK NOW.
-            if (immersionMode && !document.pointerLockElement) {
-                document.body.requestPointerLock();
-                addLog("Ring: Modo Inmersivo activado");
-                return;
+        const handleMouseUp = (e: MouseEvent) => {
+            if (!isPressed.current) return;
+            isPressed.current = false;
+
+            const totalX = dragBuffer.current.x;
+            const totalY = dragBuffer.current.y;
+            const absX = Math.abs(totalX);
+            const absY = Math.abs(totalY);
+
+            // Solo disparamos si se movió más del umbral
+            if (Math.max(absX, absY) > DRAG_THRESHOLD) {
+                let direction: "up" | "down" | "left" | "right" | null = null;
+
+                if (absX > absY) {
+                    direction = totalX > 0 ? "right" : "left";
+                } else {
+                    direction = totalY > 0 ? "down" : "up";
+                }
+
+                if (direction) {
+                    const action = gestureBindings[direction];
+                    if (action && action !== "none") {
+                        executePedalAction(action, addLog);
+                    }
+                }
+            } else {
+                // Si no hubo arrastre suficiente, lo tratamos como un Click simple
+                const action = gestureBindings.click;
+                if (action && action !== "none") {
+                    executePedalAction(action, addLog);
+                }
             }
 
-            // Standard click binding
-            const action = gestureBindings.click;
-            if (action && action !== "none") {
-                executePedalAction(action, addLog);
-            }
+            startPos.current = null;
+            dragBuffer.current = { x: 0, y: 0 };
         };
 
-        const handleDblClick = () => {
+        const handleDblClick = (e: MouseEvent) => {
+            if ((e.target as HTMLElement).closest('button, input, textarea, select')) return;
             const action = gestureBindings.dblclick;
             if (action && action !== "none") {
                 executePedalAction(action, addLog);
             }
         };
 
-        // Pointer Lock Change detection
-        const handleLockChange = () => {
-            if (!document.pointerLockElement && immersionMode) {
-                // If user pressed Escape or system forced unlock
-                addLog("Ring: Modo Inmersivo desactivado");
-                // We keep the settings toggle ON, so the next click re-locks.
-            }
-        };
-
+        window.addEventListener("mousedown", handleMouseDown, { capture: true });
         window.addEventListener("mousemove", handleMouseMove, { capture: true });
-        window.addEventListener("click", handleClick, { capture: true });
+        window.addEventListener("mouseup", handleMouseUp, { capture: true });
         window.addEventListener("dblclick", handleDblClick, { capture: true });
-        document.addEventListener("pointerlockchange", handleLockChange);
 
         return () => {
+            window.removeEventListener("mousedown", handleMouseDown, { capture: true });
             window.removeEventListener("mousemove", handleMouseMove, { capture: true });
-            window.removeEventListener("click", handleClick, { capture: true });
+            window.removeEventListener("mouseup", handleMouseUp, { capture: true });
             window.removeEventListener("dblclick", handleDblClick, { capture: true });
-            document.removeEventListener("pointerlockchange", handleLockChange);
         };
-    }, [addLog, gestureBindings, immersionMode]);
+    }, [addLog, gestureBindings, ringControlEnabled]);
 }
