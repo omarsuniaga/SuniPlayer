@@ -1,8 +1,9 @@
-import React from "react";
+﻿import React from "react";
 import { Track } from "@suniplayer/core";
 import { THEME } from "../../data/theme";
 import { usePreviewStore } from "../../store/usePreviewStore";
 import { LoadingSpinner } from "../common/LoadingSpinner";
+import { useIsMobile } from "../../utils/useMediaQuery";
 
 interface TrackRowV2Props {
     track: Track;
@@ -24,7 +25,8 @@ export const TrackRowV2: React.FC<TrackRowV2Props> = ({
     style
 }) => {
     const { previewTrackId, isPlaying, isLoading, togglePreview } = usePreviewStore();
-    
+    const isMobile = useIsMobile();
+
     const isThisTrackPreviewing = previewTrackId === track.id;
     const isThisTrackPlaying = isThisTrackPreviewing && isPlaying;
     const isThisTrackLoading = isThisTrackPreviewing && isLoading;
@@ -36,8 +38,154 @@ export const TrackRowV2: React.FC<TrackRowV2Props> = ({
         return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     };
 
+    if (isMobile) {
+        return (
+            <div
+                style={{
+                    ...style,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "0 12px",
+                    borderBottom: `1px solid ${THEME.colors.border}`,
+                    backgroundColor: isThisTrackPreviewing ? "rgba(6, 182, 212, 0.05)" : "transparent",
+                    color: THEME.colors.text.primary,
+                    transition: "background-color 0.2s",
+                    height: "78px",
+                    overflow: "hidden",
+                }}
+            >
+                <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => onSelectToggle(track.id)}
+                    style={{
+                        accentColor: THEME.colors.brand.cyan,
+                        cursor: "pointer",
+                        width: "16px",
+                        height: "16px",
+                        flexShrink: 0,
+                    }}
+                />
+
+                <button
+                    onClick={() => togglePreview(track)}
+                    style={{
+                        background: isThisTrackPlaying ? THEME.colors.brand.cyan : "rgba(255,255,255,0.05)",
+                        border: "none",
+                        width: "34px",
+                        height: "34px",
+                        borderRadius: "50%",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: isThisTrackPlaying ? "black" : THEME.colors.brand.cyan,
+                        fontSize: "14px",
+                        transition: "all 0.2s",
+                        flexShrink: 0,
+                    }}
+                >
+                    {isThisTrackLoading ? (
+                        <LoadingSpinner size={14} color={isThisTrackPlaying ? "black" : THEME.colors.brand.cyan} />
+                    ) : (
+                        isThisTrackPlaying ? "⏸" : "▶"
+                    )}
+                </button>
+
+                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                        <div
+                            style={{
+                                flex: 1,
+                                minWidth: 0,
+                                fontWeight: 700,
+                                fontSize: 14,
+                                lineHeight: 1.2,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            {track.title}
+                        </div>
+                        {isInRepertoire && (
+                            <span
+                                style={{
+                                    flexShrink: 0,
+                                    fontSize: 9,
+                                    color: THEME.colors.status.success,
+                                    backgroundColor: `${THEME.colors.status.success}20`,
+                                    padding: "3px 6px",
+                                    borderRadius: 999,
+                                    fontWeight: 800,
+                                    letterSpacing: "0.06em",
+                                }}
+                            >
+                                ACTIVE
+                            </span>
+                        )}
+                    </div>
+
+                    <div
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(3, minmax(0, auto)) minmax(0, 1fr)",
+                            alignItems: "center",
+                            gap: 8,
+                            minWidth: 0,
+                            color: THEME.colors.text.secondary,
+                            fontSize: 11,
+                            lineHeight: 1.1,
+                        }}
+                    >
+                        <span style={{ color: THEME.colors.text.muted, whiteSpace: "nowrap" }}>
+                            {formatDuration(track.duration_ms)}
+                        </span>
+                        <span style={{ color: THEME.colors.brand.cyan, fontFamily: THEME.fonts.mono, whiteSpace: "nowrap" }}>
+                            {Math.round(track.bpm || 0) || "-"} BPM
+                        </span>
+                        <span style={{ color: THEME.colors.brand.violet, fontFamily: THEME.fonts.mono, whiteSpace: "nowrap" }}>
+                            {track.key || "-"}
+                        </span>
+                        <span
+                            style={{
+                                color: THEME.colors.text.muted,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                textAlign: "right",
+                            }}
+                        >
+                            {track.artist || ""}
+                        </span>
+                    </div>
+                </div>
+
+                <button
+                    onClick={() => onDelete(track)}
+                    style={{
+                        background: "none",
+                        border: "none",
+                        color: THEME.colors.text.muted,
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        padding: "8px 4px",
+                        transition: "color 0.2s",
+                        flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = THEME.colors.status.error}
+                    onMouseLeave={(e) => e.currentTarget.style.color = THEME.colors.text.muted}
+                    aria-label={`Eliminar ${track.title}`}
+                >
+                    ✕
+                </button>
+            </div>
+        );
+    }
+
     return (
-        <div 
+        <div
             style={{
                 ...style,
                 display: "grid",
@@ -52,13 +200,12 @@ export const TrackRowV2: React.FC<TrackRowV2Props> = ({
                 height: "56px"
             }}
         >
-            {/* 1. Multi-select Checkbox */}
             <div style={{ display: "flex", justifyContent: "center" }}>
-                <input 
-                    type="checkbox" 
-                    checked={isSelected} 
+                <input
+                    type="checkbox"
+                    checked={isSelected}
                     onChange={() => onSelectToggle(track.id)}
-                    style={{ 
+                    style={{
                         accentColor: THEME.colors.brand.cyan,
                         cursor: "pointer",
                         width: "16px",
@@ -67,7 +214,6 @@ export const TrackRowV2: React.FC<TrackRowV2Props> = ({
                 />
             </div>
 
-            {/* 2. Play/Pause Button */}
             <div style={{ display: "flex", justifyContent: "center" }}>
                 <button
                     onClick={() => togglePreview(track)}
@@ -94,13 +240,12 @@ export const TrackRowV2: React.FC<TrackRowV2Props> = ({
                 </button>
             </div>
 
-            {/* 3. Title */}
             <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "10px" }}>
                 {track.title}
                 {isInRepertoire && (
-                    <span style={{ 
-                        marginLeft: "8px", 
-                        fontSize: "10px", 
+                    <span style={{
+                        marginLeft: "8px",
+                        fontSize: "10px",
                         color: THEME.colors.status.success,
                         backgroundColor: `${THEME.colors.status.success}20`,
                         padding: "2px 6px",
@@ -112,32 +257,26 @@ export const TrackRowV2: React.FC<TrackRowV2Props> = ({
                 )}
             </div>
 
-            {/* 4. Artist */}
             <div style={{ color: THEME.colors.text.secondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "10px" }}>
                 {track.artist || "-"}
             </div>
 
-            {/* 5. BPM */}
             <div style={{ fontFamily: THEME.fonts.mono, color: THEME.colors.brand.cyan, textAlign: "center" }}>
                 {Math.round(track.bpm || 0) || "-"}
             </div>
 
-            {/* 6. Key */}
             <div style={{ fontFamily: THEME.fonts.mono, color: THEME.colors.brand.violet, textAlign: "center" }}>
                 {track.key || "-"}
             </div>
 
-            {/* 7. Genre */}
             <div style={{ color: THEME.colors.text.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {track.genre || "-"}
             </div>
 
-            {/* 8. Duration */}
             <div style={{ color: THEME.colors.text.secondary, textAlign: "right" }}>
                 {formatDuration(track.duration_ms)}
             </div>
 
-            {/* 9. Delete Button */}
             <div style={{ display: "flex", justifyContent: "center" }}>
                 <button
                     onClick={() => onDelete(track)}
@@ -146,14 +285,15 @@ export const TrackRowV2: React.FC<TrackRowV2Props> = ({
                         border: "none",
                         color: THEME.colors.text.muted,
                         cursor: "pointer",
-                        fontSize: "16px",
+                        fontSize: "14px",
                         padding: "8px",
                         transition: "color 0.2s"
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.color = THEME.colors.status.error}
                     onMouseLeave={(e) => e.currentTarget.style.color = THEME.colors.text.muted}
+                    aria-label={`Eliminar ${track.title}`}
                 >
-                    🗑️
+                    ✕
                 </button>
             </div>
         </div>

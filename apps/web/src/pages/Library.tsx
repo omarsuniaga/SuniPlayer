@@ -33,7 +33,7 @@ export const Library: React.FC = () => {
     const rowVirtualizer = useVirtualizer({
         count: sortedTracks.length,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => 56,
+        estimateSize: () => isMobile ? 78 : 56,
         overscan: 10,
     });
 
@@ -141,20 +141,22 @@ export const Library: React.FC = () => {
                 >
                     <div
                         style={{
-                            padding: isMobile ? "16px 18px" : "20px 32px",
+                            padding: isMobile ? "12px 14px" : "20px 32px",
                             borderBottom: `1px solid ${THEME.colors.border}`,
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
                             background: "rgba(255,255,255,0.02)",
+                            gap: isMobile ? 8 : 16,
+                            flexWrap: isMobile ? "wrap" : "nowrap",
                         }}
                     >
-                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                            <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: "white", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 16, minWidth: 0, flexWrap: isMobile ? "wrap" : "nowrap" }}>
+                            <h2 style={{ fontSize: isMobile ? 13 : 16, fontWeight: 800, margin: 0, color: "white", textTransform: "uppercase", letterSpacing: isMobile ? "0.03em" : "0.05em" }}>
                                 {sortedTracks.length} Archivos Disponibles
                             </h2>
                             {selectedTrackIds.size > 0 && (
-                                <div style={{ backgroundColor: `${THEME.colors.brand.cyan}20`, color: THEME.colors.brand.cyan, padding: "4px 12px", borderRadius: isMobile ? 18 : 20, fontSize: 11, fontWeight: 800 }}>
+                                <div style={{ backgroundColor: `${THEME.colors.brand.cyan}20`, color: THEME.colors.brand.cyan, padding: isMobile ? "4px 10px" : "4px 12px", borderRadius: isMobile ? 18 : 20, fontSize: isMobile ? 10 : 11, fontWeight: 800 }}>
                                     {selectedTrackIds.size} SELECCIONADOS
                                 </div>
                             )}
@@ -166,6 +168,7 @@ export const Library: React.FC = () => {
                         style={{
                             flex: 1,
                             overflowY: "auto",
+                            overflowX: "hidden",
                             padding: "8px 0",
                             position: "relative",
                             scrollbarWidth: "thin",
