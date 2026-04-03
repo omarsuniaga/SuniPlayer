@@ -257,24 +257,34 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
 
     if (pending.length > 0) {
         return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: 20, minHeight: 0, height: "100%" }}>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900 }}>Confirmar Metadatos</h3>
-                <div style={{ color: THEME.colors.text.muted, fontSize: 13, lineHeight: 1.5 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 14px 0", minHeight: 0, height: "100%" }}>
+                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 900 }}>Confirmar Importación</h3>
+                <div style={{ color: THEME.colors.text.muted, fontSize: 12, lineHeight: 1.5 }}>
                     Revisá las canciones antes de guardarlas. La lista usa ahora todo el espacio disponible del contenedor.
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, minHeight: 220, maxHeight: "min(52vh, 460px)", overflowY: "auto", paddingRight: 4 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 6, paddingBottom: 120 }}>
                     {pending.map(t => (
-                        <div key={t.id} style={{ padding: 14, border: `1px solid ${THEME.colors.border}`, borderRadius: 12, background: "rgba(255,255,255,0.02)" }}>
+                        <div key={t.id} style={{ padding: "14px 16px", border: `1px solid ${THEME.colors.border}`, borderRadius: 16, background: "rgba(255,255,255,0.02)" }}>
                             <strong>{t.title}</strong> - {t.bpm} BPM
                         </div>
                     ))}
                 </div>
-                <button
-                    onClick={confirmImport}
-                    style={{ marginTop: "auto", width: "100%", padding: 12, background: THEME.colors.brand.cyan, color: "black", border: "none", borderRadius: 8, fontWeight: 800, cursor: "pointer" }}
+                <div
+                    style={{
+                        position: "sticky",
+                        bottom: 0,
+                        marginTop: "auto",
+                        padding: "12px 0 16px",
+                        background: "linear-gradient(180deg, rgba(18,24,32,0) 0%, rgba(18,24,32,0.92) 24%, rgba(18,24,32,1) 100%)",
+                    }}
                 >
-                    GUARDAR EN DISCO VIRTUAL ({pending.length})
-                </button>
+                    <button
+                        onClick={confirmImport}
+                        style={{ width: "100%", padding: 13, background: THEME.colors.brand.cyan, color: "black", border: "none", borderRadius: 14, fontWeight: 900, cursor: "pointer", boxShadow: `0 10px 24px ${THEME.colors.brand.cyan}35` }}
+                    >
+                        GUARDAR EN DISCO VIRTUAL ({pending.length})
+                    </button>
+                </div>
             </div>
         );
     }

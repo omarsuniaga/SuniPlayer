@@ -1,5 +1,6 @@
 import React from "react";
 import { THEME } from "../../data/theme";
+import { useIsMobile } from "../../utils/useMediaQuery";
 
 interface LibraryToolbarProps {
     onImport: () => void;
@@ -9,54 +10,62 @@ interface LibraryToolbarProps {
     hasTracks: boolean;
 }
 
-export const LibraryToolbar: React.FC<LibraryToolbarProps> = ({ 
-    onImport, 
-    onClear, 
-    onAcceptSelected, 
+export const LibraryToolbar: React.FC<LibraryToolbarProps> = ({
+    onImport,
+    onClear,
+    onAcceptSelected,
     showAccept,
-    hasTracks 
+    hasTracks
 }) => {
+    const isMobile = useIsMobile();
+
     return (
-        <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
-            alignItems: "center", 
-            paddingBottom: "20px",
+        <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: isMobile ? "flex-start" : "center",
+            paddingBottom: isMobile ? "12px" : "20px",
             borderBottom: `1px solid ${THEME.colors.border}`,
-            marginBottom: "20px"
+            marginBottom: isMobile ? "10px" : "20px",
+            gap: isMobile ? "12px" : 0,
         }}>
-            <div style={{ display: "flex", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
                 <button
                     onClick={onImport}
-                    style={{ 
-                        padding: "10px 16px", 
-                        borderRadius: "10px", 
-                        background: THEME.colors.brand.cyan, 
-                        color: "black", 
-                        border: "none", 
-                        fontWeight: 800, 
-                        fontSize: "13px", 
-                        cursor: "pointer", 
-                        display: "flex", 
-                        alignItems: "center", 
-                        gap: "8px",
+                    style={{
+                        width: isMobile ? "52px" : "auto",
+                        height: isMobile ? "52px" : "auto",
+                        padding: isMobile ? "0" : "10px 16px",
+                        borderRadius: isMobile ? "999px" : "10px",
+                        background: THEME.colors.brand.cyan,
+                        color: "black",
+                        border: "none",
+                        fontWeight: 800,
+                        fontSize: isMobile ? "24px" : "13px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: isMobile ? "0" : "8px",
                         transition: "all 0.2s"
                     }}
+                    aria-label="Importar audios"
                 >
-                    <span style={{ fontSize: "16px" }}>+</span> IMPORTAR
+                    <span style={{ fontSize: isMobile ? "24px" : "16px", lineHeight: 1 }}>+</span>
+                    {!isMobile && " IMPORTAR"}
                 </button>
-                
+
                 {hasTracks && (
                     <button
-                        onClick={() => confirm("¿VACIAR BIBLIOTECA? Esta acción borrará todos los archivos locales.") && onClear()}
-                        style={{ 
-                            padding: "10px 16px", 
-                            borderRadius: "10px", 
-                            background: "rgba(239, 68, 68, 0.1)", 
-                            color: THEME.colors.status.error, 
-                            border: `1px solid ${THEME.colors.status.error}30`, 
-                            fontWeight: 700, 
-                            fontSize: "13px", 
+                        onClick={() => confirm("?VACIAR BIBLIOTECA? Esta acci?n borrar? todos los archivos locales.") && onClear()}
+                        style={{
+                            padding: isMobile ? "8px 12px" : "10px 16px",
+                            borderRadius: isMobile ? "999px" : "10px",
+                            background: "rgba(239, 68, 68, 0.1)",
+                            color: THEME.colors.status.error,
+                            border: `1px solid ${THEME.colors.status.error}30`,
+                            fontWeight: 700,
+                            fontSize: isMobile ? "11px" : "13px",
                             cursor: "pointer",
                             transition: "all 0.2s"
                         }}
@@ -69,14 +78,14 @@ export const LibraryToolbar: React.FC<LibraryToolbarProps> = ({
             {showAccept && (
                 <button
                     onClick={onAcceptSelected}
-                    style={{ 
-                        padding: "10px 20px", 
-                        borderRadius: "10px", 
-                        background: THEME.gradients.brand, 
-                        color: "white", 
-                        border: "none", 
-                        fontWeight: 900, 
-                        fontSize: "13px", 
+                    style={{
+                        padding: isMobile ? "10px 14px" : "10px 20px",
+                        borderRadius: isMobile ? "999px" : "10px",
+                        background: THEME.gradients.brand,
+                        color: "white",
+                        border: "none",
+                        fontWeight: 900,
+                        fontSize: isMobile ? "11px" : "13px",
                         cursor: "pointer",
                         boxShadow: `0 8px 20px ${THEME.colors.brand.cyan}30`,
                         transition: "all 0.2s"

@@ -71,11 +71,12 @@ export const Library: React.FC = () => {
                 flex: 1,
                 display: "flex",
                 flexDirection: "column",
-                padding: isMobile ? "20px 16px 24px" : "32px",
+                padding: isMobile ? "14px 12px 12px" : "32px",
                 backgroundColor: "#0A0E14",
                 fontFamily: "'DM Sans', sans-serif",
                 height: "100%",
                 overflow: "hidden",
+                gap: isMobile ? 10 : 16,
             }}
         >
             <input
@@ -87,11 +88,11 @@ export const Library: React.FC = () => {
                 onChange={() => setImportOpen(true)}
             />
 
-            <header style={{ marginBottom: isMobile ? 20 : 32 }}>
-                <h1 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 900, margin: 0, letterSpacing: "-0.04em", color: "white" }}>
+            <header style={{ marginBottom: isMobile ? 4 : 16 }}>
+                <h1 style={{ fontSize: isMobile ? 18 : 40, fontWeight: 900, margin: 0, letterSpacing: isMobile ? "-0.03em" : "-0.04em", color: "white", lineHeight: 1.05 }}>
                     Biblioteca Local
                 </h1>
-                <p style={{ fontSize: 16, color: THEME.colors.text.muted, marginTop: 6, fontWeight: 500 }}>
+                <p style={{ fontSize: isMobile ? 12 : 16, color: THEME.colors.text.muted, margin: isMobile ? "4px 0 0" : "6px 0 0", fontWeight: 500, lineHeight: 1.35, maxWidth: isMobile ? "100%" : 520 }}>
                     Gestioná tu música offline para el escenario
                 </p>
             </header>
@@ -108,15 +109,16 @@ export const Library: React.FC = () => {
                 <div
                     style={{
                         backgroundColor: "#121820",
-                        borderRadius: 20,
+                        borderRadius: isMobile ? 18 : 20,
                         border: `1px solid ${THEME.colors.brand.cyan}30`,
                         overflow: "hidden",
-                        marginBottom: 24,
+                        marginBottom: isMobile ? 6 : 24,
                         backdropFilter: "blur(20px)",
                         display: "flex",
                         flexDirection: "column",
                         flex: 1,
-                        minHeight: isMobile ? 280 : 340,
+                        minHeight: isMobile ? 0 : 340,
+                        width: "100%",
                     }}
                 >
                     <ImportZone externalFiles={fileInputRef.current?.files} onClose={() => setImportOpen(false)} />
@@ -152,7 +154,7 @@ export const Library: React.FC = () => {
                                 {sortedTracks.length} Archivos Disponibles
                             </h2>
                             {selectedTrackIds.size > 0 && (
-                                <div style={{ backgroundColor: `${THEME.colors.brand.cyan}20`, color: THEME.colors.brand.cyan, padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 800 }}>
+                                <div style={{ backgroundColor: `${THEME.colors.brand.cyan}20`, color: THEME.colors.brand.cyan, padding: "4px 12px", borderRadius: isMobile ? 18 : 20, fontSize: 11, fontWeight: 800 }}>
                                     {selectedTrackIds.size} SELECCIONADOS
                                 </div>
                             )}
