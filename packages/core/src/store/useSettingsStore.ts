@@ -8,7 +8,7 @@ import { getStorage } from "./storage";
 
 // ── Pedal & Gesture Bindings ────────────────────────────────────────────────
 export type PedalAction = "next" | "prev" | "play_pause" | "stop" | "vol_up" | "vol_down";
-export type GestureDirection = "up" | "down" | "left" | "right";
+export type GestureDirection = "up" | "down" | "left" | "right" | "click" | "dblclick";
 
 export interface PedalBinding {
     key: string;   // event.key value: "ArrowRight", "Space", " ", "PageDown", etc.
@@ -16,7 +16,7 @@ export interface PedalBinding {
 }
 
 export type PedalBindings = Partial<Record<PedalAction, PedalBinding>>;
-export type GestureBindings = Record<GestureDirection, PedalAction>;
+export type GestureBindings = Record<GestureDirection, PedalAction | "none">;
 
 interface SettingsState {
     // Playback settings
@@ -32,6 +32,10 @@ interface SettingsState {
     setCrossExpanded: (v: boolean) => void;
     performanceMode: boolean;
     setPerformanceMode: (v: boolean) => void;
+
+    // Immersion / Ring Mode
+    immersionMode: boolean;
+    setImmersionMode: (v: boolean) => void;
 
     // Volume
     defaultVol: number;
@@ -86,7 +90,7 @@ interface SettingsState {
 
     // Gesture bindings (Ring/Mouse)
     gestureBindings: GestureBindings;
-    setGestureBinding: (direction: GestureDirection, action: PedalAction) => void;
+    setGestureBinding: (direction: GestureDirection, action: PedalAction | "none") => void;
 
     // Learn mode (non-persisted UI state — which action is currently listening)
     learningAction: PedalAction | null;
@@ -109,6 +113,9 @@ export const useSettingsStore = create<SettingsState>()(
             setCrossExpanded: (crossExpanded) => set({ crossExpanded }),
             performanceMode: false,
             setPerformanceMode: (performanceMode) => set({ performanceMode }),
+
+            immersionMode: false,
+            setImmersionMode: (immersionMode) => set({ immersionMode }),
 
             defaultVol: 0.85,
             setDefaultVol: (defaultVol) => set({ defaultVol }),
@@ -171,10 +178,12 @@ export const useSettingsStore = create<SettingsState>()(
                 }),
 
             gestureBindings: {
-                up: "play_pause",
-                down: "stop",
+                up: "vol_up",
+                down: "vol_down",
                 left: "prev",
                 right: "next",
+                click: "play_pause",
+                dblclick: "none",
             },
             setGestureBinding: (direction, action) =>
                 set((state) => ({
@@ -198,6 +207,7 @@ export const useSettingsStore = create<SettingsState>()(
                 crossExpanded: state.crossExpanded,
                 crossfadeMs: state.crossfadeMs,
                 performanceMode: state.performanceMode,
+                immersionMode: state.immersionMode,
                 defaultVol: state.defaultVol,
                 fadeEnabled: state.fadeEnabled,
                 fadeExpanded: state.fadeExpanded,

@@ -184,12 +184,16 @@ export const PedalConfig: React.FC = () => {
 const GestureConfig: React.FC = () => {
     const gestureBindings = useSettingsStore(s => s.gestureBindings);
     const setGestureBinding = useSettingsStore(s => s.setGestureBinding);
+    const immersionMode = useSettingsStore(s => s.immersionMode);
+    const setImmersionMode = useSettingsStore(s => s.setImmersionMode);
 
-    const directions: { dir: 'up' | 'down' | 'left' | 'right', label: string, icon: string }[] = [
-        { dir: 'up',    label: 'Gesto Arriba',    icon: '↑' },
-        { dir: 'down',  label: 'Gesto Abajo',     icon: '↓' },
-        { dir: 'left',  label: 'Gesto Izquierda', icon: '←' },
-        { dir: 'right', label: 'Gesto Derecha',   icon: '→' },
+    const directions: { dir: 'up' | 'down' | 'left' | 'right' | 'click' | 'dblclick', label: string, icon: string }[] = [
+        { dir: 'click',    label: 'Botón Anillo (Click)', icon: '🖱️' },
+        { dir: 'dblclick', label: 'Doble Click Anillo',  icon: '🖱️×2' },
+        { dir: 'up',       label: 'Gesto Rápido Arriba', icon: '↑' },
+        { dir: 'down',     label: 'Gesto Rápido Abajo',  icon: '↓' },
+        { dir: 'left',     label: 'Gesto Rápido Izq.',   icon: '←' },
+        { dir: 'right',    label: 'Gesto Rápido Der.',   icon: '→' },
     ];
 
     return (
@@ -197,37 +201,58 @@ const GestureConfig: React.FC = () => {
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <span style={{ fontSize: 18 }}>💍</span>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.colors.text.muted, flex: 1 }}>
-                    Anillo Bluetooth (Gestos)
+                    Anillo Bluetooth (HID Mouse)
                 </span>
             </div>
 
-            <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "0 0 20px" }}>
-                Asigna qué acción ocurre al deslizar el puntero en cada dirección. Ideal para anillos HID Mouse.
-            </p>
+            <div style={{ 
+                backgroundColor: immersionMode ? `${THEME.colors.brand.cyan}10` : "rgba(255,255,255,0.03)", 
+                padding: "16px", borderRadius: THEME.radius.md, border: `1px solid ${immersionMode ? THEME.colors.brand.cyan : THEME.colors.border}`,
+                marginBottom: 20, cursor: "pointer"
+            }} onClick={() => setImmersionMode(!immersionMode)}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: immersionMode ? THEME.colors.brand.cyan : "white" }}>MODO INMERSIVO</span>
+                    <div style={{ 
+                        width: 40, height: 20, borderRadius: 10, backgroundColor: immersionMode ? THEME.colors.brand.cyan : THEME.colors.border,
+                        position: "relative", transition: "all 0.2s"
+                    }}>
+                        <div style={{ 
+                            width: 16, height: 16, borderRadius: "50%", backgroundColor: "white",
+                            position: "absolute", top: 2, left: immersionMode ? 22 : 2, transition: "all 0.2s"
+                        }} />
+                    </div>
+                </div>
+                <p style={{ fontSize: 11, color: THEME.colors.text.muted, margin: 0, lineHeight: 1.4 }}>
+                    {immersionMode 
+                        ? "Activado: El cursor se bloquea al hacer click. Los movimientos se traducen 100% a comandos. Pulsa ESC para salir." 
+                        : "Desactivado: El anillo se comporta como un mouse normal. Los gestos requieren velocidad."}
+                </p>
+            </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {directions.map(({ dir, label, icon }) => (
-                    <div key={dir} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", backgroundColor: "rgba(255,255,255,0.03)", border: `1px solid ${THEME.colors.border}`, borderRadius: THEME.radius.md }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <span style={{ fontSize: 16, color: THEME.colors.brand.cyan, fontWeight: 900, width: 20 }}>{icon}</span>
-                            <span style={{ fontSize: 14, fontWeight: 700 }}>{label}</span>
+                    <div key={dir} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${THEME.colors.border}40`, borderRadius: THEME.radius.sm }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 14, color: THEME.colors.brand.cyan, fontWeight: 900, width: 20, textAlign: "center" }}>{icon}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>{label}</span>
                         </div>
                         
                         <select 
                             value={gestureBindings[dir]} 
-                            onChange={(e) => setGestureBinding(dir, e.target.value as PedalAction)}
+                            onChange={(e) => setGestureBinding(dir, e.target.value as PedalAction | "none")}
                             style={{ 
                                 background: THEME.colors.surface, 
                                 color: "white", 
                                 border: `1px solid ${THEME.colors.border}`, 
                                 borderRadius: 4, 
-                                padding: "6px 10px",
-                                fontSize: 12,
+                                padding: "4px 8px",
+                                fontSize: 11,
                                 fontWeight: 600,
                                 outline: "none",
                                 cursor: "pointer"
                             }}
                         >
+                            <option value="none">— Ninguna —</option>
                             {PEDAL_ACTIONS.map(a => (
                                 <option key={a.action} value={a.action}>{a.label}</option>
                             ))}

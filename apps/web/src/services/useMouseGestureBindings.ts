@@ -4,73 +4,99 @@ import { useSettingsStore } from "../store/useSettingsStore";
 import { executePedalAction } from "./usePedalBindings";
 
 /**
- * useMouseGestureBindings — Detects global mouse/pointer swipes (drags)
- * and translates them into pedal actions based on user configuration.
+ * useMouseGestureBindings — Advanced detection for HID Mouse / Ring controllers.
+ * Detects "Flicks" (rapid relative movements) and mouse buttons without requiring drags.
  */
 export function useMouseGestureBindings() {
     const addLog = useDebugStore(s => s.addLog);
-    const gestureBindings = useSettingsStore(s => s.gestureBindings);
+    const { gestureBindings, immersionMode, setImmersionMode } = useSettingsStore();
     
-    // State for tracking the gesture
-    const startPos = useRef<{ x: number, y: number } | null>(null);
-    const isDragging = useRef(false);
-    const SWIPE_THRESHOLD = 50; 
+    // Accumulators for movement speed
+    const moveBuffer = useRef<{ x: number, y: number, lastTime: number }>({ x: 0, y: 0, lastTime: 0 });
+    const FLICK_THRESHOLD = 150; // px displacement in short window
+    const FLICK_WINDOW_MS = 150; // reset buffer after this time of inactivity
+    const COOLDOWN_MS = 400;     // prevent rapid fire gestures
+    const lastTriggerTime = useRef(0);
 
     useEffect(() => {
-        const handlePointerDown = (e: PointerEvent) => {
-            if ((e.target as HTMLElement).closest('button, input, textarea, [role="button"]')) return;
+        const trigger = (direction: "up" | "down" | "left" | "right") => {
+            const now = Date.now();
+            if (now - lastTriggerTime.current < COOLDOWN_MS) return;
+
+            const action = gestureBindings[direction];
+            if (action && action !== "none") {
+                executePedalAction(action, addLog);
+                lastTriggerTime.current = now;
+                // Clear buffer after trigger
+                moveBuffer.current = { x: 0, y: 0, lastTime: now };
+            }
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const now = Date.now();
             
-            // Secuestrar el evento para que no llegue al sistema/navegador
-            e.preventDefault();
-            e.stopPropagation();
-
-            startPos.current = { x: e.clientX, y: e.clientY };
-            isDragging.current = true;
-        };
-
-        const handlePointerUp = (e: PointerEvent) => {
-            if (!startPos.current || !isDragging.current) return;
-
-            // También bloqueamos el final del gesto
-            e.preventDefault();
-            e.stopPropagation();
-
-            const deltaX = e.clientX - startPos.current.x;
-            const deltaY = e.clientY - startPos.current.y;
-            const absX = Math.abs(deltaX);
-            const absY = Math.abs(deltaY);
-
-            if (Math.max(absX, absY) > SWIPE_THRESHOLD) {
-                let action = null;
-                if (absX > absY) {
-                    action = deltaX > 0 ? gestureBindings.right : gestureBindings.left;
-                } else {
-                    action = deltaY < 0 ? gestureBindings.up : gestureBindings.down;
-                }
-
-                if (action) executePedalAction(action, addLog);
+            // If window expired, reset buffer
+            if (now - moveBuffer.current.lastTime > FLICK_WINDOW_MS) {
+                moveBuffer.current = { x: 0, y: 0, lastTime: now };
             }
 
-            startPos.current = null;
-            isDragging.current = false;
-        };
+            // Accumulate relative movement (works even without Pointer Lock)
+            moveBuffer.current.x += e.movementX;
+            moveBuffer.current.y += e.movementY;
+            moveBuffer.current.lastTime = now;
 
-        const handlePointerMove = (e: PointerEvent) => {
-            if (isDragging.current) {
-                // Bloqueamos el movimiento mientras arrastramos para evitar scroll del sistema
-                e.preventDefault();
-                e.stopPropagation();
+            // Check for flicks
+            const absX = Math.abs(moveBuffer.current.x);
+            const absY = Math.abs(moveBuffer.current.y);
+
+            if (absX > FLICK_THRESHOLD && absX > absY) {
+                trigger(moveBuffer.current.x > 0 ? "right" : "left");
+            } else if (absY > FLICK_THRESHOLD && absY > absX) {
+                trigger(moveBuffer.current.y > 0 ? "down" : "up");
             }
         };
 
-        window.addEventListener("pointerdown", handlePointerDown, { capture: true });
-        window.addEventListener("pointermove", handlePointerMove, { capture: true });
-        window.addEventListener("pointerup", handlePointerUp, { capture: true });
+        const handleClick = (e: MouseEvent) => {
+            // Priority: if immersion mode is ON and we are not locked, LOCK NOW.
+            if (immersionMode && !document.pointerLockElement) {
+                document.body.requestPointerLock();
+                addLog("Ring: Modo Inmersivo activado");
+                return;
+            }
+
+            // Standard click binding
+            const action = gestureBindings.click;
+            if (action && action !== "none") {
+                executePedalAction(action, addLog);
+            }
+        };
+
+        const handleDblClick = () => {
+            const action = gestureBindings.dblclick;
+            if (action && action !== "none") {
+                executePedalAction(action, addLog);
+            }
+        };
+
+        // Pointer Lock Change detection
+        const handleLockChange = () => {
+            if (!document.pointerLockElement && immersionMode) {
+                // If user pressed Escape or system forced unlock
+                addLog("Ring: Modo Inmersivo desactivado");
+                // We keep the settings toggle ON, so the next click re-locks.
+            }
+        };
+
+        window.addEventListener("mousemove", handleMouseMove, { capture: true });
+        window.addEventListener("click", handleClick, { capture: true });
+        window.addEventListener("dblclick", handleDblClick, { capture: true });
+        document.addEventListener("pointerlockchange", handleLockChange);
 
         return () => {
-            window.removeEventListener("pointerdown", handlePointerDown, { capture: true });
-            window.removeEventListener("pointermove", handlePointerMove, { capture: true });
-            window.removeEventListener("pointerup", handlePointerUp, { capture: true });
+            window.removeEventListener("mousemove", handleMouseMove, { capture: true });
+            window.removeEventListener("click", handleClick, { capture: true });
+            window.removeEventListener("dblclick", handleDblClick, { capture: true });
+            document.removeEventListener("pointerlockchange", handleLockChange);
         };
-    }, [addLog, gestureBindings]);
+    }, [addLog, gestureBindings, immersionMode]);
 }

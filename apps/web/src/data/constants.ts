@@ -1,15 +1,6 @@
-import { Track } from "@suniplayer/core";
-import generatedTracks from "./tracks.json";
+import { Track, catalog as generatedTracks } from "@suniplayer/core";
 
-interface MaybeDefaultTracks {
-    default?: Track[];
-}
-
-const trackSource = generatedTracks as Track[] | MaybeDefaultTracks;
-
-export const TRACKS: Track[] = Array.isArray(trackSource)
-    ? trackSource
-    : (trackSource.default ?? []);
+export const TRACKS: Track[] = generatedTracks as Track[];
 
 export const VENUES = [
     { id: "lobby", label: "Lobby", color: "#06B6D4" },
