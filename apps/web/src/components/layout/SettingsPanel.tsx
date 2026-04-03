@@ -143,6 +143,8 @@ export const SettingsPanel: React.FC = () => {
     const targetMin = useProjectStore(s => s.targetMin);
     const setTargetMin = useProjectStore(s => s.setTargetMin);
     const setVol = useProjectStore(s => s.setVol);
+    const autoGain = useProjectStore(s => s.autoGain);
+    const setAutoGain = useProjectStore(s => s.setAutoGain);
     const fadeEnabled = useProjectStore(s => s.fadeEnabled);
     const setFadeEnabled = useProjectStore(s => s.setFadeEnabled);
     const fadeInMs = useProjectStore(s => s.fadeInMs);
@@ -244,6 +246,12 @@ export const SettingsPanel: React.FC = () => {
                         <Toggle label="Crossfade" checked={crossfade} onChange={v => { setCrossfade(v); if (v) setAutoNext(true); }} />
                         {crossfade && <SliderRow label="Duración Crossfade" value={crossfadeMs} min={500} max={10000} step={500} unit=" ms" onChange={setCrossfadeMs} />}
                         <SliderRow label="Volumen por defecto" value={Math.round(defaultVol * 100)} min={0} max={100} unit="%" onChange={v => { setDefaultVol(v / 100); setVol(v / 100); }} />
+                        <Toggle
+                            label="Normalizar volumen"
+                            description="Suaviza diferencias de loudness entre canciones sin tocar tu volumen general."
+                            checked={autoGain}
+                            onChange={setAutoGain}
+                        />
                         <Toggle label="Efecto Fade" checked={fadeEnabled} onChange={setFadeEnabled} />
                         {fadeEnabled && (
                             <>

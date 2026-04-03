@@ -126,8 +126,7 @@ self.onmessage = (event: MessageEvent<{ audioData: Float32Array, sampleRate: num
     const { audioData, sampleRate } = event.data;
 
     const rawRms = calculateRawRMS(audioData);
-    const targetRms = 0.15;
-    const gainOffset = targetRms / Math.max(0.01, rawRms);
+    const gainOffset = calculateGainOffsetFromRms(rawRms);
     const energy = Math.min(1, Math.max(0.1, (rawRms - 0.05) / 0.2));
     
     const bpm = detectBPM(audioData, sampleRate);
@@ -144,3 +143,4 @@ self.onmessage = (event: MessageEvent<{ audioData: Float32Array, sampleRate: num
 
     self.postMessage(results);
 };
+import { calculateGainOffsetFromRms } from "./audioNormalization";

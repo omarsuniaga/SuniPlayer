@@ -120,8 +120,8 @@ export const EnergyCurveChart: React.FC<Props> = ({ type, size, playheadPct, act
     const len   = PATH_LEN[type];
     const h     = size === "large" ? 80 : 52;
 
-    // Animation style per curve type
-    const animStyle: React.CSSProperties =
+    // Animation style per curve type — ONLY apply when active
+    const animStyle: React.CSSProperties = !active ? {} : (
         type === "steady"
             ? { animation: "ecSteadyPulse 2s ease-in-out infinite" }
             : type === "wave"
@@ -137,7 +137,8 @@ export const EnergyCurveChart: React.FC<Props> = ({ type, size, playheadPct, act
                 strokeDashoffset: len,
                 "--ec-len": len,
                 animation: "ecDraw 2.5s ease-in-out infinite",
-            } as React.CSSProperties;
+            } as React.CSSProperties
+    );
 
     // Playhead dot (large mode only)
     const dot = playheadPct !== undefined && size === "large"
@@ -156,8 +157,8 @@ export const EnergyCurveChart: React.FC<Props> = ({ type, size, playheadPct, act
             <path
                 d={fill}
                 fill={color}
-                opacity={active ? 0.12 : 0.06}
-                style={{ transition: "opacity 0.3s" }}
+                opacity={active ? 0.15 : 0.04}
+                style={{ transition: "opacity 0.4s" }}
             />
 
             {/* Animated curve line */}
@@ -165,15 +166,34 @@ export const EnergyCurveChart: React.FC<Props> = ({ type, size, playheadPct, act
                 d={path}
                 fill="none"
                 stroke={color}
-                strokeWidth={size === "large" ? 2.5 : 2}
+                strokeWidth={size === "large" ? 3 : (active ? 2.5 : 1.5)}
                 strokeLinecap="round"
-                opacity={active ? 1 : 0.55}
-                style={{ ...animStyle, transition: "opacity 0.3s" }}
+                opacity={active ? 1 : 0.3}
+                style={{ 
+                    ...animStyle, 
+                    transition: "opacity 0.4s, stroke-width 0.4s",
+                    strokeDasharray: active ? len : "none",
+                    strokeDashoffset: active ? undefined : 0
+                }}
             />
 
             {/* Endpoint dots */}
-            <circle cx="10"  cy={type === "ascending"  ? 52 : type === "descending" ? 8  : type === "wave" ? 30 : 45} r="2.5" fill={color} opacity={active ? 0.8 : 0.4} />
-            <circle cx="190" cy={type === "ascending"  ? 8  : type === "descending" ? 52 : type === "wave" ? 52 : 45} r="2.5" fill={color} opacity={active ? 0.8 : 0.4} />
+            <circle 
+                cx="10"  
+                cy={type === "ascending"  ? 52 : type === "descending" ? 8  : type === "wave" ? 30 : 45} 
+                r={active ? 3 : 2} 
+                fill={color} 
+                opacity={active ? 1 : 0.3} 
+                style={{ transition: "all 0.4s" }}
+            />
+            <circle 
+                cx="190" 
+                cy={type === "ascending"  ? 8  : type === "descending" ? 52 : type === "wave" ? 52 : 45} 
+                r={active ? 3 : 2} 
+                fill={color} 
+                opacity={active ? 1 : 0.3} 
+                style={{ transition: "all 0.4s" }}
+            />
 
             {/* Playhead (large mode only) */}
             {dot && (

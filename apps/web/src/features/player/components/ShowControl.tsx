@@ -3,6 +3,8 @@ import { THEME } from "../../../data/theme.ts";
 import { useIsMobile } from "../../../utils/useMediaQuery";
 
 interface ShowControlProps {
+    autoNext: boolean;
+    setAutoNext: (v: boolean) => void;
     crossfade: boolean;
     setCrossfade: (v: boolean) => void;
     fadeEnabled: boolean;
@@ -20,6 +22,7 @@ interface ShowControlProps {
 }
 
 export const ShowControl: React.FC<ShowControlProps> = ({
+    autoNext, setAutoNext,
     crossfade, setCrossfade,
     fadeEnabled, setFadeEnabled,
     splMeterEnabled, setSplMeterEnabled,
@@ -73,6 +76,12 @@ export const ShowControl: React.FC<ShowControlProps> = ({
             flexWrap: isMobile ? "wrap" : "nowrap"
         }}>
             <ControlButton 
+                active={autoNext} 
+                label="FLOW" 
+                onClick={() => setAutoNext(!autoNext)}
+                icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 12h20M17 7l5 5-5 5M2 12l5-5M2 12l5 5"/></svg>}
+            />
+            <ControlButton 
                 active={crossfade} 
                 label="CROSS" 
                 onClick={() => setCrossfade(!crossfade)}
@@ -106,16 +115,6 @@ export const ShowControl: React.FC<ShowControlProps> = ({
                 label="CAMERA" 
                 onClick={onToggleMirror}
                 icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>}
-            />
-
-            <ControlButton 
-                active={mirrorMode === 'floating'} 
-                label={mirrorMode === 'floating' ? "FLOAT" : "DOCK"} 
-                onClick={onToggleMirrorMode}
-                icon={mirrorMode === 'floating' ? 
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg> :
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6M3 10h18M3 14h18"/></svg>
-                }
             />
             
             {!isMobile && <div className="nav-separator" style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />}

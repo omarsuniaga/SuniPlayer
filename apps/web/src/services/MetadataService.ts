@@ -21,7 +21,7 @@ export class MetadataService {
             let coverArt: Blob | undefined;
             const picture = mm.selectCover(metadata.common.picture);
             if (picture) {
-                coverArt = new Blob([picture.data], { type: picture.format });
+                coverArt = new Blob([picture.data as any], { type: picture.format });
             }
 
             // Fallback for title/artist from filename if missing in metadata

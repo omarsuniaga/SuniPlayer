@@ -37,6 +37,14 @@ interface DashboardProps {
     setCurveExpanded: (v: boolean) => void;
     /** When false, the Energy Curve section is hidden regardless of curve value */
     curveVisible: boolean;
+
+    // Flow (Auto-next)
+    autoNext: boolean;
+    playbackGapMs: number;
+    setPlaybackGapMs: (v: number) => void;
+    playbackGapRemainingMs: number;
+    flowExpanded: boolean;
+    setFlowExpanded: (v: boolean) => void;
 }
 
 // ── Reusable section container ────────────────────────────────────────────────
@@ -62,7 +70,7 @@ const Section: React.FC<{
             onClick={onToggle}
             style={{
                 width: "100%", display: "flex", alignItems: "center", gap: 10,
-                padding: "14px 16px", background: "none", border: "none", // Aumentado padding
+                padding: "14px 16px", background: "none", border: "none", 
                 cursor: "pointer", color: "white",
             }}
         >
@@ -100,14 +108,15 @@ const Presets: React.FC<{
     onChange: (v: number) => void;
     format: (v: number) => string;
     color: string;
-}> = ({ values, current, onChange, format, color }) => (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+    unitLabel?: string;
+}> = ({ values, current, onChange, format, color, unitLabel = "segundos" }) => (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {values.map(v => (
             <button
                 key={v}
                 onClick={() => onChange(v)}
                 style={{
-                    fontSize: 11, padding: "6px 12px", borderRadius: THEME.radius.sm, // Aumentado padding y font
+                    fontSize: 11, padding: "6px 12px", borderRadius: THEME.radius.sm,
                     border: `1px solid ${current === v ? color + "60" : "rgba(255,255,255,0.08)"}`,
                     background: current === v ? `${color}15` : "rgba(255,255,255,0.03)",
                     color: current === v ? color : THEME.colors.text.muted,
@@ -116,6 +125,23 @@ const Presets: React.FC<{
                 }}
             >{format(v)}</button>
         ))}
+        <button
+            onClick={() => {
+                const val = window.prompt(`Ingresá el valor en ${unitLabel}:`, (current / 1000).toString());
+                if (val !== null) {
+                    const num = parseFloat(val);
+                    if (!isNaN(num)) onChange(Math.floor(num * 1000));
+                }
+            }}
+            style={{
+                fontSize: 9, padding: "6px 10px", borderRadius: THEME.radius.sm,
+                border: `1px solid rgba(255,255,255,0.12)`,
+                background: "rgba(255,255,255,0.05)",
+                color: THEME.colors.text.muted,
+                cursor: "pointer", fontWeight: 800, letterSpacing: 0.5,
+                transition: "all 0.15s",
+            }}
+        >OTRO...</button>
     </div>
 );
 
@@ -137,7 +163,6 @@ const SliderRow: React.FC<{
             <span style={{ fontSize: 13, fontWeight: 900, fontFamily: THEME.fonts.mono, color }}>{displayValue}</span>
         </div>
         <div style={{ position: "relative", height: 32, display: "flex", alignItems: "center" }}> 
-            {/* Height aumentado de 20 a 32 para mejor captura táctil */}
             <div style={{ position: "absolute", left: 0, right: 0, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.07)" }}/>
             <div style={{ position: "absolute", left: 0, height: 6, borderRadius: 3, width: `${fillPct * 100}%`, background: `linear-gradient(to right, ${color}80, ${color})` }}/>
             <input
@@ -155,13 +180,81 @@ export const Dashboard: React.FC<DashboardProps> = ({
     crossfade, crossfadeMs, setCrossfadeMs, crossExpanded, setCrossExpanded,
     splMeterEnabled, splMeterTarget, splMeterExpanded, setSplMeterExpanded,
     curve, curvePlayheadPct, curveExpanded, setCurveExpanded, curveVisible,
+    autoNext, playbackGapMs, setPlaybackGapMs, playbackGapRemainingMs, flowExpanded, setFlowExpanded,
 }) => {
-    if (!crossfade && !fadeEnabled && !splMeterEnabled && !curve) return null;
+    if (!crossfade && !fadeEnabled && !splMeterEnabled && !curve && !autoNext) return null;
 
     const fmtMs = (ms: number) => ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+            {/* ── FLOW (AUTO-NEXT) ────────────────────────────────────── */}
+            {autoNext && (
+                <Section
+                    accentColor="#fbbf24" // Amber/Yellow
+                    icon={
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M2 12h20M17 7l5 5-5 5M2 12l5-5M2 12l5 5"/>
+                        </svg>
+                    }
+                    title="FLOW AUTO-NEXT"
+                    badge={playbackGapRemainingMs > 0 ? `ESPERANDO: ${(playbackGapRemainingMs / 1000).toFixed(1)}s` : `GAP: ${fmtMs(playbackGapMs)}`}
+                    expanded={flowExpanded}
+                    onToggle={() => setFlowExpanded(!flowExpanded)}
+                >
+                    <div style={{ padding: "14px 14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+                        
+                        {/* Countdown visualizer */}
+                        {playbackGapRemainingMs > 0 && (
+                            <div style={{
+                                padding: "12px", borderRadius: THEME.radius.md,
+                                background: "rgba(251, 191, 36, 0.1)",
+                                border: "1px solid rgba(251, 191, 36, 0.3)",
+                                display: "flex", flexDirection: "column", gap: 8,
+                                alignItems: "center"
+                            }}>
+                                <span style={{ fontSize: 10, fontWeight: 800, color: "#fbbf24", letterSpacing: 1 }}>PRÓXIMO TEMA EN</span>
+                                <span style={{ fontSize: 24, fontWeight: 900, color: "#fbbf24", fontFamily: THEME.fonts.mono }}>
+                                    {(playbackGapRemainingMs / 1000).toFixed(1)}s
+                                </span>
+                                <div style={{ width: "100%", height: 4, background: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden" }}>
+                                    <div style={{ 
+                                        height: "100%", 
+                                        background: "#fbbf24", 
+                                        width: `${(playbackGapRemainingMs / playbackGapMs) * 100}%`,
+                                        transition: "width 0.1s linear"
+                                    }} />
+                                </div>
+                            </div>
+                        )}
+
+                        <SliderRow
+                            label="Tiempo de espera (Gap)"
+                            value={playbackGapMs}
+                            min={0} max={10000} step={500}
+                            onChange={setPlaybackGapMs}
+                            displayValue={fmtMs(playbackGapMs)}
+                            color="#fbbf24"
+                            fillPct={playbackGapMs / 10000}
+                        />
+                        
+                        <Presets
+                            values={[0, 1000, 2000, 3000, 5000, 10000]}
+                            current={playbackGapMs}
+                            onChange={setPlaybackGapMs}
+                            format={fmtMs}
+                            color="#fbbf24"
+                        />
+
+                        <p style={{ margin: 0, fontSize: 10, color: THEME.colors.text.muted, lineHeight: 1.6 }}>
+                            Al terminar una canción, el reproductor esperará{" "}
+                            <strong style={{ color: "#fbbf24" }}>{fmtMs(playbackGapMs)}</strong>{" "}
+                            antes de iniciar automáticamente la siguiente.
+                        </p>
+                    </div>
+                </Section>
+            )}
 
             {/* ── CROSSFADE ──────────────────────────────────────────── */}
             {crossfade && (
@@ -194,20 +287,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 viewBox="0 0 200 56" preserveAspectRatio="none"
                                 style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
                             >
-                                {/* Song A: full then fades out */}
                                 <polyline
                                     points="0,12 80,12 160,48"
                                     fill="none" stroke={THEME.colors.brand.cyan} strokeWidth="2" strokeLinecap="round"
                                 />
-                                {/* Song B: fades in then full */}
                                 <polyline
                                     points="40,48 120,12 200,12"
                                     fill="none" stroke={THEME.colors.brand.violet} strokeWidth="2" strokeLinecap="round"
                                 />
-                                {/* Overlap zone */}
                                 <rect x="80" y="0" width="80" height="56" fill="rgba(255,255,255,0.03)"/>
                             </svg>
-                            {/* Labels */}
                             <div style={{
                                 position: "absolute", inset: 0, display: "flex",
                                 alignItems: "center", justifyContent: "space-between",
@@ -220,7 +309,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     ↗ Canción B
                                 </span>
                             </div>
-                            {/* Duration pill */}
                             <div style={{
                                 position: "absolute", bottom: 4, left: "50%", transform: "translateX(-50%)",
                                 padding: "2px 8px", borderRadius: 4,
@@ -232,7 +320,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </div>
                         </div>
 
-                        {/* Duration slider */}
                         <SliderRow
                             label="Duración del cruce"
                             value={crossfadeMs}
@@ -243,7 +330,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             fillPct={(crossfadeMs - 500) / (10000 - 500)}
                         />
 
-                        {/* Quick presets */}
                         <Presets
                             values={[500, 1000, 2000, 3000, 5000, 8000]}
                             current={crossfadeMs}
@@ -252,7 +338,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             color={THEME.colors.brand.cyan}
                         />
 
-                        {/* Description */}
                         <p style={{ margin: 0, fontSize: 10, color: THEME.colors.text.muted, lineHeight: 1.6 }}>
                             La canción activa hará un{" "}
                             <strong style={{ color: THEME.colors.brand.cyan }}>fadeOut</strong> y la siguiente un{" "}

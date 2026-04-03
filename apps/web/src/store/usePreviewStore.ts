@@ -39,6 +39,10 @@ export const usePreviewStore = create<PreviewState>((set, get) => {
     };
 
     previewAudio.onerror = () => {
+        // Ignore errors if src is empty (standard stop procedure)
+        if (!previewAudio.src || previewAudio.src === window.location.href) {
+            return;
+        }
         set({ isPlaying: false, isLoading: false, previewTrackId: null });
         console.error("Preview audio error:", previewAudio.error);
     };

@@ -66,10 +66,15 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const stackOrder = useProjectStore(s => s.stackOrder);
     const setStackOrder = useProjectStore(s => s.setStackOrder);
     const performanceMode = useSettingsStore(s => s.performanceMode);
+    const autoNext = useSettingsStore(s => s.autoNext);
+    const setAutoNext = useSettingsStore(s => s.setAutoNext);
+    const playbackGapMs = useSettingsStore(s => s.playbackGapMs);
+    const setPlaybackGapMs = useSettingsStore(s => s.setPlaybackGapMs);
     const curveVisible = useSettingsStore(s => s.curveVisible);
     const setCurveVisible = useSettingsStore(s => s.setCurveVisible);
     const curveExpanded = useSettingsStore(s => s.curveExpanded);
     const setCurveExpanded = useSettingsStore(s => s.setCurveExpanded);
+    const playbackGapRemainingMs = usePlayerStore(s => s.playbackGapRemainingMs);
     const curve = useBuilderStore(s => s.curve);
     const currentSetMetadata = usePlayerStore(s => s.currentSetMetadata);
     const isMirrorOpen = usePlayerStore(s => s.isMirrorOpen);
@@ -78,6 +83,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const setMirrorMode = usePlayerStore(s => s.setMirrorMode);
 
     // ── UI State ──
+    const [flowExpanded, setFlowExpanded] = useState(true);
     const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const [viewingSheetTrack, setViewingSheetTrack] = useState<Track | null>(null);
@@ -174,14 +180,9 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
 
     return (
         <div 
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
             style={{ height: "100%", width: "100%", display: "flex", backgroundColor: THEME.colors.bg, color: THEME.colors.text.primary, overflow: "hidden", position: "absolute", inset: 0 }}
         >
-            {/* Sutil indicador lateral para el swipe (solo en móvil) */}
-            {!useColumns && !showQueue && (
-                <div style={{ position: "fixed", right: 0, top: "40%", width: "4px", height: "60px", background: `${THEME.colors.brand.violet}40`, borderRadius: "4px 0 0 4px", zIndex: 1000 }} />
-            )}
+            {/* Sutil indicador lateral para el swipe (Removido por pedido de usuario) */}
 
             {/* Left Column: Stats & Monitor (Solo en pantallas grandes) */}
             {useColumns && (
@@ -191,7 +192,13 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                     {/* El tiempo ELAPSED y REMAINING ahora vive en el Navbar */}
                     
                     <div style={{ flexShrink: 0 }}>
-                        <Dashboard fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={true} setFadeExpanded={() => {}} crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={true} setCrossExpanded={() => {}} splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={true} setSplMeterExpanded={() => {}} curve={curve} curvePlayheadPct={curvePlayheadPct} curveVisible={curveVisible} curveExpanded={true} setCurveExpanded={() => {}} />
+                        <Dashboard 
+                            fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={true} setFadeExpanded={() => {}} 
+                            crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={true} setCrossExpanded={() => {}} 
+                            splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={true} setSplMeterExpanded={() => {}} 
+                            curve={curve} curvePlayheadPct={curvePlayheadPct} curveVisible={curveVisible} curveExpanded={true} setCurveExpanded={() => {}} 
+                            autoNext={autoNext} playbackGapMs={playbackGapMs} setPlaybackGapMs={setPlaybackGapMs} playbackGapRemainingMs={playbackGapRemainingMs} flowExpanded={flowExpanded} setFlowExpanded={setFlowExpanded}
+                        />
                     </div>
                 </aside>
             )}
@@ -224,6 +231,8 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                         tPct={tPct} 
                         isMirrorOpen={isMirrorOpen}
                         onMirrorToggle={toggleMirror}
+                        onSetlistToggle={() => setShowQueue(!showQueue)}
+                        showQueue={showQueue}
                         currentSetMetadata={currentSetMetadata} 
                         onProfileClick={() => setProfileTrack(ct)} 
                         onSheetMusicClick={() => setViewingSheetTrack(ct)} 
@@ -237,8 +246,9 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
 
                     {/* ⚙️ CONTROLES DE EFECTOS (Debajo de los controles principales) */}
                     <div style={{ marginTop: 16 }}>
-                        <div style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.text.muted, letterSpacing: 1.5, marginBottom: 12, paddingLeft: 4 }}>SHOW SETTINGS & EFFECTS</div>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.text.muted, letterSpacing: 1.5, marginBottom: 12, paddingLeft: 4 }}>CONTROLES DE EFECTOS </div>
                         <ShowControl 
+                            autoNext={autoNext} setAutoNext={setAutoNext}
                             crossfade={crossfade} setCrossfade={setCrossfade} 
                             fadeEnabled={fadeEnabled} setFadeEnabled={setFadeEnabled} 
                             splMeterEnabled={splMeterEnabled} setSplMeterEnabled={setSplMeterEnabled} 
@@ -247,7 +257,16 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                             isMirrorOpen={isMirrorOpen}
                             onToggleMirror={toggleMirror}
                             mirrorMode={mirrorMode}
-                            onToggleMirrorMode={() => setMirrorMode(mirrorMode === 'docked' ? 'floating' : 'docked')}
+                            onToggleMirrorMode={() => {
+                                if (!isMirrorOpen) {
+                                    // Si está cerrada, abrirla directamente en modo flotante (pedido por usuario)
+                                    setMirrorMode('floating');
+                                    toggleMirror();
+                                } else {
+                                    // Si ya está abierta, simplemente alternar el modo
+                                    setMirrorMode(mirrorMode === 'docked' ? 'floating' : 'docked');
+                                }
+                            }}
                             onToggleQueue={() => setShowQueue(!showQueue)} 
                         />
 
@@ -260,7 +279,13 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
 
                         {!useColumns && (
                             <div style={{ marginTop: 12 }}>
-                                <Dashboard fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={fadeExpanded} setFadeExpanded={setFadeExpanded} crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={crossExpanded} setCrossExpanded={setCrossExpanded} splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={splMeterExpanded} setSplMeterExpanded={setSplMeterExpanded} curve={curve} curvePlayheadPct={curvePlayheadPct} curveVisible={curveVisible} curveExpanded={curveExpanded} setCurveExpanded={setCurveExpanded} />
+                                <Dashboard 
+                                    fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} setFadeInMs={setFadeInMs} fadeOutMs={fadeOutMs} setFadeOutMs={setFadeOutMs} fadeExpanded={fadeExpanded} setFadeExpanded={setFadeExpanded} 
+                                    crossfade={crossfade} crossfadeMs={crossfadeMs} setCrossfadeMs={setCrossfadeMs} crossExpanded={crossExpanded} setCrossExpanded={setCrossExpanded} 
+                                    splMeterEnabled={splMeterEnabled} splMeterTarget={splMeterTarget} splMeterExpanded={splMeterExpanded} setSplMeterExpanded={setSplMeterExpanded} 
+                                    curve={curve} curvePlayheadPct={curvePlayheadPct} curveVisible={curveVisible} curveExpanded={curveExpanded} setCurveExpanded={setCurveExpanded} 
+                                    autoNext={autoNext} playbackGapMs={playbackGapMs} setPlaybackGapMs={setPlaybackGapMs} playbackGapRemainingMs={playbackGapRemainingMs} flowExpanded={flowExpanded} setFlowExpanded={setFlowExpanded}
+                                />
                             </div>
                         )}
                     </div>

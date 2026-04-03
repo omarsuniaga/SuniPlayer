@@ -60,6 +60,10 @@ interface PlayerState {
     waveScale: number;
     setWaveScale: (s: number) => void;
 
+    /** Time remaining for auto-next gap in ms */
+    playbackGapRemainingMs: number;
+    setPlaybackGapRemainingMs: (ms: number) => void;
+
     /** Analytics Hooks */
     trackStart: (trackId: string) => void;
     trackEnd: (trackId: string, positionMs: number) => void;
@@ -128,6 +132,9 @@ export const usePlayerStore = create<PlayerState>()(
 
             waveScale: 1.0,
             setWaveScale: (waveScale) => set({ waveScale }),
+
+            playbackGapRemainingMs: 0,
+            setPlaybackGapRemainingMs: (playbackGapRemainingMs) => set({ playbackGapRemainingMs }),
 
             trackStart: (trackId) => AnalyticsService.trackStart(trackId),
             trackEnd: (trackId, positionMs) => AnalyticsService.trackEnd(trackId, positionMs),

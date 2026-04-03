@@ -1,4 +1,4 @@
-import { Track } from "@suniplayer/core/types";
+import { Track } from "@suniplayer/core";
 
 export interface ExtractedMetadata {
     title?: string;

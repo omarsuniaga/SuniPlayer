@@ -72,62 +72,63 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
                     </span>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                    <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                            <label style={{ fontSize: 10, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Duration</label>
-                            {totalLibMin < targetMin && (
-                                <span style={{ fontSize: 10, color: THEME.colors.status.warning, fontWeight: 700 }}>⚠️ Insufficient music</span>
-                            )}
-                        </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} className="duration-grid">
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    
+                    {/* ── Row 1: Duration ── */}
+                    <div style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: 16,
+                        padding: "4px 0",
+                        borderBottom: `1px solid ${THEME.colors.border}20`
+                    }}>
+                        <label style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 800, width: 70, flexShrink: 0 }}>Duration</label>
+                        <div style={{ 
+                            display: "flex", 
+                            gap: 6, 
+                            overflowX: "auto", 
+                            scrollbarWidth: "none", 
+                            msOverflowStyle: "none",
+                            paddingBottom: 2
+                        }} className="no-scrollbar">
                             {durationPresets.map((minutes) => {
                                 const isInsufficient = minutes > totalLibMin;
                                 return (
                                 <button
                                     key={minutes}
                                     onClick={() => onTargetMinChange(minutes)}
-                                    onContextMenu={(e) => {
-                                        e.preventDefault();
-                                        if (confirm(`Remove ${minutes}m preset?`)) removeDurationPreset(minutes);
-                                    }}
                                     style={{
-                                        padding: "10px 16px",
-                                        borderRadius: THEME.radius.md,
+                                        padding: "6px 12px",
+                                        borderRadius: THEME.radius.sm,
                                         cursor: "pointer",
                                         border: `1px solid ${targetMin === minutes ? THEME.colors.brand.cyan : (isInsufficient ? THEME.colors.border + "40" : THEME.colors.border)}`,
                                         backgroundColor: targetMin === minutes ? "rgba(6,182,212,0.1)" : THEME.colors.surface,
                                         color: targetMin === minutes ? THEME.colors.brand.cyan : (isInsufficient ? THEME.colors.text.muted : THEME.colors.text.secondary),
-                                        fontWeight: 600,
-                                        fontSize: 14,
+                                        fontWeight: 700,
+                                        fontSize: 11,
                                         fontFamily: THEME.fonts.mono,
                                         transition: "all 0.2s",
-                                        opacity: isInsufficient ? 0.6 : 1,
-                                        textDecoration: isInsufficient ? "line-through" : "none"
+                                        whiteSpace: "nowrap"
                                     }}
-                                    title={isInsufficient ? "Not enough music in library" : ""}
                                 >
                                     {minutes}m
                                 </button>
                             )})}
                             
                             {isAdding ? (
-                                <div style={{ display: "flex", gap: 4 }}>
-                                    <input 
-                                        type="number" 
-                                        value={customVal}
-                                        autoFocus
-                                        onChange={e => setCustomVal(e.target.value)}
-                                        onKeyDown={e => e.key === "Enter" && handleAdd()}
-                                        placeholder="Min"
-                                        style={{ width: 60, padding: "8px", borderRadius: THEME.radius.sm, border: `1px solid ${THEME.colors.brand.cyan}`, backgroundColor: THEME.colors.surface, color: "white", textAlign: "center", fontSize: 14 }}
-                                    />
-                                    <button onClick={handleAdd} style={{ padding: "8px 12px", borderRadius: THEME.radius.sm, border: "none", background: THEME.colors.brand.cyan, color: "black", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>OK</button>
-                                </div>
+                                <input 
+                                    type="number" 
+                                    value={customVal}
+                                    autoFocus
+                                    onChange={e => setCustomVal(e.target.value)}
+                                    onBlur={handleAdd}
+                                    onKeyDown={e => e.key === "Enter" && handleAdd()}
+                                    style={{ width: 50, padding: "4px 8px", borderRadius: THEME.radius.sm, border: `1px solid ${THEME.colors.brand.cyan}`, backgroundColor: THEME.colors.surface, color: "white", textAlign: "center", fontSize: 11 }}
+                                />
                             ) : (
                                 <button 
                                     onClick={() => setIsAdding(true)}
-                                    style={{ padding: "10px 16px", borderRadius: THEME.radius.md, cursor: "pointer", border: `1px dashed ${THEME.colors.border}`, backgroundColor: "transparent", color: THEME.colors.text.muted, fontSize: 14, fontWeight: 600 }}
+                                    style={{ padding: "6px 12px", borderRadius: THEME.radius.sm, cursor: "pointer", border: `1px dashed ${THEME.colors.border}`, backgroundColor: "transparent", color: THEME.colors.text.muted, fontSize: 11, fontWeight: 600 }}
                                 >
                                     +
                                 </button>
@@ -135,23 +136,37 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
                         </div>
                     </div>
 
-                    <div>
-                        <label style={{ fontSize: 10, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Venue</label>
-                        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                    {/* ── Row 2: Venue ── */}
+                    <div style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: 16,
+                        padding: "4px 0",
+                        borderBottom: `1px solid ${THEME.colors.border}20`
+                    }}>
+                        <label style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 800, width: 70, flexShrink: 0 }}>Venue</label>
+                        <div style={{ 
+                            display: "flex", 
+                            gap: 6, 
+                            overflowX: "auto", 
+                            scrollbarWidth: "none", 
+                            msOverflowStyle: "none"
+                        }} className="no-scrollbar">
                             {VENUES.map((item) => (
                                 <button
                                     key={item.id}
                                     onClick={() => onVenueChange(item.id)}
                                     style={{
-                                        padding: "8px 14px",
-                                        borderRadius: THEME.radius.md,
+                                        padding: "6px 14px",
+                                        borderRadius: THEME.radius.sm,
                                         cursor: "pointer",
                                         border: `1px solid ${venue === item.id ? item.color + "80" : THEME.colors.border}`,
                                         backgroundColor: venue === item.id ? item.color + "15" : THEME.colors.surface,
                                         color: venue === item.id ? item.color : THEME.colors.text.secondary,
-                                        fontWeight: 500,
-                                        fontSize: 13,
+                                        fontWeight: 600,
+                                        fontSize: 11,
                                         transition: "all 0.2s",
+                                        whiteSpace: "nowrap"
                                     }}
                                 >
                                     {item.label}
@@ -160,9 +175,22 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
                         </div>
                     </div>
 
-                    <div>
-                        <label style={{ fontSize: 10, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600 }}>Energy Curve</label>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8, marginTop: 8 }}>
+                    {/* ── Row 3: Energy Curve ── */}
+                    <div style={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: 16,
+                        padding: "8px 0"
+                    }}>
+                        <label style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 800, width: 70, flexShrink: 0 }}>Energy</label>
+                        <div style={{ 
+                            display: "flex", 
+                            gap: 8, 
+                            overflowX: "auto", 
+                            scrollbarWidth: "none", 
+                            msOverflowStyle: "none",
+                            paddingBottom: 4
+                        }} className="no-scrollbar">
                             {CURVES.map((item) => {
                                 const isActive = curve === item.id;
                                 return (
@@ -170,29 +198,40 @@ export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
                                     key={item.id}
                                     onClick={() => onCurveChange(item.id)}
                                     style={{
-                                        padding: "12px 12px 10px",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        gap: 6,
+                                        padding: "10px 16px",
                                         borderRadius: THEME.radius.md,
                                         cursor: "pointer",
                                         border: `1px solid ${isActive ? THEME.colors.brand.violet + "80" : THEME.colors.border}`,
                                         backgroundColor: isActive ? THEME.colors.brand.violet + "10" : THEME.colors.surface,
                                         color: isActive ? THEME.colors.brand.violet : THEME.colors.text.secondary,
-                                        textAlign: "left",
                                         transition: "all 0.2s",
+                                        minWidth: 110,
+                                        flexShrink: 0
                                     }}
                                 >
-                                    <EnergyCurveChart
-                                        type={item.id as CurveType}
-                                        size="mini"
-                                        active={isActive}
-                                    />
-                                    <div style={{ fontSize: 13, fontWeight: 600, marginTop: 8 }}>{item.label}</div>
-                                    <div style={{ fontSize: 10, opacity: 0.5, marginTop: 2 }}>{item.desc}</div>
+                                    <div style={{ width: "100%", height: 24, opacity: isActive ? 1 : 0.6 }}>
+                                        <EnergyCurveChart
+                                            type={item.id as CurveType}
+                                            size="mini"
+                                            active={isActive}
+                                        />
+                                    </div>
+                                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.03em" }}>{item.label}</span>
                                 </button>
                                 );
                             })}
                         </div>
                     </div>
                 </div>
+                
+                <style>{`
+                    .no-scrollbar::-webkit-scrollbar { display: none; }
+                    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                `}</style>
             </section>
 
             {/* ── Action Button ── */}

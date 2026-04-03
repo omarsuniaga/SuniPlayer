@@ -19,6 +19,7 @@ import {
     registerAudioTransportController,
     resolveNextTrackIndex,
 } from "./audioTransport";
+import { applyTrackGainOffset } from "./audioNormalization";
 
 const TICK_MS = 100;
 type PlaybackTransitionMode = "crossfade" | "fade" | "direct";
@@ -48,6 +49,10 @@ export function useAudio() {
     const fadeOutMs = useSettingsStore(s => s.fadeOutMs);
     
     const updateDownload = useDownloadStore(s => s.updateProgress);
+
+    const playbackGapMs = useSettingsStore(s => s.playbackGapMs);
+    const autoNext = useSettingsStore(s => s.autoNext);
+    const gapTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const isInitialLoad = useRef(true);
 
@@ -200,8 +205,8 @@ export function useAudio() {
     const applyVol = (audio: HTMLAudioElement, track: Track | null, multiplier: number = 1) => {
         if (!audio) return;
         let v = stateRef.current.vol * multiplier;
-        if (track && settingsRef.current.autoGain && track.gainOffset) {
-            v = Math.min(1.0, v * Math.min(2.0, track.gainOffset));
+        if (track) {
+            v = applyTrackGainOffset(v, track.gainOffset, settingsRef.current.autoGain);
         }
         audio.volume = Math.max(0, Math.min(1, v));
     };
@@ -250,7 +255,7 @@ export function useAudio() {
                 const { pQueue, ci, trackStart } = usePlayerStore.getState();
                 const ct = pQueue[ci];
                 if (ct && (audio as any)._lastTrackId === ct.id) {
-                    console.log(`[useAudio] ▶ï¸ Track started playing: ${ct.title}`);
+                    console.log(`[useAudio] ▶️ Track started playing: ${ct.title}`);
                     trackStart(ct.id);
                 }
             });
@@ -446,6 +451,46 @@ export function useAudio() {
             const triggerMs = crossfade ? crossfadeMs : 300;
             if (remainingMs <= triggerMs) {
                 const oldPlayer = audio;
+                
+                // 1. ¿DEBEMOS ESPERAR? (Auto-next Gap)
+                if (autoNext && playbackGapMs > 0) {
+                    // Detenemos el track actual con fade si está habilitado
+                    const transitionMs = fadeEnabled ? fadeOutMs : 300;
+                    runFade(oldPlayer, ct, "out", transitionMs);
+                    setPlaying(false);
+
+                    // Iniciamos el contador regresivo
+                    usePlayerStore.setState({ playbackGapRemainingMs: playbackGapMs });
+                    
+                    if (gapTimerRef.current) clearInterval(gapTimerRef.current);
+                    
+                    const startTime = Date.now();
+                    gapTimerRef.current = setInterval(() => {
+                        const elapsed = Date.now() - startTime;
+                        const remaining = Math.max(0, playbackGapMs - elapsed);
+                        usePlayerStore.setState({ playbackGapRemainingMs: remaining });
+
+                        if (remaining <= 0) {
+                            if (gapTimerRef.current) clearInterval(gapTimerRef.current);
+                            gapTimerRef.current = null;
+                            
+                            // 2. EJECUTAR TRANSICIÓN TRAS EL GAP
+                            const playerState = usePlayerStore.getState();
+                            if (playerState.stackOrder.length > 0) {
+                                const nextId = playerState.stackOrder[0];
+                                const nextIdx = pQueue.findIndex(t => t.id === nextId);
+                                setCi(nextIdx !== -1 ? nextIdx : ci + 1);
+                                setStackOrder(playerState.stackOrder.slice(1));
+                            } else if (ci < pQueue.length - 1) {
+                                setCi(ci + 1);
+                            }
+                            setPlaying(true);
+                        }
+                    }, 100);
+                    return;
+                }
+
+                // 3. COMPORTAMIENTO ESTÁNDAR (Crossfade o Directo)
                 pendingPlaybackModeRef.current = crossfade ? "crossfade" : (fadeEnabled ? "fade" : "direct");
                 activeChannel.current = activeChannel.current === "A" ? "B" : "A";
                 runFade(oldPlayer, ct, "out", triggerMs);
@@ -464,7 +509,7 @@ export function useAudio() {
         }, TICK_MS);
 
         return () => clearInterval(interval);
-    }, [ci, playing, crossfade]);
+    }, [ci, playing, crossfade, autoNext, playbackGapMs]);
 
     return { isReal: true };
 }

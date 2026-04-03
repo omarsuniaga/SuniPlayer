@@ -4,22 +4,26 @@
  */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { getStorage } from './storage';
+import { getStorage } from "./storage";
 
-// ── Pedal Bindings ────────────────────────────────────────────────────────────
-export type PedalAction = 'next' | 'prev' | 'play_pause' | 'stop' | 'vol_up' | 'vol_down'
+// ── Pedal & Gesture Bindings ────────────────────────────────────────────────
+export type PedalAction = "next" | "prev" | "play_pause" | "stop" | "vol_up" | "vol_down";
+export type GestureDirection = "up" | "down" | "left" | "right";
 
 export interface PedalBinding {
-    key: string    // event.key value: "ArrowRight", "Space", " ", "PageDown", etc.
-    label: string  // Human-readable: "→", "Espacio", "Pág↓"
+    key: string;   // event.key value: "ArrowRight", "Space", " ", "PageDown", etc.
+    label: string; // Human-readable: "→", "Espacio", "Pág↓"
 }
 
-export type PedalBindings = Partial<Record<PedalAction, PedalBinding>>
+export type PedalBindings = Partial<Record<PedalAction, PedalBinding>>;
+export type GestureBindings = Record<GestureDirection, PedalAction>;
 
 interface SettingsState {
     // Playback settings
     autoNext: boolean;
     setAutoNext: (v: boolean) => void;
+    playbackGapMs: number;
+    setPlaybackGapMs: (v: number) => void;
     crossfade: boolean;
     setCrossfade: (v: boolean) => void;
     crossfadeMs: number;
@@ -80,6 +84,10 @@ interface SettingsState {
     clearPedalBindings: () => void;
     clearPedalBinding: (action: PedalAction) => void;
 
+    // Gesture bindings (Ring/Mouse)
+    gestureBindings: GestureBindings;
+    setGestureBinding: (direction: GestureDirection, action: PedalAction) => void;
+
     // Learn mode (non-persisted UI state — which action is currently listening)
     learningAction: PedalAction | null;
     setLearningAction: (action: PedalAction | null) => void;
@@ -90,6 +98,8 @@ export const useSettingsStore = create<SettingsState>()(
         (set) => ({
             autoNext: true,
             setAutoNext: (autoNext) => set({ autoNext }),
+            playbackGapMs: 0,
+            setPlaybackGapMs: (playbackGapMs) => set({ playbackGapMs }),
 
             crossfade: true,
             setCrossfade: (crossfade) => set({ crossfade }),
@@ -138,12 +148,14 @@ export const useSettingsStore = create<SettingsState>()(
             setCurveExpanded: (curveExpanded) => set({ curveExpanded }),
 
             durationPresets: [30, 45, 60, 90, 120],
-            addDurationPreset: (min) => set((state) => ({ 
-                durationPresets: [...new Set([...state.durationPresets, min])].sort((a, b) => a - b) 
-            })),
-            removeDurationPreset: (min) => set((state) => ({ 
-                durationPresets: state.durationPresets.filter(p => p !== min) 
-            })),
+            addDurationPreset: (min) =>
+                set((state) => ({
+                    durationPresets: [...new Set([...state.durationPresets, min])].sort((a, b) => a - b),
+                })),
+            removeDurationPreset: (min) =>
+                set((state) => ({
+                    durationPresets: state.durationPresets.filter((preset) => preset !== min),
+                })),
 
             pedalBindings: {},
             setPedalBinding: (action, binding) =>
@@ -158,6 +170,17 @@ export const useSettingsStore = create<SettingsState>()(
                     return { pedalBindings: next };
                 }),
 
+            gestureBindings: {
+                up: "play_pause",
+                down: "stop",
+                left: "prev",
+                right: "next",
+            },
+            setGestureBinding: (direction, action) =>
+                set((state) => ({
+                    gestureBindings: { ...state.gestureBindings, [direction]: action },
+                })),
+
             learningAction: null,
             setLearningAction: (learningAction) => set({ learningAction }),
 
@@ -170,6 +193,7 @@ export const useSettingsStore = create<SettingsState>()(
             storage: createJSONStorage(() => getStorage()),
             partialize: (state) => ({
                 autoNext: state.autoNext,
+                playbackGapMs: state.playbackGapMs,
                 crossfade: state.crossfade,
                 crossExpanded: state.crossExpanded,
                 crossfadeMs: state.crossfadeMs,
@@ -189,6 +213,7 @@ export const useSettingsStore = create<SettingsState>()(
                 bpmMax: state.bpmMax,
                 durationPresets: state.durationPresets,
                 pedalBindings: state.pedalBindings,
+                gestureBindings: state.gestureBindings,
             }),
         }
     )

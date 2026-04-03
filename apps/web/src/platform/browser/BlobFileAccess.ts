@@ -1,5 +1,6 @@
 // src/platform/browser/BlobFileAccess.ts
 import type { IFileAccess, ImportedFile, FileSource } from '../interfaces/IFileAccess';
+import { SUPPORTED_AUDIO_FILE_ACCEPT } from '../../features/library/lib/audioImport';
 
 const AUDIO_PREFIX = '/audio/';
 
@@ -29,7 +30,7 @@ export class BlobFileAccess implements IFileAccess {
         return new Promise((resolve) => {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = 'audio/*';
+            input.accept = SUPPORTED_AUDIO_FILE_ACCEPT;
             input.onchange = () => {
                 const file = input.files?.[0];
                 if (!file) { resolve(null); return; }

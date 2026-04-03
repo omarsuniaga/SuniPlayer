@@ -3,6 +3,7 @@ import { Track } from "@suniplayer/core";
 import { THEME } from "../../../data/theme";
 import { fmt } from "@suniplayer/core";
 import { useIsMobile } from "../../../utils/useMediaQuery";
+import { useSettingsStore } from "../../../store/useSettingsStore";
 
 interface PlayerHeaderProps {
     track: Track | null;
@@ -15,14 +16,19 @@ interface PlayerHeaderProps {
     currentSetMetadata: { setLabel: string; totalSetsInShow: number } | null;
     onProfileClick: () => void;
     onSheetMusicClick: () => void;
+    onSetlistToggle: () => void; // New prop
+    showQueue: boolean;
 }
 
 export const PlayerHeader: React.FC<PlayerHeaderProps> = ({
     track, performanceMode, playing, currentSetMetadata,
-    onProfileClick, onSheetMusicClick, isMirrorOpen, onMirrorToggle
+    onProfileClick, onSheetMusicClick, isMirrorOpen, onMirrorToggle,
+    onSetlistToggle, showQueue
 }) => {
     const isMobile = useIsMobile();
+    const autoGain = useSettingsStore(s => s.autoGain);
     if (!track) return null;
+    const isNormalized = autoGain && typeof track.gainOffset === "number" && Math.abs(track.gainOffset - 1) > 0.02;
 
     return (
         <div style={{ 
@@ -34,6 +40,34 @@ export const PlayerHeader: React.FC<PlayerHeaderProps> = ({
             fontFamily: "'DM Sans', sans-serif",
             position: "relative"
         }}>
+            {/* Setlist Toggle Button (Absolute Bottom Right) */}
+            <button
+                onClick={onSetlistToggle}
+                title="Mostrar Setlist"
+                style={{
+                    position: "absolute",
+                    bottom: isMobile ? 8 : 12,
+                    right: 0,
+                    background: showQueue ? "rgba(139, 92, 246, 0.2)" : "rgba(255,255,255,0.03)",
+                    border: `1px solid ${showQueue ? THEME.colors.brand.violet : "rgba(255,255,255,0.1)"}`,
+                    color: showQueue ? THEME.colors.brand.violet : "white",
+                    width: isMobile ? "32px" : "40px",
+                    height: isMobile ? "32px" : "40px",
+                    borderRadius: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    zIndex: 10,
+                    transition: "all 0.2s"
+                }}
+            >
+                <svg width={isMobile ? 18 : 20} height={isMobile ? 18 : 20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+                    <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+            </button>
+
             {/* Upper Badge Layer */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -62,6 +96,23 @@ export const PlayerHeader: React.FC<PlayerHeaderProps> = ({
                     <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 800, color: THEME.colors.brand.cyan, letterSpacing: 1 }}>
                         {playing ? "BROADCASTING" : "STANDBY"}
                     </span>
+                    {isNormalized && (
+                        <>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.2)", letterSpacing: 2 }}>|</span>
+                            <span style={{
+                                padding: isMobile ? "2px 6px" : "3px 8px",
+                                borderRadius: 999,
+                                backgroundColor: "rgba(6, 182, 212, 0.12)",
+                                border: "1px solid rgba(6, 182, 212, 0.25)",
+                                fontSize: isMobile ? 8 : 9,
+                                fontWeight: 900,
+                                color: THEME.colors.brand.cyan,
+                                letterSpacing: 0.8,
+                            }}>
+                                NORMALIZADO
+                            </span>
+                        </>
+                    )}
                 </div>
 
                 <div style={{ display: "flex", gap: 8 }}>

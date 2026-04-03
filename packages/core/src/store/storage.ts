@@ -6,7 +6,7 @@
 import { StateStorage } from "zustand/middleware";
 import type { IStorage } from '../platform/interfaces/IStorage';
 
-type StorageImplementation = Partial<IStorage> & StateStorage;
+type StorageImplementation = Partial<IStorage> & Partial<StateStorage>;
 
 let _impl: StorageImplementation | null = null;
 

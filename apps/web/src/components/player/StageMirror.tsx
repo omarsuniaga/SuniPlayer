@@ -6,6 +6,7 @@ export const StageMirror: React.FC = () => {
     const isMirrorOpen = usePlayerStore(s => s.isMirrorOpen);
     const toggleMirror = usePlayerStore(s => s.toggleMirror);
     const mirrorMode = usePlayerStore(s => s.mirrorMode);
+    const setMirrorMode = usePlayerStore(s => s.setMirrorMode);
     const mirrorSize = usePlayerStore(s => s.mirrorSize);
     const setMirrorSize = usePlayerStore(s => s.setMirrorSize);
     
@@ -120,13 +121,17 @@ export const StageMirror: React.FC = () => {
         setMirrorSize(sizes[nextIndex]);
     };
 
+    const toggleMode = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setMirrorMode(mirrorMode === 'docked' ? 'floating' : 'docked');
+    };
+
     const isFloating = mirrorMode === 'floating';
 
     return (
         <div
             onMouseDown={handleMouseDown}
             onTouchStart={handleMouseDown}
-            onClick={cycleSize}
             style={{
                 position: isFloating ? "fixed" : "relative",
                 left: isFloating ? pos.x : undefined,
@@ -135,10 +140,10 @@ export const StageMirror: React.FC = () => {
                 height: height,
                 borderRadius: 16,
                 border: `2px solid ${THEME.colors.brand.cyan}88`,
-                boxShadow: isFloating ? `0 8px 32px rgba(0,0,0,0.5), 0 0 15px ${THEME.colors.brand.cyan}33` : "none",
+                boxShadow: isFloating ? `0 12px 40px rgba(0,0,0,0.6), 0 0 20px ${THEME.colors.brand.cyan}44` : "none",
                 zIndex: isFloating ? 10000 : 1,
                 overflow: "hidden",
-                cursor: isFloating ? (dragging ? "grabbing" : "grab") : "pointer",
+                cursor: isFloating ? (dragging ? "grabbing" : "grab") : "default",
                 transition: "width 0.3s ease, height 0.3s ease, border-color 0.3s ease",
                 backgroundColor: "#000",
                 display: "flex",
@@ -170,6 +175,82 @@ export const StageMirror: React.FC = () => {
                 background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 50%)",
                 pointerEvents: "none"
             }} />
+
+            {/* ── Controls Overlay ── */}
+            <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                {/* Size Cycle Trigger (Hidden area) */}
+                <div 
+                    onClick={cycleSize}
+                    style={{ position: "absolute", inset: 0, cursor: isFloating ? "inherit" : "pointer", pointerEvents: "auto" }} 
+                />
+
+                {/* Float/Dock Toggle (Top Left) */}
+                <button
+                    onClick={toggleMode}
+                    title={isFloating ? "Anclar a la vista" : "Hacer flotante"}
+                    style={{
+                        position: "absolute",
+                        top: 8,
+                        left: 8,
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        border: "1px solid rgba(255,255,255,0.2)",
+                        color: THEME.colors.brand.cyan,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        zIndex: 10,
+                        pointerEvents: "auto",
+                        backdropFilter: "blur(4px)",
+                        transition: "all 0.2s"
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(6, 182, 212, 0.2)"}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.5)"}
+                >
+                    {isFloating ? 
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6M3 10h18M3 14h18"/></svg> :
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                    }
+                </button>
+
+                {/* Close Button (Discreet but visible) */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); toggleMirror(); }}
+                    style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                        border: "1px solid rgba(255,255,255,0.2)",
+                        color: "white",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        zIndex: 10,
+                        pointerEvents: "auto",
+                        backdropFilter: "blur(4px)",
+                        transition: "all 0.2s"
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = THEME.colors.status.error}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.5)"}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+
+                {/* Mode Indicator (Optional, subtle) */}
+                <div style={{ position: "absolute", bottom: 8, left: 12, fontSize: 9, fontWeight: 900, color: "white", opacity: 0.4, textTransform: "uppercase", letterSpacing: 1 }}>
+                    {mirrorSize} • {mirrorMode}
+                </div>
+            </div>
         </div>
     );
 };

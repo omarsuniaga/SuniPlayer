@@ -27,8 +27,10 @@ export function useWakeLock() {
     }, []);
 
     useEffect(() => {
-        // 1. Try to request immediately
-        requestWakeLock();
+        // 1. Try to request immediately if visible
+        if (document.visibilityState === "visible") {
+            requestWakeLock();
+        }
 
         // 2. Re-request when the app becomes visible again (crucial for mobile)
         const handleVisibility = () => {

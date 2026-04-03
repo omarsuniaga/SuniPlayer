@@ -1,301 +1,315 @@
-﻿import React from "react";
-import { Track } from "@suniplayer/core";
+import React, { useMemo, useState } from "react";
+import { type Track } from "@suniplayer/core";
+
 import { THEME } from "../../data/theme";
-import { usePreviewStore } from "../../store/usePreviewStore";
-import { LoadingSpinner } from "../common/LoadingSpinner";
-import { useIsMobile } from "../../utils/useMediaQuery";
+import { getLibraryTrackOrigin } from "../../features/library/lib/libraryCatalog";
 
 interface TrackRowV2Props {
     track: Track;
-    index: number;
-    isSelected: boolean;
-    onSelectToggle: (trackId: string) => void;
-    onDelete: (track: Track) => void;
+    isInQueue: boolean;
     isInRepertoire: boolean;
+    onQueue: (track: Track) => void;
+    onPlay: (track: Track) => void;
+    onOpenTrackProfile: (track: Track) => void;
+    onRemoveFromPlayer: (track: Track) => void;
+    onVerifyCloud: (track: Track) => void;
+    cloudStatus?: string;
     style?: React.CSSProperties;
 }
 
+const formatDuration = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
+
 export const TrackRowV2: React.FC<TrackRowV2Props> = ({
     track,
-    index,
-    isSelected,
-    onSelectToggle,
-    onDelete,
+    isInQueue,
     isInRepertoire,
-    style
+    onQueue,
+    onPlay,
+    onOpenTrackProfile,
+    onRemoveFromPlayer,
+    onVerifyCloud,
+    cloudStatus,
+    style,
 }) => {
-    const { previewTrackId, isPlaying, isLoading, togglePreview } = usePreviewStore();
-    const isMobile = useIsMobile();
+    const [menuOpen, setMenuOpen] = useState(false);
+    const origin = useMemo(() => getLibraryTrackOrigin(track), [track]);
+    const isActive = isInQueue || isInRepertoire;
 
-    const isThisTrackPreviewing = previewTrackId === track.id;
-    const isThisTrackPlaying = isThisTrackPreviewing && isPlaying;
-    const isThisTrackLoading = isThisTrackPreviewing && isLoading;
+    const background = isActive
+        ? "linear-gradient(90deg, rgba(6,182,212,0.10) 0%, rgba(139,92,246,0.08) 100%)"
+        : "transparent";
 
-    const formatDuration = (ms: number) => {
-        const totalSeconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-    };
-
-    if (isMobile) {
-        return (
-            <div
-                style={{
-                    ...style,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "0 12px",
-                    borderBottom: `1px solid ${THEME.colors.border}`,
-                    backgroundColor: isThisTrackPreviewing ? "rgba(6, 182, 212, 0.05)" : "transparent",
-                    color: THEME.colors.text.primary,
-                    transition: "background-color 0.2s",
-                    height: "78px",
-                    overflow: "hidden",
-                }}
-            >
-                <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => onSelectToggle(track.id)}
-                    style={{
-                        accentColor: THEME.colors.brand.cyan,
-                        cursor: "pointer",
-                        width: "16px",
-                        height: "16px",
-                        flexShrink: 0,
-                    }}
-                />
-
-                <button
-                    onClick={() => togglePreview(track)}
-                    style={{
-                        background: isThisTrackPlaying ? THEME.colors.brand.cyan : "rgba(255,255,255,0.05)",
-                        border: "none",
-                        width: "34px",
-                        height: "34px",
-                        borderRadius: "50%",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: isThisTrackPlaying ? "black" : THEME.colors.brand.cyan,
-                        fontSize: "14px",
-                        transition: "all 0.2s",
-                        flexShrink: 0,
-                    }}
-                >
-                    {isThisTrackLoading ? (
-                        <LoadingSpinner size={14} color={isThisTrackPlaying ? "black" : THEME.colors.brand.cyan} />
-                    ) : (
-                        isThisTrackPlaying ? "⏸" : "▶"
-                    )}
-                </button>
-
-                <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                        <div
-                            style={{
-                                flex: 1,
-                                minWidth: 0,
-                                fontWeight: 700,
-                                fontSize: 14,
-                                lineHeight: 1.2,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                            }}
-                        >
-                            {track.title}
-                        </div>
-                        {isInRepertoire && (
-                            <span
-                                style={{
-                                    flexShrink: 0,
-                                    fontSize: 9,
-                                    color: THEME.colors.status.success,
-                                    backgroundColor: `${THEME.colors.status.success}20`,
-                                    padding: "3px 6px",
-                                    borderRadius: 999,
-                                    fontWeight: 800,
-                                    letterSpacing: "0.06em",
-                                }}
-                            >
-                                ACTIVE
-                            </span>
-                        )}
-                    </div>
-
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(3, minmax(0, auto)) minmax(0, 1fr)",
-                            alignItems: "center",
-                            gap: 8,
-                            minWidth: 0,
-                            color: THEME.colors.text.secondary,
-                            fontSize: 11,
-                            lineHeight: 1.1,
-                        }}
-                    >
-                        <span style={{ color: THEME.colors.text.muted, whiteSpace: "nowrap" }}>
-                            {formatDuration(track.duration_ms)}
-                        </span>
-                        <span style={{ color: THEME.colors.brand.cyan, fontFamily: THEME.fonts.mono, whiteSpace: "nowrap" }}>
-                            {Math.round(track.bpm || 0) || "-"} BPM
-                        </span>
-                        <span style={{ color: THEME.colors.brand.violet, fontFamily: THEME.fonts.mono, whiteSpace: "nowrap" }}>
-                            {track.key || "-"}
-                        </span>
-                        <span
-                            style={{
-                                color: THEME.colors.text.muted,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                textAlign: "right",
-                            }}
-                        >
-                            {track.artist || ""}
-                        </span>
-                    </div>
-                </div>
-
-                <button
-                    onClick={() => onDelete(track)}
-                    style={{
-                        background: "none",
-                        border: "none",
-                        color: THEME.colors.text.muted,
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        padding: "8px 4px",
-                        transition: "color 0.2s",
-                        flexShrink: 0,
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = THEME.colors.status.error}
-                    onMouseLeave={(e) => e.currentTarget.style.color = THEME.colors.text.muted}
-                    aria-label={`Eliminar ${track.title}`}
-                >
-                    ✕
-                </button>
-            </div>
-        );
-    }
+    const activeLabel = isInQueue ? "EN QUEUE" : isInRepertoire ? "ACTIVE" : null;
 
     return (
         <div
             style={{
                 ...style,
-                display: "grid",
-                gridTemplateColumns: "40px 50px 2fr 1.5fr 80px 80px 1fr 80px 50px",
+                display: "flex",
                 alignItems: "center",
-                padding: "0 16px",
+                gap: 10,
+                padding: "0 12px",
                 borderBottom: `1px solid ${THEME.colors.border}`,
-                backgroundColor: isThisTrackPreviewing ? "rgba(6, 182, 212, 0.05)" : "transparent",
+                background: background,
                 color: THEME.colors.text.primary,
-                fontSize: "13px",
                 transition: "background-color 0.2s",
-                height: "56px"
+                // overflow: "hidden", // Removido para permitir que el menú de acciones sea visible
+                zIndex: menuOpen ? 1000 : 1, // Elevamos mucho la fila cuando el menú está abierto
+                cursor: "pointer",
             }}
+            onClick={() => onQueue(track)}
         >
-            <div style={{ display: "flex", justifyContent: "center" }}>
-                <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => onSelectToggle(track.id)}
+            {/* Backdrop para cerrar el menú y oscurecer el fondo */}
+            {menuOpen && (
+                <div 
                     style={{
-                        accentColor: THEME.colors.brand.cyan,
-                        cursor: "pointer",
-                        width: "16px",
-                        height: "16px"
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: "rgba(0,0,0,0.3)",
+                        backdropFilter: "blur(4px)",
+                        zIndex: -1, // Detrás del contenido de la fila actual pero encima de todo lo demás
+                    }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(false);
                     }}
                 />
+            )}
+
+            <button
+                onClick={(event) => {
+                    event.stopPropagation();
+                    onPlay(track);
+                }}
+                style={{
+                    background: THEME.colors.brand.cyan,
+                    border: "none",
+                    width: 38,
+                    height: 38,
+                    borderRadius: "50%",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "black",
+                    fontSize: 16,
+                    fontWeight: 900,
+                    boxShadow: `0 8px 20px ${THEME.colors.brand.cyan}25`,
+                    flexShrink: 0,
+                    filter: menuOpen ? "blur(2px) grayscale(0.5)" : "none",
+                    opacity: menuOpen ? 0.3 : 1,
+                    transition: "all 0.3s ease",
+                }}
+                aria-label={`Reproducir ${track.title}`}
+            >
+                ▶
+            </button>
+
+            <div style={{ 
+                flex: 1, 
+                minWidth: 0, 
+                display: "flex", 
+                flexDirection: "column", 
+                gap: 6,
+                filter: menuOpen ? "blur(2px) opacity(0.3)" : "none",
+                transition: "all 0.3s ease",
+            }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    <div
+                        style={{
+                            flex: 1,
+                            minWidth: 0,
+                            fontWeight: 800,
+                            fontSize: 14,
+                            lineHeight: 1.2,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        {track.title}
+                    </div>
+
+                    {activeLabel && (
+                        <span
+                            style={{
+                                flexShrink: 0,
+                                fontSize: 9,
+                                color: isInQueue ? THEME.colors.brand.cyan : THEME.colors.status.success,
+                                backgroundColor: isInQueue
+                                    ? `${THEME.colors.brand.cyan}20`
+                                    : `${THEME.colors.status.success}20`,
+                                padding: "3px 6px",
+                                borderRadius: 999,
+                                fontWeight: 800,
+                                letterSpacing: "0.06em",
+                            }}
+                        >
+                            {activeLabel}
+                        </span>
+                    )}
+                </div>
+
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        minWidth: 0,
+                        color: THEME.colors.text.secondary,
+                        fontSize: 11,
+                        lineHeight: 1.1,
+                        flexWrap: "wrap",
+                    }}
+                >
+                    <span style={{ color: THEME.colors.text.muted, whiteSpace: "nowrap" }}>
+                        {formatDuration(track.duration_ms)}
+                    </span>
+                    <span style={{ color: THEME.colors.brand.cyan, fontFamily: THEME.fonts.mono, whiteSpace: "nowrap" }}>
+                        {Math.round(track.bpm || 0) || "-"} BPM
+                    </span>
+                    <span style={{ color: THEME.colors.brand.violet, fontFamily: THEME.fonts.mono, whiteSpace: "nowrap" }}>
+                        {track.key || "-"}
+                    </span>
+                    <span
+                        style={{
+                            color: THEME.colors.text.muted,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            minWidth: 0,
+                            flex: 1,
+                        }}
+                    >
+                        {track.artist || "Unknown Artist"}
+                    </span>
+                </div>
+
+                {cloudStatus && (
+                    <div
+                        style={{
+                            fontSize: 10,
+                            color: THEME.colors.text.muted,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        {cloudStatus}
+                    </div>
+                )}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center" }}>
+            <button
+                onClick={(event) => {
+                    event.stopPropagation();
+                    if (origin === "cloud") {
+                        onVerifyCloud(track);
+                    }
+                }}
+                style={{
+                    background: origin === "cloud" ? "rgba(255,255,255,0.05)" : "transparent",
+                    border: "none",
+                    width: 32,
+                    height: 32,
+                    borderRadius: 12,
+                    cursor: origin === "cloud" ? "pointer" : "default",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: origin === "cloud" ? THEME.colors.brand.cyan : THEME.colors.text.muted,
+                    fontSize: 16,
+                    flexShrink: 0,
+                }}
+                title={origin === "cloud" ? "Verificar disponibilidad en nube" : "Disponible en este dispositivo"}
+                aria-label={origin === "cloud" ? "Track en la nube" : "Track local"}
+            >
+                {origin === "cloud" ? "☁" : "📱"}
+            </button>
+
+            <div style={{ position: "relative", flexShrink: 0 }}>
                 <button
-                    onClick={() => togglePreview(track)}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        setMenuOpen((open) => !open);
+                    }}
                     style={{
-                        background: isThisTrackPlaying ? THEME.colors.brand.cyan : "rgba(255,255,255,0.05)",
+                        background: "transparent",
                         border: "none",
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
+                        width: 32,
+                        height: 32,
+                        borderRadius: 12,
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        color: isThisTrackPlaying ? "black" : THEME.colors.brand.cyan,
-                        fontSize: "14px",
-                        transition: "all 0.2s"
-                    }}
-                >
-                    {isThisTrackLoading ? (
-                        <LoadingSpinner size={14} color={isThisTrackPlaying ? "black" : THEME.colors.brand.cyan} />
-                    ) : (
-                        isThisTrackPlaying ? "⏸" : "▶"
-                    )}
-                </button>
-            </div>
-
-            <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "10px" }}>
-                {track.title}
-                {isInRepertoire && (
-                    <span style={{
-                        marginLeft: "8px",
-                        fontSize: "10px",
-                        color: THEME.colors.status.success,
-                        backgroundColor: `${THEME.colors.status.success}20`,
-                        padding: "2px 6px",
-                        borderRadius: "4px",
-                        fontWeight: 800
-                    }}>
-                        ACTIVE
-                    </span>
-                )}
-            </div>
-
-            <div style={{ color: THEME.colors.text.secondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: "10px" }}>
-                {track.artist || "-"}
-            </div>
-
-            <div style={{ fontFamily: THEME.fonts.mono, color: THEME.colors.brand.cyan, textAlign: "center" }}>
-                {Math.round(track.bpm || 0) || "-"}
-            </div>
-
-            <div style={{ fontFamily: THEME.fonts.mono, color: THEME.colors.brand.violet, textAlign: "center" }}>
-                {track.key || "-"}
-            </div>
-
-            <div style={{ color: THEME.colors.text.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {track.genre || "-"}
-            </div>
-
-            <div style={{ color: THEME.colors.text.secondary, textAlign: "right" }}>
-                {formatDuration(track.duration_ms)}
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "center" }}>
-                <button
-                    onClick={() => onDelete(track)}
-                    style={{
-                        background: "none",
-                        border: "none",
                         color: THEME.colors.text.muted,
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        padding: "8px",
-                        transition: "color 0.2s"
+                        fontSize: 18,
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = THEME.colors.status.error}
-                    onMouseLeave={(e) => e.currentTarget.style.color = THEME.colors.text.muted}
-                    aria-label={`Eliminar ${track.title}`}
+                    aria-label={`Acciones para ${track.title}`}
                 >
-                    ✕
+                    ⋮
                 </button>
+
+                {menuOpen && (
+                    <div
+                        style={{
+                            position: "absolute",
+                            right: 0,
+                            top: "calc(100% + 4px)",
+                            minWidth: 180,
+                            background: "#10161F",
+                            border: `1px solid ${THEME.colors.border}`,
+                            borderRadius: 14,
+                            boxShadow: "0 14px 28px rgba(0,0,0,0.45)",
+                            overflow: "hidden",
+                            zIndex: 20,
+                        }}
+                    >
+                        <button
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setMenuOpen(false);
+                                onOpenTrackProfile(track);
+                            }}
+                            style={menuButtonStyle}
+                        >
+                            Abrir Track Profile
+                        </button>
+                        <button
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setMenuOpen(false);
+                                onRemoveFromPlayer(track);
+                            }}
+                            style={{ ...menuButtonStyle, color: THEME.colors.status.error }}
+                        >
+                            Eliminar del reproductor
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
+};
+
+const menuButtonStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "12px 14px",
+    background: "transparent",
+    color: "white",
+    border: "none",
+    borderBottom: `1px solid ${THEME.colors.border}`,
+    textAlign: "left",
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: "pointer",
 };

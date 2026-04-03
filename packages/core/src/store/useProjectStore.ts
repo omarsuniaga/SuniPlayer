@@ -146,7 +146,7 @@ export interface ProjectState {
 export function resetApp() {
     useBuilderStore.setState({ genSet: [], targetMin: 45, curve: "steady", venue: "lobby" });
     usePlayerStore.setState({ pQueue: [], ci: 0, playing: false, elapsed: 0, stackOrder: [] });
-    useLibraryStore.setState({ customTracks: [], trackOverrides: {} });
+    useLibraryStore.setState({ customTracks: [], repertoire: [], trackOverrides: {} });
     useHistoryStore.setState({ history: [] });
     // TODO(native): caller is responsible for clearing platform storage and triggering reload/reset
 }
@@ -413,3 +413,4 @@ export function useProjectStore<T = ProjectState>(
 
     return selector ? selector(combined) : combined;
 }
+

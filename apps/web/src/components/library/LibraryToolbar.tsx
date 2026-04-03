@@ -33,15 +33,15 @@ export const LibraryToolbar: React.FC<LibraryToolbarProps> = ({
                 <button
                     onClick={onImport}
                     style={{
-                        width: isMobile ? "52px" : "auto",
-                        height: isMobile ? "52px" : "auto",
+                        width: isMobile ? "24px" : "auto",
+                        height: isMobile ? "24px" : "auto",
                         padding: isMobile ? "0" : "10px 16px",
                         borderRadius: isMobile ? "999px" : "10px",
                         background: THEME.colors.brand.cyan,
                         color: "black",
                         border: "none",
-                        fontWeight: 800,
-                        fontSize: isMobile ? "24px" : "13px",
+                        fontWeight: 600,
+                        fontSize: isMobile ? "14px" : "13px",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",

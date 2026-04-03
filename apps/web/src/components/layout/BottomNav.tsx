@@ -27,16 +27,19 @@ export const BottomNav: React.FC = () => {
     return (
         <nav style={{
             height: isMobile ? "56px" : "72px",
-            backgroundColor: "rgba(13, 17, 23, 0.9)",
-            backdropFilter: "blur(12px)",
+            backgroundColor: "rgba(13, 17, 23, 0.5)",
+            backdropFilter: "blur(24px)",
             borderTop: `1px solid ${THEME.colors.border}`,
             display: "flex",
             justifyContent: "space-around",
             alignItems: "center",
-            padding: isMobile ? "0 8px" : "0 16px",
+            paddingTop: "0",
+            paddingRight: isMobile ? "8px" : "16px",
+            paddingBottom: "env(safe-area-inset-bottom)",
+            paddingLeft: isMobile ? "8px" : "16px",
             position: "relative",
             zIndex: 100,
-            paddingBottom: "env(safe-area-inset-bottom)"
+
         }}>
             {NAV_ITEMS.map((item) => {
                 const isActive = currentView === item.id;
@@ -85,9 +88,9 @@ export const BottomNav: React.FC = () => {
                         {isActive && (
                             <div style={{
                                 position: "absolute",
-                                top: isMobile ? -8 : -12,
-                                width: "3px",
-                                height: "3px",
+                                top: isMobile ? -4 : -2,
+                                width: "6px",
+                                height: "6px",
                                 borderRadius: "50%",
                                 backgroundColor: THEME.colors.brand.cyan,
                                 boxShadow: `0 0 10px ${THEME.colors.brand.cyan}`

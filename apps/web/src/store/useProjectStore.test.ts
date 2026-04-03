@@ -5,7 +5,7 @@ import { useBuilderStore } from "./useBuilderStore";
 import { usePlayerStore } from "./usePlayerStore";
 import { useHistoryStore } from "./useHistoryStore";
 import { useLibraryStore } from "./useLibraryStore";
-import { appendToQueue, saveSet, toPlayer, updateTrackMetadata } from "./useProjectStore";
+import { appendToQueue, doGen, saveSet, toPlayer, updateTrackMetadata } from "./useProjectStore";
 
 const resetStores = () => {
     localStorage.clear();
@@ -87,5 +87,28 @@ describe("useProjectStore cross-domain actions", () => {
         expect(usePlayerStore.getState().pQueue[0].targetKey).toBe("D Major");
         expect(useBuilderStore.getState().genSet[0].transposeSemitones).toBe(1);
         expect(useLibraryStore.getState().trackOverrides[track.id]?.targetKey).toBe("D Major");
+    });
+
+    it("lets builder generate from the full library even when repertoire is empty", () => {
+        const customTrack = {
+            ...TRACKS[0],
+            id: "custom-only",
+            title: "Custom Track",
+            isCustom: true,
+        };
+
+        useLibraryStore.setState({
+            customTracks: [customTrack],
+            repertoire: [],
+        });
+        useBuilderStore.setState({
+            targetMin: 5,
+            curve: "steady",
+            venue: "lobby",
+        });
+
+        doGen();
+
+        expect(useBuilderStore.getState().genSet.length).toBeGreaterThan(0);
     });
 });

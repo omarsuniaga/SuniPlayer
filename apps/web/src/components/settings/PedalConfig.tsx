@@ -168,12 +168,73 @@ export const PedalConfig: React.FC = () => {
                 </button>
             </div>
 
+            {/* ── Gesture / Ring Config ── */}
+            <GestureConfig />
+
             <style>{`
                 @keyframes pedalPulse {
                     0%, 100% { transform: scale(1); opacity: 1; }
                     50% { transform: scale(1.2); opacity: 0.5; }
                 }
             `}</style>
+        </div>
+    );
+};
+
+const GestureConfig: React.FC = () => {
+    const gestureBindings = useSettingsStore(s => s.gestureBindings);
+    const setGestureBinding = useSettingsStore(s => s.setGestureBinding);
+
+    const directions: { dir: 'up' | 'down' | 'left' | 'right', label: string, icon: string }[] = [
+        { dir: 'up',    label: 'Gesto Arriba',    icon: '↑' },
+        { dir: 'down',  label: 'Gesto Abajo',     icon: '↓' },
+        { dir: 'left',  label: 'Gesto Izquierda', icon: '←' },
+        { dir: 'right', label: 'Gesto Derecha',   icon: '→' },
+    ];
+
+    return (
+        <div style={{ marginTop: 40, borderTop: `2px solid ${THEME.colors.border}40`, paddingTop: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: 18 }}>💍</span>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.colors.text.muted, flex: 1 }}>
+                    Anillo Bluetooth (Gestos)
+                </span>
+            </div>
+
+            <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "0 0 20px" }}>
+                Asigna qué acción ocurre al deslizar el puntero en cada dirección. Ideal para anillos HID Mouse.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {directions.map(({ dir, label, icon }) => (
+                    <div key={dir} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", backgroundColor: "rgba(255,255,255,0.03)", border: `1px solid ${THEME.colors.border}`, borderRadius: THEME.radius.md }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <span style={{ fontSize: 16, color: THEME.colors.brand.cyan, fontWeight: 900, width: 20 }}>{icon}</span>
+                            <span style={{ fontSize: 14, fontWeight: 700 }}>{label}</span>
+                        </div>
+                        
+                        <select 
+                            value={gestureBindings[dir]} 
+                            onChange={(e) => setGestureBinding(dir, e.target.value as PedalAction)}
+                            style={{ 
+                                background: THEME.colors.surface, 
+                                color: "white", 
+                                border: `1px solid ${THEME.colors.border}`, 
+                                borderRadius: 4, 
+                                padding: "6px 10px",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                outline: "none",
+                                cursor: "pointer"
+                            }}
+                        >
+                            {PEDAL_ACTIONS.map(a => (
+                                <option key={a.action} value={a.action}>{a.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };

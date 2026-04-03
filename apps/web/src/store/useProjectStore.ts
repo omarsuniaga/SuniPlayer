@@ -82,6 +82,12 @@ export interface ProjectState {
     // Settings
     autoNext: boolean;
     setAutoNext: (v: boolean) => void;
+    playbackGapMs: number;
+    setPlaybackGapMs: (v: number) => void;
+    autoGain: boolean;
+    setAutoGain: (v: boolean) => void;
+    performanceMode: boolean;
+    setPerformanceMode: (v: boolean) => void;
     crossfade: boolean;
     setCrossfade: (v: boolean) => void;
     crossfadeMs: number;
@@ -144,7 +150,7 @@ export function resetApp() {
     // Clear persistences manually if needed, but setState handles the runtime
     useBuilderStore.setState({ genSet: [], targetMin: 45, curve: "steady", venue: "lobby" });
     usePlayerStore.setState({ pQueue: [], ci: 0, playing: false, elapsed: 0, stackOrder: [] });
-    useLibraryStore.setState({ customTracks: [], trackOverrides: {} });
+    useLibraryStore.setState({ customTracks: [], repertoire: [], trackOverrides: {} });
     useHistoryStore.setState({ history: [] });
     
     localStorage.clear();
@@ -206,18 +212,20 @@ export function doGen() {
     const builderState = useBuilderStore.getState();
     const { targetMin, curve, venue } = builderState;
     const { bpmMin, bpmMax } = useSettingsStore.getState();
+    const { customTracks } = useLibraryStore.getState();
     const tSec = targetMin * 60;
 
-    // Exclude tracks already used in other sets of the current show
+    const fullLibrary = [
+        ...TRACKS,
+        ...customTracks.filter((track) => !TRACKS.some((catalogTrack) => catalogTrack.id === track.id)),
+    ];
+
     const excludedIds = builderState.getExcludedTrackIdsInShow();
     const availablePool = excludedIds.length > 0
-        ? TRACKS.filter(t => !excludedIds.includes(t.id))
-        : TRACKS;
-    // Fall back to full catalog if pool is too small for generation
-    const workingPool = availablePool.length >= 3 ? availablePool : TRACKS;
+        ? fullLibrary.filter(t => !excludedIds.includes(t.id))
+        : fullLibrary;
+    const workingPool = availablePool.length >= 3 ? availablePool : fullLibrary;
 
-    // Apply overrides to catalog tracks BEFORE building the set if possible,
-    // but building first then applying is safer for the algorithm's constraints.
     const rawSet = buildSet(workingPool, tSec, { curve, venue, bpmMin, bpmMax });
 
     useBuilderStore.setState({
@@ -365,6 +373,12 @@ export function useProjectStore<T = ProjectState>(
         // Settings
         autoNext: settings.autoNext,
         setAutoNext: settings.setAutoNext,
+        playbackGapMs: settings.playbackGapMs,
+        setPlaybackGapMs: settings.setPlaybackGapMs,
+        autoGain: settings.autoGain,
+        setAutoGain: settings.setAutoGain,
+        performanceMode: settings.performanceMode,
+        setPerformanceMode: settings.setPerformanceMode,
         crossfade: settings.crossfade,
         setCrossfade: settings.setCrossfade,
         crossfadeMs: settings.crossfadeMs,
@@ -421,3 +435,4 @@ export function useProjectStore<T = ProjectState>(
 
     return selector ? selector(combined) : combined;
 }
+

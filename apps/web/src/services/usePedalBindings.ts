@@ -34,62 +34,18 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 /**
- * Handles a keyboard event and dispatches the corresponding pedal action.
- * Reads directly from stores to avoid stale closures.
+ * Executes a normalized pedal action.
+ * Centralized logic for all hardware inputs (Keyboard, Bluetooth Pedal, Ring/Mouse Gestures).
  */
-export function handlePedalEvent(
-    event: KeyboardEvent, 
-    addLog: (msg: string) => void,
-    setLastEvent: (ev: string) => void
-) {
-    const { learningAction, setPedalBinding, setLearningAction, pedalBindings } = useSettingsStore.getState();
+export function executePedalAction(action: PedalAction, addLog: (msg: string) => void) {
     const playerStore = usePlayerStore.getState();
-    const { ci, pQueue, vol, setCi, setPlaying, setVol, setPos } = playerStore;
+    const { ci, pQueue, vol, setCi, setPlaying, setVol, setPos, mode } = playerStore;
+    const isLive = mode === "live";
 
-    // Log to debug store for iPad visibility
-    setLastEvent(`${event.type}: ${event.key}`);
-    
-    if (isTypingTarget(event.target)) return;
+    addLog(`Acción: ${action}${isLive ? " (LIVE)" : ""}`);
+    console.log(`[Pedal] Action executed: ${action} (Live: ${isLive})`);
 
-    // ── Learn mode ──────────────────────────────────────────────────
-    if (learningAction !== null) {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        if (event.type === "keydown") {
-            if (event.key === "Escape") {
-                setLearningAction(null);
-            } else {
-                console.log(`[Pedal] Mapping ${learningAction} to ${event.key}`);
-                addLog(`Mapeado: ${learningAction} -> ${event.key}`);
-                setPedalBinding(learningAction, {
-                    key: event.key,
-                    label: keyLabel(event.key),
-                });
-                setLearningAction(null);
-            }
-        }
-        return;
-    }
-
-    // ── Normal mode — find matching binding ──────────────────────────
-    if (event.type !== "keydown") return;
-
-    const matchedAction = (
-        Object.entries(pedalBindings) as [PedalAction, { key: string }][]
-    ).find(([, b]) => b.key === event.key)?.[0];
-
-    if (!matchedAction) return;
-    
-    const isLive = playerStore.mode === "live";
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    addLog(`Acción: ${matchedAction}${isLive ? " (LIVE)" : ""}`);
-    console.log(`[Pedal] Action triggered: ${matchedAction} (Live: ${isLive})`);
-
-    switch (matchedAction) {
+    switch (action) {
         case "next":
             if (isLive) {
                 addLog("Pedal: NEXT bloqueado (LIVE)");
@@ -126,6 +82,58 @@ export function handlePedalEvent(
 }
 
 /**
+ * Handles a keyboard event and dispatches the corresponding pedal action.
+ * Reads directly from stores to avoid stale closures.
+ */
+export function handlePedalEvent(
+    event: KeyboardEvent, 
+    addLog: (msg: string) => void,
+    setLastEvent: (ev: string) => void
+) {
+    const { learningAction, setPedalBinding, setLearningAction, pedalBindings } = useSettingsStore.getState();
+    
+    // Log to debug store for iPad visibility
+    setLastEvent(`${event.type}: ${event.key}`);
+    
+    if (isTypingTarget(event.target)) return;
+
+    // ── Learn mode ──────────────────────────────────────────────────
+    if (learningAction !== null) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        if (event.type === "keydown") {
+            if (event.key === "Escape") {
+                setLearningAction(null);
+            } else {
+                console.log(`[Pedal] Mapping ${learningAction} to ${event.key}`);
+                addLog(`Mapeado: ${learningAction} -> ${event.key}`);
+                setPedalBinding(learningAction, {
+                    key: event.key,
+                    label: keyLabel(event.key),
+                });
+                setLearningAction(null);
+            }
+        }
+        return;
+    }
+
+    // ── Normal mode — find matching binding ──────────────────────────
+    if (event.type !== "keydown") return;
+
+    const matchedAction = (
+        Object.entries(pedalBindings) as [PedalAction, { key: string }][]
+    ).find(([, b]) => b.key === event.key)?.[0];
+
+    if (!matchedAction) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+
+    executePedalAction(matchedAction, addLog);
+}
+
+/**
  * usePedalBindings — mount once globally in AppViewport.
  */
 export function usePedalBindings() {
@@ -144,6 +152,5 @@ export function usePedalBindings() {
             window.removeEventListener("keydown", handleKeyEvent, { capture: true });
             window.removeEventListener("keyup", handleKeyEvent, { capture: true });
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); 
+    }, [addLog, setLastEvent]); 
 }

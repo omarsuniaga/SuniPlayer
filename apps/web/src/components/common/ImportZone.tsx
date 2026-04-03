@@ -1,12 +1,20 @@
-﻿import React, { useRef, useState, useCallback, useEffect, useImperativeHandle, forwardRef } from "react";
+import React, { useRef, useState, useCallback, useEffect, useImperativeHandle, forwardRef } from "react";
 import { useProjectStore } from "../../store/useProjectStore";
 import { useLibraryStore } from "../../store/useLibraryStore";
 import { MetadataService } from "../../services/MetadataService";
 import { THEME } from "../../data/theme.ts";
 import { Track } from "@suniplayer/core";
-import { ImportCandidate, getRelativeAudioPath, isSupportedAudioFile } from "../../features/library/lib/audioImport";
+import { ImportCandidate, SUPPORTED_AUDIO_FILE_ACCEPT, getRelativeAudioPath, isSupportedAudioFile } from "../../features/library/lib/audioImport";
 import { analyzeAudio } from "../../services/analysisService.ts";
 import { LoadingProgress } from "./LoadingProgress";
+
+const formatDuration = (durationMs: number) => {
+    const totalSeconds = Math.round(durationMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const paddedSeconds = String(seconds).padStart(2, "0");
+    return `${minutes}:${paddedSeconds}`;
+};
 
 type Mood = "calm" | "happy" | "melancholic" | "energetic";
 
@@ -20,7 +28,7 @@ interface PendingTrack {
     genre?: string;
     key: string;
     duration_ms: number;
-    blobUrl: string;
+    blob_url: string;
     fileName: string;
     waveform?: number[];
     file: File;
@@ -46,7 +54,6 @@ interface ProgressState {
 
 export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClose, externalFiles }, ref) => {
     const addCustomTrack = useProjectStore(s => s.addCustomTrack);
-    const appendToQueue = useProjectStore(s => s.appendToQueue);
     const setSelectedFolderName = useLibraryStore((state) => state.setSelectedFolderName);
 
     const inputRef = useRef<HTMLInputElement>(null);
@@ -103,7 +110,7 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
                     autoStartTime = analysis.startTime || 0;
                     autoEndTime = analysis.endTime || audioBuffer.duration * 1000;
                 } catch (e) {
-                    console.error("Análisis fallido para", file.name, e);
+                    console.error("An�lisis fallido para", file.name, e);
                     if (autoEndTime === 0) autoEndTime = 300000;
                 }
 
@@ -117,7 +124,7 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
                     mood: autoEnergy > 0.7 ? "energetic" : autoEnergy > 0.4 ? "happy" : "calm",
                     key: autoKey,
                     duration_ms: autoEndTime,
-                    blobUrl: URL.createObjectURL(file),
+                    blob_url: URL.createObjectURL(file),
                     fileName: getRelativeAudioPath(file, relativePath),
                     waveform,
                     file,
@@ -139,7 +146,7 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
         setProgress({
             current: arr.length,
             total: arr.length,
-            label: arr.length === 1 ? "Canción lista" : `${arr.length} canciones listas`,
+            label: arr.length === 1 ? "Canci�n lista" : `${arr.length} canciones listas`,
         });
         setPending(tracks);
     }, []);
@@ -189,7 +196,7 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
         setProgress({
             current: 0,
             total: pending.length,
-            label: pending.length === 1 ? "Guardando canción..." : `Guardando ${pending.length} canciones...`,
+            label: pending.length === 1 ? "Guardando canci�n..." : `Guardando ${pending.length} canciones...`,
         });
         const { storage } = await import("../../platform/index");
 
@@ -210,9 +217,28 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
                 if (p.waveform) await storage.saveWaveform(p.id, p.waveform);
 
                 const track: Track = {
-                    ...p,
+                    id: p.id,
+                    title: p.title,
+                    artist: p.artist,
+                    bpm: p.bpm,
+                    energy: p.energy,
+                    mood: p.mood,
+                    genre: p.genre,
+                    key: p.key,
+                    duration_ms: p.duration_ms,
+                    blob_url: p.blob_url,
+                    file_path: p.fileName,
+                    waveform: p.waveform,
+                    // gainOffset: p.gainOffset,
+                    startTime: p.startTime,
+                    endTime: p.endTime,
                     analysis_cached: true,
                     isCustom: true,
+                    metadata: {
+                        originalFileName: p.file.name,
+                        importedAt: new Date().toISOString(),
+                        sourceType: "local",
+                    },
                 };
                 addCustomTrack(track);
                 newTracks.push(track);
@@ -224,15 +250,14 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
                 });
             }
         } catch (e) {
-            console.error("Error en importación crítica:", e);
+            console.error("Error en importaci�n cr�tica:", e);
         }
 
-        appendToQueue(newTracks);
-        setResults(newTracks.map(t => ({ title: `${t.title} - ¡LISTO!`, ok: true })));
+        setResults(newTracks.map(t => ({ title: `${t.title} - �LISTO!`, ok: true })));
         setPending([]);
         setProcessing(false);
         if (onClose) setTimeout(onClose, 2000);
-    }, [pending, addCustomTrack, appendToQueue, onClose]);
+    }, [pending, addCustomTrack, onClose]);
 
     if (processing) {
         const progressPercent = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
@@ -249,8 +274,8 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
     if (results.length > 0) {
         return (
             <div style={{ padding: 30, textAlign: "center" }}>
-                <h3 style={{ color: THEME.colors.brand.cyan }}>¡Importación Exitosa!</h3>
-                {results.map((r, i) => <div key={i} style={{ fontSize: 12, opacity: 0.7 }}>✓ {r.title}</div>)}
+                <h3 style={{ color: THEME.colors.brand.cyan }}>Importación Exitosa!</h3>
+                {results.map((r, i) => <div key={i} style={{ fontSize: 12, opacity: 0.7 }}>? {r.title}</div>)}
             </div>
         );
     }
@@ -258,14 +283,19 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
     if (pending.length > 0) {
         return (
             <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 14px 0", minHeight: 0, height: "100%" }}>
-                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 900 }}>Confirmar Importación</h3>
+                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 900 }}>Confirmar Importaci�n</h3>
                 <div style={{ color: THEME.colors.text.muted, fontSize: 12, lineHeight: 1.5 }}>
-                    Revisá las canciones antes de guardarlas. La lista usa ahora todo el espacio disponible del contenedor.
+                    Revisa las canciones antes de guardarlas. La lista usa ahora todo el espacio disponible del contenedor.
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 6, paddingBottom: 120 }}>
                     {pending.map(t => (
-                        <div key={t.id} style={{ padding: "14px 16px", border: `1px solid ${THEME.colors.border}`, borderRadius: 16, background: "rgba(255,255,255,0.02)" }}>
-                            <strong>{t.title}</strong> - {t.bpm} BPM
+                        <div key={t.id} style={{ padding: "10px 10px", border: `1px solid ${THEME.colors.border}`, borderRadius: 16, background: "rgba(255,255,255,0.02)" }}>
+                            <div>
+                            {t.title} 
+                            </div>
+                            <div style={{ fontSize: 11, color: THEME.colors.text.muted }}>
+                                {t.artist} � {t.bpm} BPM � {t.key} � {formatDuration(t.duration_ms)}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -294,7 +324,7 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
             <input
                 ref={inputRef}
                 type="file"
-                accept="audio/*"
+                accept={SUPPORTED_AUDIO_FILE_ACCEPT}
                 multiple
                 onChange={e => e.target.files && processImportCandidates(Array.from(e.target.files).map(f => ({ file: f })))}
                 style={{ display: "none" }}
@@ -313,8 +343,8 @@ export const ImportZone = forwardRef<ImportZoneHandle, ImportZoneProps>(({ onClo
                     backgroundColor: dragging ? "rgba(6,182,212,0.05)" : "transparent"
                 }}
             >
-                <div style={{ fontSize: 40, marginBottom: 10 }}>📁</div>
-                <div style={{ fontWeight: 700 }}>Arrastrá tus MP3 o hacé click acá</div>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>??</div>
+                <div style={{ fontWeight: 700 }}>Arrastra tus MP3 o haz click acá</div>
                 <div style={{ fontSize: 12, opacity: 0.6, marginTop: 5 }}>Los archivos se guardarán permanentemente en el navegador</div>
             </div>
         </div>

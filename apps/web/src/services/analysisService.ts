@@ -24,8 +24,7 @@ export async function analyzeAudio(buffer: AudioBuffer): Promise<AnalysisResults
     const rawRms = calculateRawRMS(buffer);
     
     // Target RMS for normalization is ~0.15 (standardized loudness)
-    const targetRms = 0.15;
-    const gainOffset = targetRms / Math.max(0.01, rawRms);
+    const gainOffset = calculateGainOffsetFromRms(rawRms);
 
     const energy = Math.min(1, Math.max(0.1, (rawRms - 0.05) / 0.2));
     const bpm = detectAdvancedBPM(buffer);
@@ -228,3 +227,4 @@ function generateWaveform(buffer: AudioBuffer, points: number): number[] {
 
     return result;
 }
+import { calculateGainOffsetFromRms } from "./audioNormalization";

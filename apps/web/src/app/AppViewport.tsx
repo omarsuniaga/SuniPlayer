@@ -8,6 +8,7 @@ import { usePlayerStore, useSettingsStore } from "@suniplayer/core";
 import { useProjectStore } from "../store/useProjectStore";
 import { useAudio } from "../services/useAudio";
 import { usePedalBindings } from "../services/usePedalBindings";
+import { useMouseGestureBindings } from "../services/useMouseGestureBindings";
 
 import { useDebugStore } from "../store/useDebugStore";
 import { SettingsPanel } from "../components/layout/SettingsPanel";
@@ -22,12 +23,11 @@ const viewMap = {
 } as const;
 
 export const AppViewport: React.FC = () => {
-    const view = useProjectStore((state) => state.view);
-    const mode = useProjectStore((state) => state.mode);
-    const setMode = useProjectStore((state) => state.setMode);
-    const showSettings = useProjectStore((state) => state.showSettings);
-    const setShowSettings = useProjectStore((state) => state.setShowSettings);
-    const pQueue = usePlayerStore((state) => state.pQueue);
+    const view = useProjectStore(s => s.view);
+    const mode = useProjectStore(s => s.mode);
+    const setMode = useProjectStore(s => s.setMode);
+    const showSettings = useProjectStore(s => s.showSettings);
+    const pQueue = usePlayerStore(s => s.pQueue);
     
     const [showUnlockModal, setShowUnlockModal] = React.useState(false);
     const isLive = mode === "live";
@@ -37,6 +37,7 @@ export const AppViewport: React.FC = () => {
 
     useAudio();
     usePedalBindings();
+    useMouseGestureBindings();
 
     // Interceptar el cambio de modo para seguridad global
     const handleGlobalModeToggle = () => {

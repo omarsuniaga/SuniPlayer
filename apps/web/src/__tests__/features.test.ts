@@ -16,9 +16,9 @@
  *   F9 — Configuración general
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TRACKS, VENUES } from "@suniplayer/core";
+import { TRACKS, VENUES, configureStorage } from "@suniplayer/core";
 import {
     appendToQueue,
     doGen,
@@ -39,8 +39,7 @@ import type { Track } from "@suniplayer/core";
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const resetAll = () => {
-    localStorage.clear();
+const resetAll = () => {`r`n    localStorage.clear();`r`n    configureStorage({`r`n        getItem: (name: string) => localStorage.getItem(name),`r`n        setItem: (name: string, value: string) => localStorage.setItem(name, value),`r`n        removeItem: (name: string) => localStorage.removeItem(name),`r`n        getAnalysis: async () => null,`r`n        saveAnalysis: async () => {},`r`n        getWaveform: async () => null,`r`n        saveWaveform: async () => {},`r`n        saveAudioFile: async () => {},`r`n        getAudioFile: async () => null,`r`n        deleteAudioFile: async () => {},`r`n        getAllStoredTrackIds: async () => [],`r`n    });
     useBuilderStore.setState(useBuilderStore.getInitialState(), true);
     usePlayerStore.setState(usePlayerStore.getInitialState(), true);
     useSettingsStore.setState(useSettingsStore.getInitialState(), true);
@@ -732,3 +731,4 @@ describe("F9 — Configuración general", () => {
         expect(venueIds).toContain("event");
     });
 });
+
