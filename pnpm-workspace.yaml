@@ -1,6 +1,6 @@
 packages:
-  - 'packages/*'
-  - 'apps/*'
+  - 'Frontend/*'
+  - 'Backend/*'
 allowBuilds:
   esbuild: true
 patchedDependencies:

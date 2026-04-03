@@ -21,7 +21,23 @@ importers:
         specifier: ^5.3.0
         version: 5.9.3
 
-  apps/native:
+  Frontend/Core:
+    dependencies:
+      react:
+        specifier: '>=18.0.0'
+        version: 18.3.1
+      zustand:
+        specifier: ^4.5.0
+        version: 4.5.7(@types/react@19.2.14)(react@18.3.1)
+    devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+      vitest:
+        specifier: 4.0.18
+        version: 4.0.18(@types/node@25.5.0)(jsdom@28.1.0)(lightningcss@1.32.0)(terser@5.46.0)(yaml@2.8.2)
+
+  Frontend/Native:
     dependencies:
       '@expo/vector-icons':
         specifier: ^15.0.2
@@ -34,7 +50,7 @@ importers:
         version: 5.1.2
       '@suniplayer/core':
         specifier: workspace:*
-        version: link:../../packages/core
+        version: link:../Core
       expo:
         specifier: ~55.0.6
         version: 55.0.6(@babel/core@7.29.0)(@expo/dom-webview@55.0.3)(@expo/metro-runtime@55.0.6)(expo-router@55.0.5)(react-dom@18.3.1(react@19.2.0))(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
@@ -106,11 +122,11 @@ importers:
         specifier: ~5.9.2
         version: 5.9.3
 
-  apps/web:
+  Frontend/Web:
     dependencies:
       '@suniplayer/core':
         specifier: workspace:*
-        version: link:../../packages/core
+        version: link:../Core
       '@tanstack/react-virtual':
         specifier: ^3.13.23
         version: 3.13.23(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -184,22 +200,6 @@ importers:
       workbox-window:
         specifier: ^7.4.0
         version: 7.4.0
-
-  packages/core:
-    dependencies:
-      react:
-        specifier: '>=18.0.0'
-        version: 18.3.1
-      zustand:
-        specifier: ^4.5.0
-        version: 4.5.7(@types/react@19.2.14)(react@18.3.1)
-    devDependencies:
-      typescript:
-        specifier: ^5.3.0
-        version: 5.9.3
-      vitest:
-        specifier: 4.0.18
-        version: 4.0.18(@types/node@25.5.0)(jsdom@28.1.0)(lightningcss@1.32.0)(terser@5.46.0)(yaml@2.8.2)
 
 packages:
 
