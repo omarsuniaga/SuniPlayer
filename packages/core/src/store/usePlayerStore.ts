@@ -7,8 +7,16 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { Track } from "../types";
 import { getStorage } from './storage';
 import { AnalyticsService } from "../services/AnalyticsService";
+import { TRACKS } from "../data/constants";
+import { SyncStatus, ClockOffset } from "../network/types";
 
-interface PlayerState {
+export interface ScheduledPlay {
+    targetWallMs: number;  // Date.now() at scheduled play time — cross-device comparable
+    positionMs: number;    // Audio position to seek to (ms)
+    trackId: string;       // Track ID to verify correct track is loaded
+}
+
+export interface PlayerState {
     pQueue: Track[];
     setPQueue: (queue: Track[]) => void;
 
@@ -63,6 +71,24 @@ interface PlayerState {
     /** Time remaining for auto-next gap in ms */
     playbackGapRemainingMs: number;
     setPlaybackGapRemainingMs: (ms: number) => void;
+
+    // ── SyncEnsemble State ──
+    syncStatus: SyncStatus;
+    setSyncStatus: (status: SyncStatus) => void;
+    clockOffset: ClockOffset | null;
+    setClockOffset: (offset: ClockOffset | null) => void;
+    isLeader: boolean;
+    setIsLeader: (v: boolean) => void;
+    sessionId: string | null;
+    setSessionId: (id: string | null) => void;
+    userId: string | null;
+    setUserId: (id: string | null) => void;
+    countdown: number | null; // null = inactive, 5, 4, 3, 2, 1...
+    setCountdown: (v: number | null) => void;
+
+    /** Synchronized play command pending execution — set by Orchestrator, consumed by useAudio */
+    scheduledPlay: ScheduledPlay | null;
+    clearScheduledPlay: () => void;
 
     /** Analytics Hooks */
     trackStart: (trackId: string) => void;
@@ -136,6 +162,23 @@ export const usePlayerStore = create<PlayerState>()(
             playbackGapRemainingMs: 0,
             setPlaybackGapRemainingMs: (playbackGapRemainingMs) => set({ playbackGapRemainingMs }),
 
+            // SyncEnsemble Initial State
+            syncStatus: 'UNCALIBRATED',
+            setSyncStatus: (syncStatus) => set({ syncStatus }),
+            clockOffset: null,
+            setClockOffset: (clockOffset) => set({ clockOffset }),
+            isLeader: true, // Por defecto solo, eres líder
+            setIsLeader: (isLeader) => set({ isLeader }),
+            sessionId: null,
+            setSessionId: (sessionId) => set({ sessionId }),
+            userId: null,
+            setUserId: (userId) => set({ userId }),
+            countdown: null,
+            setCountdown: (countdown) => set({ countdown }),
+
+            scheduledPlay: null,
+            clearScheduledPlay: () => set({ scheduledPlay: null }),
+
             trackStart: (trackId) => AnalyticsService.trackStart(trackId),
             trackEnd: (trackId, positionMs) => AnalyticsService.trackEnd(trackId, positionMs),
             trackSkip: (trackId, positionMs) => AnalyticsService.trackSkip(trackId, positionMs),
@@ -144,8 +187,6 @@ export const usePlayerStore = create<PlayerState>()(
             name: "suniplayer-player",
             storage: createJSONStorage(() => getStorage()),
             partialize: (state) => ({
-                // blob_url es efímera (URL.createObjectURL) y muere al recargar la página.
-                // Nunca persistirla — getTrackUrl() usará file_path como fallback.
                 pQueue: state.pQueue.map(t => ({ ...t, blob_url: undefined })),
                 ci: state.ci,
                 pos: state.pos,
@@ -157,15 +198,25 @@ export const usePlayerStore = create<PlayerState>()(
                 mirrorMode: state.mirrorMode,
                 mirrorSize: state.mirrorSize,
                 waveScale: state.waveScale,
+                // No persistimos syncStatus ni offset porque deben recalibrarse en cada sesión
+                isLeader: state.isLeader,
+                sessionId: state.sessionId,
             }),
             merge: (persistedState, currentState) => {
                 const persisted = persistedState as Partial<PlayerState>;
-
-                // Sanitizar blob_urls que pudieran existir en localStorage de sesiones anteriores.
-                // Son efímeras y mueren al recargar — forzar fallback a file_path.
-                const sanitizedQueue = (persisted.pQueue ?? []).map(
-                    (t) => ({ ...t, blob_url: undefined })
-                );
+                const catalogById = new Map(TRACKS.map(t => [t.id, t]));
+                // Also index by title for migrating old track-N IDs to lib-XXXXXXXX schema
+                const catalogByTitle = new Map(TRACKS.map(t => [t.title?.toLowerCase().trim(), t]));
+                const sanitizedQueue = (persisted.pQueue ?? []).map((t) => {
+                    if (t.isCustom) return { ...t, blob_url: undefined };
+                    // Match by ID first, then by title (handles old track-N schema migration)
+                    const catalogEntry = catalogById.get(t.id) ?? catalogByTitle.get(t.title?.toLowerCase().trim());
+                    if (catalogEntry) {
+                        // Use catalog's id and file_path; preserve user-specific overrides
+                        return { ...t, id: catalogEntry.id, file_path: catalogEntry.file_path, blob_url: undefined };
+                    }
+                    return { ...t, blob_url: undefined };
+                });
 
                 return {
                     ...currentState,
@@ -174,6 +225,8 @@ export const usePlayerStore = create<PlayerState>()(
                     playing: false,
                     elapsed: 0,
                     isSimulating: false,
+                    syncStatus: 'UNCALIBRATED',
+                    clockOffset: null,
                 };
             },
         }
