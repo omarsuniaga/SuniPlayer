@@ -341,7 +341,7 @@ export class SyncEnsembleOrchestrator {
             const response = await fetch(currentUrl);
             const arrayBuffer = await response.arrayBuffer();
 
-            const CHUNK_SIZE = 65536; // 64KB
+            const CHUNK_SIZE = 16384; // 16KB — reduced from 64KB to avoid RTCDataChannel queue overflow
             const totalChunks = Math.ceil(arrayBuffer.byteLength / CHUNK_SIZE);
 
             console.log(`[SyncOrchestrator] Enviando ${totalChunks} chunks (${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)}MB) a ${requesterId}`);
@@ -350,7 +350,6 @@ export class SyncEnsembleOrchestrator {
                 const start = i * CHUNK_SIZE;
                 const end = Math.min(start + CHUNK_SIZE, arrayBuffer.byteLength);
                 const chunk = arrayBuffer.slice(start, end);
-
                 const base64 = btoa(String.fromCharCode(...new Uint8Array(chunk)));
 
                 const chunkMsg: Omit<P2PMessage, 'sequence'> = {
@@ -358,18 +357,30 @@ export class SyncEnsembleOrchestrator {
                     senderId: this.sessionManager['userId'],
                     timestamp: performance.now(),
                     sessionId: this.sessionManager.getSessionId()!,
-                    payload: {
-                        trackId,
-                        chunkIndex: i,
-                        totalChunks,
-                        data: base64
-                    }
+                    payload: { trackId, chunkIndex: i, totalChunks, data: base64 }
                 };
 
-                await this.sessionManager['transport']?.sendTo(requesterId, chunkMsg as P2PMessage);
+                // Backpressure: retry with increasing delay if the channel is full
+                let sent = false;
+                let retries = 0;
+                while (!sent) {
+                    try {
+                        await this.sessionManager['transport']?.sendTo(requesterId, chunkMsg as P2PMessage);
+                        sent = true;
+                    } catch (e) {
+                        retries++;
+                        if (retries > 30) {
+                            console.error(`[SyncOrchestrator] Chunk ${i} failed after ${retries} retries. Aborting transfer.`);
+                            this.audioChunkBuffers?.delete(trackId);
+                            return;
+                        }
+                        const backoff = Math.min(50 * retries, 500);
+                        await new Promise(r => setTimeout(r, backoff));
+                    }
+                }
 
-                // Yield to event loop every 10 chunks to avoid blocking
-                if (i % 10 === 0) await new Promise(r => setTimeout(r, 0));
+                // Yield to event loop every chunk to allow channel drain
+                await new Promise(r => setTimeout(r, 0));
             }
 
             const doneMsg: Omit<P2PMessage, 'sequence'> = {

@@ -164,6 +164,27 @@ export function useAudio() {
                     }
                 }
 
+                // If there's a pending scheduledPlay for this track, execute it now (track just finished loading)
+                const pendingPlay = usePlayerStore.getState().scheduledPlay;
+                if (pendingPlay && pendingPlay.trackId === ct.id) {
+                    const delayMs = pendingPlay.targetWallMs - Date.now();
+                    if (delayMs < -2000) {
+                        engine.seek(pendingPlay.positionMs);
+                        engine.play();
+                        usePlayerStore.setState({ playing: true });
+                        usePlayerStore.getState().clearScheduledPlay();
+                    } else {
+                        const waitMs = Math.max(0, delayMs);
+                        setTimeout(() => {
+                            engine.seek(pendingPlay.positionMs);
+                            engine.play();
+                            usePlayerStore.setState({ playing: true });
+                            usePlayerStore.getState().clearScheduledPlay();
+                        }, waitMs);
+                    }
+                    return; // Don't run the normal play/pause logic below
+                }
+
                 const currentPlaying = usePlayerStore.getState().playing;
                 const currentCountdown = usePlayerStore.getState().countdown;
                 const currentVol = usePlayerStore.getState().vol;
