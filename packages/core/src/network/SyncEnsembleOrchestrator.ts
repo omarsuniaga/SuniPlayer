@@ -18,6 +18,7 @@ export class SyncEnsembleOrchestrator {
     private lastReportedLeaderPos: number = 0;
     private reportInterval: ReturnType<typeof setInterval> | null = null;
     private readyMembers: Set<string> = new Set();
+    private audioChunkBuffers: Map<string, { chunks: string[]; totalChunks: number }> = new Map();
 
     constructor(audioEngine: IAudioEngine, sessionManager: SessionManager, clockSync: ClockSyncService) {
         this.audioEngine = audioEngine;
@@ -58,6 +59,16 @@ export class SyncEnsembleOrchestrator {
                 case 'AUDIO_REQUEST':
                     if (this.sessionManager.getIsLeader()) {
                         this.handleAudioRequest(msg.senderId, msg.payload.trackId);
+                    }
+                    break;
+                case 'AUDIO_CHUNK':
+                    if (!this.sessionManager.getIsLeader()) {
+                        this.handleAudioChunk(
+                            msg.payload.trackId,
+                            msg.payload.chunkIndex,
+                            msg.payload.totalChunks,
+                            msg.payload.data
+                        );
                     }
                     break;
                 case 'AUDIO_CHUNK_DONE':
@@ -248,6 +259,68 @@ export class SyncEnsembleOrchestrator {
             };
             this.sessionManager['transport']?.broadcast(report as P2PMessage);
         }, 1000);
+    }
+
+    private handleAudioChunk(
+        trackId: string,
+        chunkIndex: number,
+        totalChunks: number,
+        base64Data: string
+    ): void {
+        if (!this.audioChunkBuffers.has(trackId)) {
+            this.audioChunkBuffers.set(trackId, {
+                chunks: new Array(totalChunks).fill(''),
+                totalChunks
+            });
+            console.log(`[SyncOrchestrator] Starting reception of ${totalChunks} chunks for ${trackId}`);
+        }
+
+        const buffer = this.audioChunkBuffers.get(trackId)!;
+        buffer.chunks[chunkIndex] = base64Data;
+
+        const received = buffer.chunks.filter(c => c !== '').length;
+        if (received % 10 === 0 || received === totalChunks) {
+            console.log(`[SyncOrchestrator] Audio transfer: ${received}/${totalChunks} chunks (${Math.round(received / totalChunks * 100)}%)`);
+        }
+
+        const allReceived = buffer.chunks.every(c => c !== '');
+        if (!allReceived) return;
+
+        console.log(`[SyncOrchestrator] Assembling complete audio for ${trackId}`);
+
+        try {
+            const byteArrays = buffer.chunks.map(b64 => {
+                const binary = atob(b64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                return bytes;
+            });
+
+            const totalSize = byteArrays.reduce((acc, b) => acc + b.length, 0);
+            const combined = new Uint8Array(totalSize);
+            let offset = 0;
+            for (const bytes of byteArrays) {
+                combined.set(bytes, offset);
+                offset += bytes.length;
+            }
+
+            const blob = new Blob([combined.buffer], { type: 'audio/mpeg' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            const { pQueue, setPQueue } = usePlayerStore.getState();
+            const updatedQueue = pQueue.map(t =>
+                t.id === trackId ? { ...t, blob_url: blobUrl } : t
+            );
+            setPQueue(updatedQueue);
+
+            this.audioChunkBuffers.delete(trackId);
+            console.log(`[SyncOrchestrator] ✅ Audio for ${trackId} ready as blob URL`);
+        } catch (err) {
+            console.error(`[SyncOrchestrator] Error assembling audio:`, err);
+            this.audioChunkBuffers.delete(trackId);
+        }
     }
 
     /**
