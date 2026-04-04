@@ -1,11 +1,11 @@
 // packages/core/src/network/types.ts
 
-export type P2PMessageType = 
-    | 'CLOCK_PING' 
-    | 'CLOCK_PONG' 
-    | 'PLAY' 
-    | 'PAUSE' 
-    | 'SEEK' 
+export type P2PMessageType =
+    | 'CLOCK_PING'
+    | 'CLOCK_PONG'
+    | 'PLAY'
+    | 'PAUSE'
+    | 'SEEK'
     | 'STOP'
     | 'POSITION_REPORT'
     | 'SESSION_ANNOUNCE'
@@ -16,7 +16,8 @@ export type P2PMessageType =
     | 'MEMBER_READY'
     | 'AUDIO_REQUEST'
     | 'AUDIO_CHUNK'
-    | 'AUDIO_CHUNK_DONE';
+    | 'AUDIO_CHUNK_DONE'
+    | 'AUDIO_URL';
 export interface P2PMessage {
     type: P2PMessageType;
     senderId: string;
@@ -67,4 +68,10 @@ export interface AudioChunkPayload {
 export interface AudioChunkDonePayload {
     trackId: string;
     totalChunks: number;
+}
+
+/** Payload para AUDIO_URL: leader → follower, URL de descarga de Firebase Storage */
+export interface AudioUrlPayload {
+    trackId: string;
+    url: string; // Firebase Storage download URL
 }
