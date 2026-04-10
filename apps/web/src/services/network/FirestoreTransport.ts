@@ -10,7 +10,10 @@ import {
     query, 
     where, 
     deleteDoc, 
-    serverTimestamp 
+    serverTimestamp,
+    QuerySnapshot,
+    DocumentData,
+    DocumentChange
 } from "firebase/firestore";
 import { IP2PTransport, P2PMessage } from '@suniplayer/core';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -56,11 +59,11 @@ export class FirestoreTransport implements IP2PTransport {
         });
 
         const membersRef = collection(db, 'rooms', this.currentRoom, 'members');
-        this.unsubscribeRoom = onSnapshot(membersRef, (snapshot) => {
+        this.unsubscribeRoom = onSnapshot(membersRef, (snapshot: QuerySnapshot<DocumentData>) => {
             const peerIds = snapshot.docs.map(doc => doc.id).filter(id => id !== this.userId);
             this._onPeersChange?.(peerIds);
 
-            snapshot.docChanges().forEach(change => {
+            snapshot.docChanges().forEach((change: DocumentChange<DocumentData>) => {
                 if (change.type === 'added' && change.doc.id !== this.userId) {
                     const peerId = change.doc.id;
                     if (this.userId > peerId) {
@@ -73,8 +76,8 @@ export class FirestoreTransport implements IP2PTransport {
 
         const signalsRef = collection(db, 'rooms', this.currentRoom, 'signals');
         const q = query(signalsRef, where('to', '==', this.userId));
-        this.unsubscribeSignals = onSnapshot(q, (snapshot) => {
-            snapshot.docChanges().forEach(async change => {
+        this.unsubscribeSignals = onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
+            snapshot.docChanges().forEach(async (change: DocumentChange<DocumentData>) => {
                 if (change.type === 'added') {
                     const data = change.doc.data();
                     this.handleSignal(data.from, data.signal);
