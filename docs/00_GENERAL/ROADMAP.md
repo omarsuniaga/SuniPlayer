@@ -1,97 +1,45 @@
 # Roadmap — SuniPlayer
 
-**Version:** 0.3 (Alpha tecnica)  
+**Version:** 0.4 (Alpha Técnica — SyncEnsemble Ready)  
 **Agente Responsable:** Agent 01 — Product Architect
 
 ---
 
-## Principio del roadmap
+## Fase 0 — Consolidación (100% Completada)
+- [x] Estructura de monorepo pnpm configurada.
+- [x] `packages/core` como base compartida de verdad.
+- [x] Sistema de agentes y skills activos.
+- [x] Unificación de tipos y contratos de datos.
 
-El roadmap describe una evolucion realista desde el monorepo actual hacia un MVP confiable para shows en web y mobile. Ya existe una base nativa en Expo, pero todavia no debe asumirse feature parity ni readiness completa en iOS/Android.
+## Fase 1 — MVP de Escenario (En curso - 90%)
+**Enfoque:** Convertir la app en una herramienta de grado industrial para uso real.
 
----
+- [x] **Motor de Audio Pro**: Migración a `AudioWorklet` + `SoundTouchJS` (Pitch/Tempo independiente).
+- [x] **Persistencia Híbrida**: Implementación de `OPFS` para audios binarios y `IndexedDB v2` para metadata.
+- [x] **Biblioteca Cockpit**: Rediseño integral con Batch Mode, multiselección y gestión de repertorio.
+- [x] **Generador Inteligente**: Algoritmo Monte Carlo con soporte para anclajes (📌), Smart Replace y DJ Brain.
+- [x] **Hispanización Total**: UI nativa en español para máxima comodidad en el escenario.
+- [ ] **Native Parity**: Portar los nuevos motores de audio y persistencia a la app de Expo.
 
-## Fase 0 — Consolidacion del monorepo actual (Actual)
+## Fase 2 — SyncEnsemble (Iniciada - 20%)
+**Enfoque:** Transformar la app individual en una plataforma colaborativa para ensambles.
 
-**Enfoque:** alinear codigo, datos, arquitectura y documentacion del nuevo workspace `apps/ + packages/`.
+- [x] **Reloj Maestro**: Implementación de `ClockSyncService` (Protocolo NTP sub-5ms).
+- [x] **Indicadores de Sync**: Visualización de estado de sincronía en tiempo real.
+- [ ] **Networking P2P**: Implementación de WebRTC DataChannels para conexión local sin internet.
+- [ ] **Partituras Colaborativas**: Integración de CRDT (Yjs) para anotaciones compartidas.
 
-- [x] Configuracion inicial del proyecto web con `Vite + React + TypeScript`
-- [x] Configuracion inicial del proyecto nativo con `Expo + React Native`
-- [x] Creacion de `packages/core` como base compartida
-- [x] Sistema base de agentes definido en `AGENTS.md`
-- [x] Store global con Zustand
-- [x] Prototipo funcional de Builder, Player e Historial
-- [x] Algoritmo base de generacion de sets
-- [x] Unificar contratos de datos (`duration_ms`, tipos y naming)
-- [x] Identificar y aislar codigo legacy vs codigo actual
-- [ ] Terminar de converger la arquitectura del monorepo y reducir duplicacion residual
-- [ ] Alinear toda la documentacion principal con la realidad `web + native + core`
-
-## Fase 1 — Base validable del MVP
-
-**Enfoque:** convertir web y core en una base tecnica confiable, y endurecer el baseline nativo.
-
-- [x] Agregar `lint`
-- [x] Agregar `typecheck` como script dedicado
-- [x] Agregar test runner y primeros tests automatizados
-- [x] Agregar comando `validate`
-- [x] Estabilizar el build web
-- [x] Definir estrategia minima de persistencia local
-- [ ] Alinear scripts de validacion del workspace completo
-- [ ] Implementar audio real inicial en web y cerrar el gap hacia nativo
-
-## Fase 2 — MVP funcional de escenario
-
-**Enfoque:** hacer usable el producto en una sesion real de performance, con foco especial en iPad/iPhone y Android.
-
-- [ ] Implementacion de modo LIVE endurecido en web y native
-- [ ] Timer de set con alertas claras
-- [ ] Cola mas robusta y segura para uso en vivo
-- [ ] Mejoras de legibilidad y reduccion de friccion UI en tablet y telefono
-- [ ] Guardado y recuperacion local de sets con recovery confiable
-- [ ] Primera prueba controlada de flujo completo tipo show
-
-## Fase 3 — Consolidacion multiplataforma
-
-**Enfoque:** decidir con evidencia cual superficie lidera el uso real en escenario y como se reparte el trabajo entre PWA y native.
-
-- [ ] Evaluar limitaciones reales del audio web en shows
-- [ ] Evaluar confiabilidad real de iPad/iPhone y Android con Expo
-- [ ] Definir feature parity minima entre `apps/web` y `apps/native`
-- [ ] Registrar en `DECISIONS.md` si la superficie principal de escenario pasa a ser native
-
-## Fase 4 — Expansion del MVP
-
-**Enfoque:** sumar valor al musico sin romper la simplicidad del producto.
-
-- [ ] Sugerencias por tiempo restante
-- [ ] Historial de sesiones
-- [ ] Notas de performance
-- [ ] Visualizacion de energia del set
-- [ ] Mejoras de estabilidad y recuperacion de sesion
-
-## Fase 5 — Audio y capacidades avanzadas
-
-**Enfoque:** ampliar la calidad tecnica solo cuando el MVP ya este validado.
-
-- [ ] Crossfade basico
-- [ ] Waveform real derivada de audio
-- [ ] Persistencia mas robusta
-- [ ] Evolucion del audio nativo segun necesidades reales de escenario
-- [ ] Analisis inteligente y recomendaciones futuras
+## Fase 3 — Consolidación y Nube
+- [ ] Sincronización asíncrona con Firebase/Supabase para backups.
+- [ ] Historial de sesiones de ensayo detallado.
+- [ ] Análisis inteligente de performance (AI feedback).
 
 ---
 
-## Criterios de avance entre fases
+## Criterios de Calidad
+- Precisión de sincronía ≤ 5ms.
+- Latencia de interfaz ≤ 100ms.
+- Offline-first absoluto para el escenario.
 
-- no avanzar por entusiasmo tecnico
-- no abrir una migracion de plataforma antes de estabilizar la base actual
-- documentar toda decision importante en `DECISIONS.md`
-- mantener alineacion con `MVP_SCOPE.md`
-
-## Notas importantes
-
-- El repositorio ya es multiplataforma.
-- La implementacion web sigue siendo la mas madura hoy.
-- La implementacion native ya existe y debe tratarse como parte real de la arquitectura.
-- Las prioridades inmediatas son coherencia de monorepo, parity y confiabilidad de escenario.
+---
+*SuniPlayer ya no es un reproductor; es el corazón del ensamble.*

@@ -14,7 +14,7 @@
  */
 import { Track, SetHistoryItem, Show } from "@suniplayer/core";
 import { TRACKS, VENUES } from "@suniplayer/core";
-import { buildSet } from "@suniplayer/core";
+import { buildSet, findSmartReplacement } from "@suniplayer/core";
 import { sumTrackDurationMs, sumTrackDurationSeconds } from "@suniplayer/core";
 import { getEffectiveDuration } from "@suniplayer/core";
 
@@ -129,13 +129,22 @@ export interface ProjectState {
     clearCustomTracks: () => void;
     availableTags: string[];
     addTag: (tag: string) => void;
+    repertoire: Track[];
+    addToRepertoire: (track: Track) => void;
+    removeFromRepertoire: (trackId: string) => void;
+    selectedTrackIds: string[];
+    toggleSelection: (id: string) => void;
+    clearSelection: () => void;
+    addMultipleToRepertoire: (tracks: Track[]) => void;
 
     // Cross-domain actions
     setTrackNotes: (trackId: string, notes: string) => void;
     setTrackTrim: (trackId: string, start: number, end: number) => void;
     updateTrackMetadata: (trackId: string, updates: Partial<Track>) => void;
-    doGen: () => void;
+    doGen: (anchors?: Record<number, Track>) => void;
+    smartReplace: (index: number) => void;
     toPlayer: () => void;
+    quickPlay: (track: Track) => void;
     appendToQueue: (tracks: Track[]) => void;
     saveSet: () => void;
     resetApp: () => void;
@@ -208,29 +217,71 @@ export function updateTrackMetadata(trackId: string, updates: Partial<Track>) {
 }
 
 /** Generate a set using current builder config + settings filters */
-export function doGen() {
+export function doGen(anchors: Record<number, Track> = {}) {
     const builderState = useBuilderStore.getState();
     const { targetMin, curve, venue } = builderState;
-    const { bpmMin, bpmMax } = useSettingsStore.getState();
-    const { customTracks } = useLibraryStore.getState();
+    const { 
+        bpmMin, bpmMax, 
+        harmonicMixing, maxBpmJump, energyContinuity 
+    } = useSettingsStore.getState();
+    const { repertoire, customTracks } = useLibraryStore.getState();
     const tSec = targetMin * 60;
 
-    const fullLibrary = [
+    // Inteligencia de pool: Usar repertorio si existe, sino usar toda la biblioteca
+    const sourcePool = repertoire.length > 0 ? repertoire : [
         ...TRACKS,
-        ...customTracks.filter((track) => !TRACKS.some((catalogTrack) => catalogTrack.id === track.id)),
+        ...customTracks.filter(ct => !TRACKS.some(t => t.id === ct.id))
     ];
 
-    const excludedIds = builderState.getExcludedTrackIdsInShow();
-    const availablePool = excludedIds.length > 0
-        ? fullLibrary.filter(t => !excludedIds.includes(t.id))
-        : fullLibrary;
-    const workingPool = availablePool.length >= 3 ? availablePool : fullLibrary;
+    if (sourcePool.length === 0) {
+        alert("Tu biblioteca está vacía. Importá algunos audios primero.");
+        return;
+    }
 
-    const rawSet = buildSet(workingPool, tSec, { curve, venue, bpmMin, bpmMax });
+    const rawSet = buildSet(sourcePool, tSec, { 
+        curve, venue, bpmMin, bpmMax,
+        harmonicMixing, maxBpmJump, energyContinuity,
+        anchors
+    });
 
     useBuilderStore.setState({
         genSet: applyOverrides(rawSet),
     });
+}
+
+/** 
+ * Reemplaza inteligentemente un track en una posición específica 
+ * manteniendo la coherencia armónica y de tempo del hueco.
+ */
+export function smartReplace(index: number) {
+    const builderState = useBuilderStore.getState();
+    const settingsState = useSettingsStore.getState();
+    const { repertoire } = useLibraryStore.getState();
+    
+    const currentSet = builderState.genSet;
+    if (index < 0 || index >= currentSet.length) return;
+
+    // The findSmartReplacement logic handles exclusions internally
+    const replacement = findSmartReplacement(
+        index,
+        currentSet,
+        repertoire,
+        {
+            harmonicMixing: settingsState.harmonicMixing,
+            maxBpmJump: settingsState.maxBpmJump,
+            energyContinuity: settingsState.energyContinuity,
+            bpmMin: settingsState.bpmMin,
+            bpmMax: settingsState.bpmMax
+        }
+    );
+
+    if (replacement) {
+        const newSet = [...currentSet];
+        newSet[index] = applyOverrides([replacement])[0];
+        useBuilderStore.setState({ genSet: newSet });
+    } else {
+        alert("No se encontró un reemplazo adecuado que cumpla con las reglas DJ actuales en este hueco.");
+    }
 }
 
 /** Send generated set to the player (or just switch view if already playing) */
@@ -255,6 +306,20 @@ export function toPlayer() {
     }
 }
 
+/** Quick play from Library */
+export function quickPlay(track: Track) {
+    // Atomic reset and play
+    usePlayerStore.setState({
+        pQueue: [track],
+        ci: 0,
+        pos: 0,
+        elapsed: 0,
+        playing: true,
+        tTarget: track.duration_ms / 1000,
+    });
+    useBuilderStore.setState({ view: "player" });
+}
+
 /** Append tracks to the active queue without interrupting playback */
 export function appendToQueue(tracks: Track[]) {
     if (!tracks.length) return;
@@ -264,7 +329,10 @@ export function appendToQueue(tracks: Track[]) {
     if (pQueue.length === 0) {
         usePlayerStore.setState({
             pQueue: tracksWithOverrides,
-            ci: 0, pos: 0, playing: false, elapsed: 0,
+            ci: 0,
+            pos: 0,
+            // Eliminamos 'playing: false' para no interrumpir si ya hay un buffer sonando (ej. preview)
+            elapsed: 0,
             tTarget: sumTrackDurationSeconds(tracksWithOverrides),
         });
         useBuilderStore.setState({ view: "player" });
@@ -392,7 +460,6 @@ export function useProjectStore<T = ProjectState>(
         bpmMax: settings.bpmMax,
         setBpmMax: settings.setBpmMax,
         defaultVol: settings.defaultVol,
-        // Override: setDefaultVol syncs both stores
         setDefaultVol,
         fadeEnabled: settings.fadeEnabled,
         setFadeEnabled: settings.setFadeEnabled,
@@ -421,18 +488,27 @@ export function useProjectStore<T = ProjectState>(
         clearCustomTracks: library.clearCustomTracks,
         availableTags: library.availableTags,
         addTag: library.addTag,
+        repertoire: library.repertoire,
+        addToRepertoire: library.addToRepertoire,
+        removeFromRepertoire: library.removeFromRepertoire,
+        addMultipleToRepertoire: library.addMultipleToRepertoire,
+        selectedTrackIds: library.selectedTrackIds,
+        toggleSelection: library.toggleSelection,
+        clearSelection: library.clearSelection,
 
         // Cross-domain actions
         setTrackNotes,
         setTrackTrim,
         updateTrackMetadata,
         doGen,
+        smartReplace,
         toPlayer,
+        quickPlay,
         appendToQueue,
+
         saveSet,
         resetApp,
     };
 
     return selector ? selector(combined) : combined;
 }
-

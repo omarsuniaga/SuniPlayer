@@ -10,3 +10,5 @@ ios/
 *.tsbuildinfo
 .worktrees/
 .claude/
+test-results/
+.atl/

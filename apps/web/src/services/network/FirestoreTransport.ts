@@ -139,7 +139,7 @@ export class FirestoreTransport implements IP2PTransport {
         let peer = this.peers.get(peerId);
         if (!peer) peer = this.createPeer(peerId, false) as ExtendedPeer;
         try { 
-            peer.signal(signalData); 
+            peer.signal(signalData as Peer.SignalData); 
         } catch (e) {
             console.warn(`[FirestoreTransport] ⚠️ Error enviando señal a peer ${peerId}:`, e);
         }

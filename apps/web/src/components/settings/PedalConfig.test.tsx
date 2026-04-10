@@ -23,8 +23,8 @@ describe("PedalConfig", () => {
         expect(labels).toHaveLength(5);
     });
 
-    it("shows 'Aprender' buttons for all unbound actions", () => {
-        // Test that all unbound actions show 'Aprender' button
+    it("shows 'Aprender' buttons for unbound actions", () => {
+        // Test that unbound actions show 'Aprender' button
         const state = useSettingsStore.getState();
         const pedalBindings = state.pedalBindings;
 
@@ -35,7 +35,8 @@ describe("PedalConfig", () => {
         if (!pedalBindings.vol_up) unboundCount++;
         if (!pedalBindings.vol_down) unboundCount++;
 
-        expect(unboundCount).toBe(5);
+        // Ahora solo 2 están sin mapear por defecto: vol_up y vol_down
+        expect(unboundCount).toBe(2);
     });
 
     it("shows 'Cambiar' for a bound action and hides its Aprender button", () => {

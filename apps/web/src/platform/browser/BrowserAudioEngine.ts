@@ -20,6 +20,18 @@ export class BrowserAudioEngine implements IAudioEngine {
         this.engine = new PitchEngine();
     }
 
+    get isPlaying(): boolean {
+        return this.engine.isPlaying;
+    }
+
+    get durationMs(): number {
+        return this.engine.durationMs;
+    }
+
+    get currentUrl(): string | null {
+        return this.engine.currentUrl;
+    }
+
     async load(url: string, options?: AudioLoadOptions): Promise<void> {
         this._bufferingListener?.(true);
         const success = await this.engine.load(url);
@@ -36,8 +48,33 @@ export class BrowserAudioEngine implements IAudioEngine {
         this._bufferingListener?.(false);
     }
 
+    private _isScheduled: boolean = false;
+
     async play(): Promise<void> {
+        // Si ya hay un arranque programado a futuro, no hacemos nada
+        if (this._isScheduled) return;
         this.engine.play();
+    }
+
+    async playAt(targetTimeMs: number, positionMs: number): Promise<void> {
+        this._isScheduled = true;
+        
+        // formula: targetCtxTime = audioCtx.currentTime + (targetPerfNow - now) / 1000
+        const audioCtx = this.engine.audioContext; 
+        const now = performance.now();
+        const deltaSec = (targetTimeMs - now) / 1000;
+        const targetCtxTime = audioCtx.currentTime + deltaSec;
+
+        this.seek(positionMs);
+        this.engine.play(targetCtxTime);
+
+        // Limpiamos el flag cuando el tiempo del contexto alcance el objetivo
+        const checkInterval = setInterval(() => {
+            if (audioCtx.currentTime >= targetCtxTime) {
+                this._isScheduled = false;
+                clearInterval(checkInterval);
+            }
+        }, 100);
     }
 
     pause(): void {
@@ -63,6 +100,10 @@ export class BrowserAudioEngine implements IAudioEngine {
 
     setTempo(rate: number): void {
         this.engine.tempo = rate;
+    }
+
+    setPlaybackRate(rate: number): void {
+        this.engine.syncRateAdjustment = rate;
     }
 
     setVolume(volume: number): void {

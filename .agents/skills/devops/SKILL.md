@@ -1,3 +1,7 @@
+---
+name: devops
+description: "Gestión de dependencias, automatización y despliegue multiplataforma (Mobile/Desktop)."
+---
 # Skill: DevOps
 Description: Gestión de dependencias, automatización y despliegue multiplataforma (Mobile/Desktop).
 

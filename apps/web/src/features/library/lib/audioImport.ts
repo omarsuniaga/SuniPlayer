@@ -81,7 +81,7 @@ export async function processAudioFile(file: File): Promise<ProcessedAudioFile> 
 
     // 2. Perform Audio Analysis
     const arrayBuffer = await file.arrayBuffer();
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     const audioCtx = new AudioContextClass();
     
     try {

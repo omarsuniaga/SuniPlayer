@@ -21,9 +21,9 @@ SuniPlayer utiliza **Zustand** para la gestión del estado global. La arquitectu
 - **Acciones**: Play/Pause, Saltar track, Buscar posición (Seek), Sincronizar con el hardware.
 
 ### 4. Settings Store (`useSettingsStore`)
-- **Responsabilidad**: Preferencias técnicas y globales del usuario.
-- **Datos Clave**: `autoNext`, `crossfadeMs`, `masterVolume`, `pedalBindings`.
-- **Acciones**: Cambiar volumen maestro, mapear pedales Bluetooth, ajustar tiempos de fade.
+- **Responsabilidad**: Preferencias técnicas, globales y reglas del algoritmo de curaduría.
+- **Datos Clave**: `autoNext`, `crossfadeMs`, `masterVolume`, `pedalBindings`, `harmonicMixing`, `maxBpmJump`, `energyContinuity`.
+- **Acciones**: Cambiar volumen maestro, mapear pedales Bluetooth, ajustar tiempos de fade, configurar el "Cerebro DJ".
 
 ### 5. History Store (`useHistoryStore`)
 - **Responsabilidad**: Archivo de shows realizados.

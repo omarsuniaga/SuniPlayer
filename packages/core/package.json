@@ -2,6 +2,7 @@
   "name": "@suniplayer/core",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -14,6 +15,7 @@
     "validate": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
+    "yjs": "^13.6.30",
     "zustand": "^4.5.0"
   },
   "devDependencies": {

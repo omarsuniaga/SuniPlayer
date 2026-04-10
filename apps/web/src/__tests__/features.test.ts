@@ -623,8 +623,12 @@ describe("F7 — Persistencia de sesión (Show Session Storage)", () => {
 describe("F8 — Pedalera Bluetooth", () => {
     beforeEach(resetAll);
 
-    it("empieza sin ninguna tecla asignada", () => {
-        expect(useSettingsStore.getState().pedalBindings).toEqual({});
+    it("empieza con las teclas asignadas por defecto", () => {
+        expect(useSettingsStore.getState().pedalBindings).toEqual({
+            next: { key: "ArrowRight", label: "→" },
+            prev: { key: "ArrowLeft", label: "←" },
+            play_pause: { key: " ", label: "Espacio" },
+        });
     });
 
     it("se puede asignar una tecla a la acción 'siguiente canción'", () => {
@@ -670,10 +674,10 @@ describe("F8 — Pedalera Bluetooth", () => {
     });
 
     it("cancelar el learn mode no guarda ningún binding", () => {
-        useSettingsStore.getState().setLearningAction("prev");
+        useSettingsStore.getState().setLearningAction("vol_up");
         useSettingsStore.getState().setLearningAction(null); // cancelar
 
-        expect(useSettingsStore.getState().pedalBindings.prev).toBeUndefined();
+        expect(useSettingsStore.getState().pedalBindings.vol_up).toBeUndefined();
         expect(useSettingsStore.getState().learningAction).toBeNull();
     });
 });

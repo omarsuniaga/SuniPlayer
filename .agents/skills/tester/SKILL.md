@@ -1,3 +1,7 @@
+---
+name: tester
+description: "Validation skill for current repo checks, risk reporting, and scenario coverage."
+---
 # Skill: Tester
 Description: Validation skill for current repo checks, risk reporting, and scenario coverage.
 

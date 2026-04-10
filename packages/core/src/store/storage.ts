@@ -46,6 +46,7 @@ const lazyStorage: IStorage & StateStorage = {
   saveWaveform: (id: string, data: number[]) => _impl?.saveWaveform ? _impl.saveWaveform(id, data) : Promise.resolve(),
   
   saveAudioFile: (id: string, file: Blob) => _impl?.saveAudioFile ? _impl.saveAudioFile(id, file) : Promise.resolve(),
+  saveFullTrack: (id: string, file: Blob, analysis: any, waveform?: number[]) => _impl?.saveFullTrack ? _impl.saveFullTrack(id, file, analysis, waveform) : Promise.resolve(),
   getAudioFile: (id: string) => _impl?.getAudioFile ? _impl.getAudioFile(id) : Promise.resolve(null),
   deleteAudioFile: (id: string) => _impl?.deleteAudioFile ? _impl.deleteAudioFile(id) : Promise.resolve(),
   getAllStoredTrackIds: () => _impl?.getAllStoredTrackIds ? _impl.getAllStoredTrackIds() : Promise.resolve([]),

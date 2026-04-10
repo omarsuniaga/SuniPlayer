@@ -7,7 +7,7 @@
 | Product Architect | Orchestrator / Architect | `knowledge-base`, `architect` |
 | Audio Systems Architect | Architect / Reviewer | `latency-principles`, `systematic-debugging` |
 | Frontend UX / Stage UI Designer | Builder / Reviewer | `ui-ux`, `design-system`, `expressive-design` |
-| State & Data Engineer | Architect / Builder | `architect`, `developer`, `knowledge-base` |
+| State & Data Engineer | Architect / Builder | `architect`, `developer`, `knowledge-base`, `library-management` |
 | AI / Recommendation Strategist | Architect / Reviewer | `knowledge-base` |
 | QA / Scenario Tester | Tester / Debugger | `effective-testing`, `systematic-debugging`, `tester` |
 | Technical Documenter | Documenter | `documenter`, `knowledge-base` |
@@ -16,9 +16,9 @@
 
 | Agent | Mission | Required skills | Escalates to |
 |---|---|---|---|
-| `orchestrator` | Coordinate work loops and handoffs | `knowledge-base`, `orchestrator` | human when scope/platform/architecture changes |
-| `architect` | Produce technical plan from repo reality | `architect`, `knowledge-base` | reviewer or human on major architecture conflict |
-| `builder` | Implement smallest correct change | `developer`, `component-factory` as needed | tester/debugger |
+| `orchestrator` | Coordinate work loops and handoffs | `knowledge-base`, `orchestrator`, `library-management` | human when scope/platform/architecture changes |
+| `architect` | Produce technical plan from repo reality | `architect`, `knowledge-base`, `library-management` | reviewer or human on major architecture conflict |
+| `builder` | Implement smallest correct change | `developer`, `component-factory` as needed, `library-management` | tester/debugger |
 | `tester` | Validate available checks honestly | `tester`, `effective-testing` | debugger |
 | `debugger` | Find root cause before fixing | `systematic-debugging` | architect or human after repeated failed fixes |
 | `reviewer` | Check quality, risk, and alignment | `reviewer` | documenter or human |
@@ -30,6 +30,7 @@
 
 | Skill | Primary owner | Why it matters now |
 |---|---|---|
+| `library-management` | builder, architect | governs the critical T-060 Command Center UI |
 | `orchestrator` | orchestrator | routes work and handoffs |
 | `knowledge-base` | orchestrator, architect, documenter | prevents reinvention and enforces source-of-truth lookup |
 | `architect` | architect | technical planning for the current repo |

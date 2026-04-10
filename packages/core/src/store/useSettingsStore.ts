@@ -18,7 +18,17 @@ export interface PedalBinding {
 export type PedalBindings = Partial<Record<PedalAction, PedalBinding>>;
 export type GestureBindings = Record<GestureDirection, PedalAction | "none">;
 
-interface SettingsState {
+export interface DJProfile {
+    id: string;
+    name: string;
+    bpmMin: number;
+    bpmMax: number;
+    harmonicMixing: boolean;
+    maxBpmJump: number;
+    energyContinuity: boolean;
+}
+
+export interface SettingsState {
     // Playback settings
     autoNext: boolean;
     setAutoNext: (v: boolean) => void;
@@ -48,6 +58,20 @@ interface SettingsState {
     setBpmMin: (v: number) => void;
     bpmMax: number;
     setBpmMax: (v: number) => void;
+
+    // Advanced DJ Logic
+    harmonicMixing: boolean;
+    setHarmonicMixing: (v: boolean) => void;
+    maxBpmJump: number;
+    setMaxBpmJump: (v: number) => void;
+    energyContinuity: boolean;
+    setEnergyContinuity: (v: boolean) => void;
+
+    // DJ Profiles
+    djProfiles: DJProfile[];
+    saveDJProfile: (name: string) => void;
+    loadDJProfile: (id: string) => void;
+    deleteDJProfile: (id: string) => void;
 
     // UI state (not persisted)
     showSettings: boolean;
@@ -92,7 +116,7 @@ interface SettingsState {
     gestureBindings: GestureBindings;
     setGestureBinding: (direction: GestureDirection, action: PedalAction | "none") => void;
 
-    // Learn mode (non-persisted UI state — which action is currently listening)
+    // Learn mode (non-persisted UI state)
     learningAction: PedalAction | null;
     setLearningAction: (action: PedalAction | null) => void;
 }
@@ -104,78 +128,106 @@ export const useSettingsStore = create<SettingsState>()(
             setAutoNext: (autoNext) => set({ autoNext }),
             playbackGapMs: 0,
             setPlaybackGapMs: (playbackGapMs) => set({ playbackGapMs }),
-
             crossfade: true,
             setCrossfade: (crossfade) => set({ crossfade }),
-            crossfadeMs: 2000,
+            crossfadeMs: 3000,
             setCrossfadeMs: (crossfadeMs) => set({ crossfadeMs }),
-            crossExpanded: true,
+            crossExpanded: false,
             setCrossExpanded: (crossExpanded) => set({ crossExpanded }),
             performanceMode: false,
             setPerformanceMode: (performanceMode) => set({ performanceMode }),
 
-            ringControlEnabled: false,
+            ringControlEnabled: true,
             setRingControlEnabled: (ringControlEnabled) => set({ ringControlEnabled }),
 
-            defaultVol: 0.85,
+            defaultVol: 0.8,
             setDefaultVol: (defaultVol) => set({ defaultVol }),
-
             autoGain: true,
             setAutoGain: (autoGain) => set({ autoGain }),
 
-            bpmMin: 55,
+            bpmMin: 80,
             setBpmMin: (bpmMin) => set({ bpmMin }),
-
             bpmMax: 140,
             setBpmMax: (bpmMax) => set({ bpmMax }),
 
+            harmonicMixing: true,
+            setHarmonicMixing: (harmonicMixing) => set({ harmonicMixing }),
+            maxBpmJump: 10,
+            setMaxBpmJump: (maxBpmJump) => set({ maxBpmJump }),
+            energyContinuity: true,
+            setEnergyContinuity: (energyContinuity) => set({ energyContinuity }),
+
+            djProfiles: [],
+            saveDJProfile: (name: string) => set((state) => {
+                const newProfile: DJProfile = {
+                    id: crypto.randomUUID(),
+                    name,
+                    bpmMin: state.bpmMin,
+                    bpmMax: state.bpmMax,
+                    harmonicMixing: state.harmonicMixing,
+                    maxBpmJump: state.maxBpmJump,
+                    energyContinuity: state.energyContinuity,
+                };
+                return { djProfiles: [...state.djProfiles, newProfile] };
+            }),
+            loadDJProfile: (id: string) => set((state) => {
+                const p = state.djProfiles.find(p => p.id === id);
+                if (!p) return state;
+                return {
+                    bpmMin: p.bpmMin,
+                    bpmMax: p.bpmMax,
+                    harmonicMixing: p.harmonicMixing,
+                    maxBpmJump: p.maxBpmJump,
+                    energyContinuity: p.energyContinuity,
+                };
+            }),
+            deleteDJProfile: (id: string) => set((state) => ({
+                djProfiles: state.djProfiles.filter(p => p.id !== id)
+            })),
+
+            showSettings: false,
+            setShowSettings: (showSettings) => set({ showSettings }),
+
             fadeEnabled: true,
             setFadeEnabled: (fadeEnabled) => set({ fadeEnabled }),
-
             fadeInMs: 2000,
             setFadeInMs: (fadeInMs) => set({ fadeInMs }),
-
             fadeOutMs: 3000,
             setFadeOutMs: (fadeOutMs) => set({ fadeOutMs }),
-            fadeExpanded: true,
+            fadeExpanded: false,
             setFadeExpanded: (fadeExpanded) => set({ fadeExpanded }),
 
-            splMeterEnabled: false,
+            splMeterEnabled: true,
             setSplMeterEnabled: (splMeterEnabled) => set({ splMeterEnabled }),
-
-            splMeterTarget: "small",
+            splMeterTarget: "studio",
             setSplMeterTarget: (splMeterTarget) => set({ splMeterTarget }),
-
-            splMeterExpanded: true,
+            splMeterExpanded: false,
             setSplMeterExpanded: (splMeterExpanded) => set({ splMeterExpanded }),
 
             curveVisible: true,
             setCurveVisible: (curveVisible) => set({ curveVisible }),
-            curveExpanded: true,
+            curveExpanded: false,
             setCurveExpanded: (curveExpanded) => set({ curveExpanded }),
 
-            durationPresets: [30, 45, 60, 90, 120],
-            addDurationPreset: (min) =>
-                set((state) => ({
-                    durationPresets: [...new Set([...state.durationPresets, min])].sort((a, b) => a - b),
-                })),
-            removeDurationPreset: (min) =>
-                set((state) => ({
-                    durationPresets: state.durationPresets.filter((preset) => preset !== min),
-                })),
+            durationPresets: [15, 30, 45, 60, 90],
+            addDurationPreset: (min) => set((s) => ({ durationPresets: Array.from(new Set([...s.durationPresets, min])).sort((a, b) => a - b) })),
+            removeDurationPreset: (min) => set((s) => ({ durationPresets: s.durationPresets.filter((p) => p !== min) })),
 
-            pedalBindings: {},
-            setPedalBinding: (action, binding) =>
-                set((state) => ({
-                    pedalBindings: { ...state.pedalBindings, [action]: binding },
-                })),
+            pedalBindings: {
+                "next": { key: "ArrowRight", label: "→" },
+                "prev": { key: "ArrowLeft", label: "←" },
+                "play_pause": { key: " ", label: "Espacio" },
+            },
+            setPedalBinding: (action, binding) => set((s) => ({
+                pedalBindings: { ...s.pedalBindings, [action]: binding },
+                learningAction: null
+            })),
             clearPedalBindings: () => set({ pedalBindings: {} }),
-            clearPedalBinding: (action) =>
-                set((state) => {
-                    const next = { ...state.pedalBindings };
-                    delete next[action];
-                    return { pedalBindings: next };
-                }),
+            clearPedalBinding: (action) => set((s) => {
+                const next = { ...s.pedalBindings };
+                delete next[action];
+                return { pedalBindings: next };
+            }),
 
             gestureBindings: {
                 up: "vol_up",
@@ -183,19 +235,14 @@ export const useSettingsStore = create<SettingsState>()(
                 left: "prev",
                 right: "next",
                 click: "play_pause",
-                dblclick: "none",
+                dblclick: "none"
             },
-            setGestureBinding: (direction, action) =>
-                set((state) => ({
-                    gestureBindings: { ...state.gestureBindings, [direction]: action },
-                })),
+            setGestureBinding: (direction, action) => set((s) => ({
+                gestureBindings: { ...s.gestureBindings, [direction]: action }
+            })),
 
             learningAction: null,
             setLearningAction: (learningAction) => set({ learningAction }),
-
-            // Not persisted — panel always closes on reload
-            showSettings: false,
-            setShowSettings: (showSettings) => set({ showSettings }),
         }),
         {
             name: "suniplayer-settings",
@@ -203,17 +250,14 @@ export const useSettingsStore = create<SettingsState>()(
             partialize: (state) => ({
                 autoNext: state.autoNext,
                 playbackGapMs: state.playbackGapMs,
-                crossfade: state.crossfade,
-                crossExpanded: state.crossExpanded,
-                crossfadeMs: state.crossfadeMs,
+                autoGain: state.autoGain,
                 performanceMode: state.performanceMode,
-                ringControlEnabled: state.ringControlEnabled,
+                crossfade: state.crossfade,
+                crossfadeMs: state.crossfadeMs,
                 defaultVol: state.defaultVol,
                 fadeEnabled: state.fadeEnabled,
-                fadeExpanded: state.fadeExpanded,
                 fadeInMs: state.fadeInMs,
                 fadeOutMs: state.fadeOutMs,
-                autoGain: state.autoGain,
                 splMeterEnabled: state.splMeterEnabled,
                 splMeterTarget: state.splMeterTarget,
                 splMeterExpanded: state.splMeterExpanded,
@@ -221,6 +265,10 @@ export const useSettingsStore = create<SettingsState>()(
                 curveExpanded: state.curveExpanded,
                 bpmMin: state.bpmMin,
                 bpmMax: state.bpmMax,
+                harmonicMixing: state.harmonicMixing,
+                maxBpmJump: state.maxBpmJump,
+                energyContinuity: state.energyContinuity,
+                djProfiles: state.djProfiles,
                 durationPresets: state.durationPresets,
                 pedalBindings: state.pedalBindings,
                 gestureBindings: state.gestureBindings,

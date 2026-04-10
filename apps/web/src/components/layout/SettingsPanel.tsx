@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useProjectStore } from "../../store/useProjectStore";
 import { useSettingsStore } from "../../store/useSettingsStore";
 import { useLibraryStore } from "../../store/useLibraryStore";
@@ -127,6 +127,51 @@ const AccordionSection: React.FC<{
 export const SettingsPanel: React.FC = () => {
     const isMobile = useIsMobile();
     const showSettings = useProjectStore(s => s.showSettings);
+    // Storage Metrics State
+    const [storageUsage, setStorageUsage] = useState<{ used: number; quota: number } | null>(null);
+    const [isPersisted, setIsPersisted] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (!showSettings) return;
+
+        // Fetch storage metrics
+        if (navigator.storage && navigator.storage.estimate) {
+            navigator.storage.estimate().then(estimate => {
+                setStorageUsage({
+                    used: estimate.usage || 0,
+                    quota: estimate.quota || 0
+                });
+            });
+        }
+
+        if (navigator.storage && navigator.storage.persisted) {
+            navigator.storage.persisted().then(persisted => {
+                setIsPersisted(persisted);
+            });
+        }
+    }, [showSettings]);
+
+    const handleRequestPersistence = async () => {
+        if (navigator.storage && navigator.storage.persist) {
+            const persisted = await navigator.storage.persist();
+            setIsPersisted(persisted);
+            if (persisted) {
+                alert("✅ Almacenamiento Blindado: El sistema operativo no borrará tus archivos automáticamente.");
+            } else {
+                alert("ℹ️ El navegador decidirá cuándo otorgar la persistencia (suele requerir que la app esté instalada o se use frecuentemente).");
+            }
+        }
+    };
+
+    const formatBytes = (bytes: number) => {
+        if (bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB", "TB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    };
+
+    const usagePercent = storageUsage ? (storageUsage.used / storageUsage.quota) * 100 : 0;
 // ... (rest of store selectors)
     const setShowSettings = useProjectStore(s => s.setShowSettings);
     const autoNext = useProjectStore(s => s.autoNext);
@@ -139,6 +184,15 @@ export const SettingsPanel: React.FC = () => {
     const setBpmMin = useProjectStore(s => s.setBpmMin);
     const bpmMax = useProjectStore(s => s.bpmMax);
     const setBpmMax = useProjectStore(s => s.setBpmMax);
+    
+    // Advanced DJ Logic
+    const harmonicMixing = useSettingsStore(s => s.harmonicMixing);
+    const setHarmonicMixing = useSettingsStore(s => s.setHarmonicMixing);
+    const maxBpmJump = useSettingsStore(s => s.maxBpmJump);
+    const setMaxBpmJump = useSettingsStore(s => s.setMaxBpmJump);
+    const energyContinuity = useSettingsStore(s => s.energyContinuity);
+    const setEnergyContinuity = useSettingsStore(s => s.setEnergyContinuity);
+
     const defaultVol = useProjectStore(s => s.defaultVol);
     const setDefaultVol = useProjectStore(s => s.setDefaultVol);
     const targetMin = useProjectStore(s => s.targetMin);
@@ -158,6 +212,22 @@ export const SettingsPanel: React.FC = () => {
     const performanceMode = useSettingsStore(s => s.performanceMode);
     const setPerformanceMode = useSettingsStore(s => s.setPerformanceMode);
     const setView = useProjectStore(s => s.setView);
+
+    // ── Builder Intelligence ──────────────────────────────────────────────────
+    const repertoire = useLibraryStore(s => s.repertoire);
+    const curve = useProjectStore(s => s.curve);
+    const setCurve = useProjectStore(s => s.setCurve);
+
+    const tracksInRange = repertoire.filter(t => {
+        const bpm = t.bpm || 120;
+        return bpm >= bpmMin && bpm <= bpmMax;
+    });
+
+    const CURVES = [
+        { id: "steady", label: "Estable", icon: "⎯", desc: "Mantiene la energía constante" },
+        { id: "rising", label: "In Crescendo", icon: "↗", desc: "Sube gradualmente el BPM" },
+        { id: "peak", label: "Montaña", icon: "⋀", desc: "Punto máximo a mitad del set" },
+    ];
 
     // State for accordions
     const [openSection, setOpenSection] = useState<string | null>("audio");
@@ -270,14 +340,112 @@ export const SettingsPanel: React.FC = () => {
                         isOpen={openSection === "builder"}
                         onToggle={() => toggle("builder")}
                     >
+                        {/* 🌌 Universo de Temas (Diagnóstico) */}
+                        <div style={{ 
+                            padding: "14px", 
+                            backgroundColor: "rgba(6,182,212,0.08)", 
+                            borderRadius: THEME.radius.md, 
+                            border: `1px solid ${THEME.colors.brand.cyan}30`,
+                            marginBottom: 16,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12
+                        }}>
+                            <div style={{ fontSize: 24 }}>🌌</div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 800, color: THEME.colors.brand.cyan }}>UNIVERSO DISPONIBLE</div>
+                                <div style={{ fontSize: 11, color: THEME.colors.text.muted, marginTop: 2 }}>
+                                    <strong style={{ color: "white" }}>{tracksInRange.length}</strong> temas calificados de un total de {repertoire.length}.
+                                </div>
+                            </div>
+                        </div>
+
                         <SliderRow label="Duración del set" value={targetMin} min={15} max={180} unit=" min" onChange={setTargetMin} />
                         <SliderRow label="BPM mínimo" value={bpmMin} min={40} max={bpmMax - 5} unit=" bpm" onChange={setBpmMin} />
                         <SliderRow label="BPM máximo" value={bpmMax} min={bpmMin + 5} max={220} unit=" bpm" onChange={setBpmMax} />
+
+                        {/* 📈 Selector de Curva Visual */}
+                        <div style={{ marginTop: 20 }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: THEME.colors.text.muted, textTransform: "uppercase", marginBottom: 12, letterSpacing: "0.05em" }}>
+                                Curva de Energía Predeterminada
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 1fr", gap: 8 }}>
+                                {CURVES.map((c) => (
+                                    <button
+                                        key={c.id}
+                                        onClick={() => setCurve(c.id)}
+                                        title={c.desc}
+                                        style={{
+                                            padding: "12px 8px",
+                                            borderRadius: THEME.radius.md,
+                                            border: `1px solid ${curve === c.id ? THEME.colors.brand.cyan : THEME.colors.border}`,
+                                            backgroundColor: curve === c.id ? `${THEME.colors.brand.cyan}15` : "rgba(255,255,255,0.03)",
+                                            color: curve === c.id ? THEME.colors.brand.cyan : THEME.colors.text.muted,
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            gap: 4,
+                                            transition: "all 0.2s"
+                                        }}
+                                    >
+                                        <span style={{ fontSize: 18, fontWeight: 900 }}>{c.icon}</span>
+                                        <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>{c.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 🧠 Inteligencia DJ (Advanced Logic) */}
+                        <div style={{ marginTop: 24, padding: "16px", backgroundColor: "rgba(139, 92, 246, 0.05)", borderRadius: THEME.radius.md, border: `1px solid ${THEME.colors.brand.violet}30` }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                                <span style={{ fontSize: 16 }}>🧠</span>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: THEME.colors.brand.violet, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                    Inteligencia DJ
+                                </span>
+                            </div>
+
+                            <Toggle 
+                                label="Mezcla Armónica" 
+                                description="Prioriza temas con tonos musicalmente compatibles (Círculo de Quintas)."
+                                checked={harmonicMixing} 
+                                onChange={setHarmonicMixing} 
+                            />
+                            
+                            <Toggle 
+                                label="Continuidad de Energía" 
+                                description="Evita saltos bruscos de intensidad (Mood) entre canciones."
+                                checked={energyContinuity} 
+                                onChange={setEnergyContinuity} 
+                            />
+
+                            <div style={{ padding: "14px 0 0" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 600 }}>Salto Máximo de BPM</span>
+                                    <span style={{ fontSize: 13, fontFamily: THEME.fonts.mono, color: THEME.colors.brand.violet, fontWeight: 700 }}>
+                                        ±{maxBpmJump} BPM
+                                    </span>
+                                </div>
+                                <input
+                                    type="range" min={5} max={25} step={1}
+                                    value={maxBpmJump}
+                                    onChange={e => setMaxBpmJump(Number(e.target.value))}
+                                    style={{
+                                        width: "100%", appearance: "none", height: 4, borderRadius: 2,
+                                        background: `linear-gradient(to right, ${THEME.colors.brand.violet} ${(maxBpmJump - 5) / (25 - 5) * 100}%, rgba(255,255,255,0.1) ${(maxBpmJump - 5) / (25 - 5) * 100}%)`,
+                                        outline: "none", cursor: "pointer",
+                                    }}
+                                />
+                                <div style={{ fontSize: 10, color: THEME.colors.text.muted, marginTop: 8, fontStyle: "italic" }}>
+                                    Limita la diferencia de tempo entre temas para una transición fluida.
+                                </div>
+                            </div>
+                        </div>
                     </AccordionSection>
 
                     <AccordionSection 
-                        title="Pedalera Bluetooth" 
-                        icon={<span style={{fontSize: 14}}>🦵</span>}
+                        title="Bluetooth" 
+                        icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>}
                         isOpen={openSection === "pedal"}
                         onToggle={() => toggle("pedal")}
                     >
@@ -291,6 +459,47 @@ export const SettingsPanel: React.FC = () => {
                         onToggle={() => toggle("storage")}
                     >
                         <div style={{ padding: "16px", backgroundColor: "rgba(255,255,255,0.02)", borderRadius: THEME.radius.md, border: `1px solid ${THEME.colors.border}`, marginTop: 8, display: "flex", flexDirection: "column", gap: 12 }}>
+                            
+                            {/* 📊 Métricas de Almacenamiento */}
+                            <div style={{ marginBottom: 4 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "flex-end" }}>
+                                    <span style={{ fontSize: 11, fontWeight: 800, color: THEME.colors.text.muted, textTransform: "uppercase" }}>Uso de disco</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: THEME.colors.brand.cyan }}>
+                                        {storageUsage ? `${formatBytes(storageUsage.used)} / ${formatBytes(storageUsage.quota)}` : "Cargando..."}
+                                    </span>
+                                </div>
+                                <div style={{ width: "100%", height: 6, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 3, overflow: "hidden" }}>
+                                    <div style={{ 
+                                        width: `${Math.min(100, usagePercent)}%`, 
+                                        height: "100%", 
+                                        backgroundColor: usagePercent > 90 ? THEME.colors.status.error : THEME.colors.brand.cyan,
+                                        transition: "width 0.5s ease-out"
+                                    }} />
+                                </div>
+                            </div>
+
+                            {/* 🛡️ Blindaje (Persistencia) */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: 6, border: `1px solid ${isPersisted ? THEME.colors.status.success + "30" : THEME.colors.border}` }}>
+                                <div>
+                                    <div style={{ fontSize: 11, fontWeight: 800, color: isPersisted ? THEME.colors.status.success : THEME.colors.text.muted }}>
+                                        {isPersisted ? "🛡️ ALMACENAMIENTO BLINDADO" : "🔓 MODO TEMPORAL"}
+                                    </div>
+                                    <div style={{ fontSize: 9, color: THEME.colors.text.muted, marginTop: 2 }}>
+                                        {isPersisted ? "Tus audios están protegidos por el sistema." : "El sistema podría borrar audios si falta espacio."}
+                                    </div>
+                                </div>
+                                {!isPersisted && (
+                                    <button 
+                                        onClick={handleRequestPersistence}
+                                        style={{ padding: "4px 8px", borderRadius: 4, border: `1px solid ${THEME.colors.brand.cyan}`, background: "transparent", color: THEME.colors.brand.cyan, fontSize: 10, fontWeight: 900, cursor: "pointer" }}
+                                    >
+                                        BLINDAR
+                                    </button>
+                                )}
+                            </div>
+
+                            <div style={{ height: 1, backgroundColor: THEME.colors.border, margin: "4px 0" }} />
+
                             <div style={{ display: "flex", justifyContent: "space-between" }}>
                                 <span style={{ fontSize: 13, color: THEME.colors.text.muted }}>Tracks en el dispositivo</span>
                                 <span style={{ fontSize: 14, fontWeight: 800, color: THEME.colors.brand.cyan }}>{useLibraryStore.getState().customTracks.length}</span>

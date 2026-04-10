@@ -1,3 +1,7 @@
+---
+name: reviewer
+description: "Ensures code quality and security standards."
+---
 # Skill: Code Reviewer
 Description: Ensures code quality and security standards.
 

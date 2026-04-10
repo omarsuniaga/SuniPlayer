@@ -3,18 +3,17 @@ import { THEME } from "../../data/theme.ts";
 import { useProjectStore } from "../../store/useProjectStore";
 import { useIsMobile } from "../../utils/useMediaQuery";
 
-const NAV_ITEMS = [
-// ... (rest of items unchanged)
-    { id: "player", label: "Player", icon: (
+const NAV_ITEMS: { id: "player" | "history" | "builder" | "library"; label: string; icon: React.ReactNode }[] = [
+    { id: "player", label: "Reproductor", icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
     )},
-    { id: "history", label: "History", icon: (
+    { id: "history", label: "Historial", icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
     )},
-    { id: "builder", label: "Builder", icon: (
+    { id: "builder", label: "Generador", icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
     )},
-    { id: "library", label: "Library", icon: (
+    { id: "library", label: "Biblioteca", icon: (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18V5l12-2v13M6 15a3 3 0 1 0 0 6 3 3 0 000-6zm12-2a3 3 0 1 0 0 6 3 3 0 000-6z" /></svg>
     )},
 ] as const;
@@ -39,14 +38,13 @@ export const BottomNav: React.FC = () => {
             paddingLeft: isMobile ? "8px" : "16px",
             position: "relative",
             zIndex: 100,
-
         }}>
             {NAV_ITEMS.map((item) => {
                 const isActive = currentView === item.id;
                 return (
                     <button
                         key={item.id}
-                        onClick={() => setView(item.id as any)}
+                        onClick={() => setView(item.id)}
                         style={{
                             background: "none",
                             border: "none",

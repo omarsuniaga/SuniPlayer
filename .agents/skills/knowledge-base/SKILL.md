@@ -1,3 +1,7 @@
+---
+name: knowledge-base
+description: "Specialized in information retrieval and documentation management."
+---
 # Skill: Knowledge Base Specialist
 Description: Specialized in information retrieval and documentation management.
 

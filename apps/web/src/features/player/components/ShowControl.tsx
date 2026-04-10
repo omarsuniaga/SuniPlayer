@@ -18,7 +18,13 @@ interface ShowControlProps {
     onToggleMirror: () => void;
     mirrorMode: 'docked' | 'floating';
     onToggleMirrorMode: () => void;
-    onToggleQueue: () => void;
+}
+
+interface ControlButtonProps {
+    active: boolean;
+    label: string;
+    onClick: () => void;
+    icon: React.ReactNode;
 }
 
 export const ShowControl: React.FC<ShowControlProps> = ({
@@ -29,12 +35,11 @@ export const ShowControl: React.FC<ShowControlProps> = ({
     curveVisible, setCurveVisible,
     hasCurve,
     isMirrorOpen, onToggleMirror,
-    mirrorMode, onToggleMirrorMode,
-    onToggleQueue
+    mirrorMode, onToggleMirrorMode
 }) => {
     const isMobile = useIsMobile();
 
-    const ControlButton = ({ active, label, onClick, icon }: any) => (
+    const ControlButton = ({ active, label, onClick, icon }: ControlButtonProps) => (
         <button 
             onClick={onClick}
             style={{
@@ -116,30 +121,9 @@ export const ShowControl: React.FC<ShowControlProps> = ({
                 onClick={onToggleMirror}
                 icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>}
             />
-            
-            {!isMobile && <div className="nav-separator" style={{ width: "1px", background: THEME.colors.border, margin: "4px 2px" }} />}
-            
-            <button 
-                className="desktop-only-queue-btn"
-                onClick={onToggleQueue}
-                style={{
-                    width: "48px",
-                    borderRadius: THEME.radius.md,
-                    border: "none",
-                    background: "rgba(255,255,255,0.05)",
-                    color: "white",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center"
-                }}
-            >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
-            </button>
 
             <style>{`
                 @media (max-width: 768px) {
-                    .desktop-only-queue-btn { display: none !important; }
                     .nav-separator { display: none !important; }
                 }
             `}</style>

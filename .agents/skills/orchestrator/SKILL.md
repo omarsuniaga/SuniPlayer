@@ -1,3 +1,7 @@
+---
+name: orchestrator
+description: "Central coordination skill for routing work through planning, implementation, validation, debugging, review, and documentation."
+---
 # Skill: Orchestrator
 Description: Central coordination skill for routing work through planning, implementation, validation, debugging, review, and documentation.
 

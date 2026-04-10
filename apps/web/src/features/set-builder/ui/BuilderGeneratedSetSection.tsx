@@ -1,15 +1,9 @@
 import React from "react";
-
-import { SetSummary } from "../../../components/common/SetSummary";
-import { TrackRow } from "../../../components/common/TrackRow";
 import { THEME } from "../../../data/theme";
 import type { Track } from "@suniplayer/core";
 
 interface BuilderGeneratedSetSectionProps {
     tracks: Track[];
-    targetSeconds: number;
-    dropTarget: number | null;
-    activeDragIndex: number | null;
     onSave: () => void;
     onSendToPlayer: () => void;
     onDragStart: (index: number) => void;
@@ -18,130 +12,97 @@ interface BuilderGeneratedSetSectionProps {
     onDragEnd: () => void;
     onRemoveTrack: (index: number) => void;
     onEditTrack: (track: Track) => void;
+    onSmartReplace: (index: number) => void;
+    onToggleAnchor: (index: number, track: Track) => void;
+    anchors: Record<number, Track>;
+    dropTarget: number | null;
+    activeDragIndex: number | null;
+    targetSeconds: number;
 }
 
+const MixHealth: React.FC<{ t1: Track, t2: Track }> = ({ t1, t2 }) => {
+    const bpm1 = t1.bpm || 120;
+    const bpm2 = t2.bpm || 120;
+    const bpmDiff = Math.abs(bpm1 - bpm2);
+    const getDist = (k1: string, k2: string) => {
+        if (!k1 || !k2) return 2;
+        const n1 = parseInt(k1); const l1 = k1.replace(/[0-9]/g, '');
+        const n2 = parseInt(k2); const l2 = k2.replace(/[0-9]/g, '');
+        const nd = Math.abs(n1 - n2);
+        const cd = nd > 6 ? 12 - nd : nd;
+        return l1 === l2 ? cd : (cd === 0 ? 1 : cd + 1);
+    };
+    const keyDist = getDist(t1.key || "", t2.key || "");
+    const color = keyDist <= 1 && bpmDiff <= 8 ? THEME.colors.status.success : (keyDist > 2 || bpmDiff > 15 ? THEME.colors.status.error : THEME.colors.status.warning);
+    return (
+        <div className="mix-health" style={{ height: 14, display: "flex", alignItems: "center", fontSize: 8, fontWeight: 900, color, paddingLeft: 20, borderLeft: `1px solid ${color}40`, opacity: 0.8 }}>
+            ● {bpmDiff}bpm {t1.key}→{t2.key}
+        </div>
+    );
+};
+
 export const BuilderGeneratedSetSection: React.FC<BuilderGeneratedSetSectionProps> = ({
-    tracks,
-    targetSeconds,
-    dropTarget,
-    activeDragIndex,
-    onSave,
-    onSendToPlayer,
-    onDragStart,
-    onDragOver,
-    onDrop,
-    onDragEnd,
-    onRemoveTrack,
-    onEditTrack,
+    tracks, onSave, onSendToPlayer, onDragStart, onDragOver, onDrop, onDragEnd, onRemoveTrack, onEditTrack, onSmartReplace, onToggleAnchor, anchors, dropTarget, activeDragIndex, targetSeconds
 }) => {
-    if (tracks.length === 0) {
-        return (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", border: `2px dashed ${THEME.colors.border}`, borderRadius: THEME.radius.xl, color: THEME.colors.text.muted, fontSize: 14, minHeight: 120 }}>
-                Configure and click Generate to start
-            </div>
-        );
-    }
+    if (tracks.length === 0) return <div style={{ padding: 40, textAlign: "center", fontSize: 12, color: "#555", fontWeight: 700 }}>Set vacío.<br/>Configurá y Generá un set arriba.</div>;
 
     return (
-        <section style={{ animation: "fadeIn 0.4s ease-out" }}>
-            <div className="section-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <style>{`
-                    @media (max-width: 480px) {
-                        .section-header { flex-direction: column; align-items: flex-start !important; gap: 8px; }
-                        .header-actions { width: 100%; display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
-                        .header-actions button { padding: 8px 4px !important; font-size: 10px !important; }
-                    }
-                `}</style>
-                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Generated Set</h2>
-                <div className="header-actions" style={{ display: "flex", gap: 8 }}>
-                    <button
-                        onClick={onSave}
-                        title="Guardar este set en tu historial personal"
-                        style={{
-                            padding: "6px 12px",
-                            borderRadius: THEME.radius.sm,
-                            border: `1px solid ${THEME.colors.status.success}40`,
-                            backgroundColor: THEME.colors.status.success + "10",
-                            color: THEME.colors.status.success,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                        }}
-                    >
-                        Save to History
-                    </button>
-                    <button
-                        onClick={onSendToPlayer}
-                        title="Enviar todas estas canciones al Reproductor para tocarlas ahora"
-                        style={{
-                            padding: "6px 14px",
-                            borderRadius: THEME.radius.sm,
-                            border: "none",
-                            background: THEME.gradients.cyan,
-                            color: "white",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            boxShadow: `0 4px 12px ${THEME.colors.brand.cyan}30`,
-                        }}
-                    >
-                        Send to Player
-                    </button>
+        <section style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <style>{`
+                .track-row { height: 36px; }
+                .track-actions button { width: 32px; height: 32px; display: flex; alignItems: center; justifyContent: center; }
+                @media (max-width: 640px) {
+                    .track-row { height: 48px !important; padding: 4px 8px !important; }
+                    .track-title { font-size: 12px !important; }
+                    .track-artist { font-size: 10px !important; display: block !important; }
+                    .track-actions button { width: 40px !important; height: 40px !important; font-size: 14px !important; }
+                    .mix-health { height: 18px !important; font-size: 9px !important; }
+                }
+            `}</style>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 8px" }}>
+                <span style={{ fontSize: 10, fontWeight: 900, opacity: 0.6, letterSpacing: 1 }}>SET ACTIVO ({tracks.length})</span>
+                <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={onSave} style={{ padding: "6px 12px", borderRadius: 4, border: "1px solid rgba(255,255,255,0.1)", backgroundColor: "rgba(255,255,255,0.05)", color: "white", fontSize: 9, fontWeight: 800, cursor: "pointer" }}>GUARDAR</button>
+                    <button onClick={onSendToPlayer} style={{ padding: "6px 12px", borderRadius: 4, border: "none", backgroundColor: THEME.colors.brand.cyan, color: "black", fontSize: 9, fontWeight: 900, cursor: "pointer" }}>CARGAR</button>
                 </div>
             </div>
 
-            <SetSummary tracks={tracks} target={targetSeconds} />
-
-            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", backgroundColor: THEME.colors.panel, borderRadius: THEME.radius.lg, border: `1px solid ${THEME.colors.border}`, overflow: "hidden" }}>
+            <div style={{ display: "flex", flexDirection: "column", background: "rgba(255,255,255,0.02)", borderRadius: 6, border: `1px solid rgba(255,255,255,0.05)`, overflow: "hidden" }}>
                 {tracks.map((track, index) => {
-                    const isDragging = activeDragIndex === index;
-                    const isTarget = dropTarget === index && activeDragIndex !== null && activeDragIndex !== index;
-
+                    const isAnchored = !!anchors[index];
                     return (
-                        <div
-                            key={track.id + index}
-                            draggable
-                            onDragStart={() => onDragStart(index)}
-                            onDragOver={(event) => onDragOver(event, index)}
-                            onDrop={(event) => onDrop(event, index)}
-                            onDragEnd={onDragEnd}
-                            style={{
-                                display: "flex",
-                                alignItems: "stretch",
-                                opacity: isDragging ? 0.4 : 1,
-                                borderTop: isTarget ? `2px solid ${THEME.colors.brand.violet}` : "2px solid transparent",
-                                backgroundColor: isTarget ? `${THEME.colors.brand.violet}12` : undefined,
-                                transition: "opacity 0.1s, border-top 0.1s, background-color 0.1s",
-                            }}
-                        >
-                            <div
-                                title="Arrastra para reordenar"
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    padding: "0 6px 0 10px",
-                                    color: THEME.colors.text.muted,
-                                    opacity: 0.35,
-                                    flexShrink: 0,
-                                    cursor: "grab",
-                                    userSelect: "none",
-                                }}
-                            >
-                                <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
-                                    <circle cx="3" cy="2.5" r="1.2" />
-                                    <circle cx="7" cy="2.5" r="1.2" />
-                                    <circle cx="3" cy="7" r="1.2" />
-                                    <circle cx="7" cy="7" r="1.2" />
-                                    <circle cx="3" cy="11.5" r="1.2" />
-                                    <circle cx="7" cy="11.5" r="1.2" />
-                                </svg>
+                    <React.Fragment key={track.id + index}>
+                        <div draggable={!isAnchored} onDragStart={() => onDragStart(index)} onDragOver={e => onDragOver(e, index)} onDrop={e => onDrop(e, index)} onDragEnd={onDragEnd}
+                            className="track-row"
+                            style={{ 
+                                display: "flex", alignItems: "center", padding: "0 4px", position: "relative",
+                                opacity: activeDragIndex === index ? 0.3 : 1, 
+                                backgroundColor: isAnchored ? "rgba(6,182,212,0.08)" : (dropTarget === index ? "rgba(255,255,255,0.05)" : "transparent"), 
+                                borderBottom: `1px solid rgba(255,255,255,0.03)` 
+                            }}>
+                            <span style={{ width: 16, fontSize: 10, opacity: isAnchored ? 0 : 0.2, textAlign: "center" }}>{isAnchored ? "" : "⋮"}</span>
+                            <span style={{ width: 20, fontSize: 10, fontWeight: 900, opacity: 0.3, textAlign: "center" }}>{index + 1}</span>
+                            
+                            <div style={{ flex: 1, minWidth: 0, padding: "0 8px" }}>
+                                <div className="track-title" style={{ color: isAnchored ? THEME.colors.brand.cyan : "white", fontWeight: 700, fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {track.title}
+                                </div>
+                                <div className="track-artist" style={{ color: "rgba(255,255,255,0.4)", fontSize: 9, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "none" }}>
+                                    {track.artist}
+                                </div>
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <TrackRow track={track} idx={index} showN onRm={onRemoveTrack} onEdit={onEditTrack} />
+
+                            <div className="track-actions" style={{ display: "flex", alignItems: "center" }}>
+                                <button onClick={() => onToggleAnchor(index, track)} style={{ background: "none", border: "none", width: 32, height: 32, cursor: "pointer", opacity: isAnchored ? 1 : 0.2 }}>📌</button>
+                                <button onClick={() => onSmartReplace(index)} style={{ background: "none", border: "none", width: 32, height: 32, cursor: "pointer" }}>✨</button>
+                                <button onClick={() => onEditTrack(track)} style={{ background: "none", border: "none", width: 32, height: 32, cursor: "pointer", opacity: 0.3 }}>✎</button>
+                                <button onClick={() => onRemoveTrack(index)} style={{ background: "none", border: "none", width: 32, height: 32, cursor: "pointer", color: THEME.colors.status.error, opacity: 0.6 }}>×</button>
                             </div>
                         </div>
-                    );
-                })}
+                        {index < tracks.length - 1 && <MixHealth t1={track} t2={tracks[index + 1]} />}
+                    </React.Fragment>
+                )})}
             </div>
         </section>
     );

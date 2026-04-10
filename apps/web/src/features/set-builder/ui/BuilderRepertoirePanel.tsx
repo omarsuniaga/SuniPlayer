@@ -1,11 +1,11 @@
-import React from "react";
-
+import React, { useState, useMemo } from "react";
 import { ImportZone } from "../../../components/common/ImportZone";
 import { TrackRow } from "../../../components/common/TrackRow";
-import { MOODS } from "@suniplayer/core";
+import { MOODS, TRACKS } from "@suniplayer/core";
 import { THEME } from "../../../data/theme";
 import { mc } from "@suniplayer/core";
 import type { Track } from "@suniplayer/core";
+import { useProjectStore } from "../../../store/useProjectStore";
 
 interface BuilderRepertoirePanelProps {
     filteredTracks: Track[];
@@ -23,221 +23,98 @@ interface BuilderRepertoirePanelProps {
     onRemoveCustomTrack: (trackId: string) => void;
 }
 
-const queueButtonStyle: React.CSSProperties = {
-    flexShrink: 0,
-    width: 28,
-    height: 28,
-    borderRadius: THEME.radius.sm,
-    border: `1px solid ${THEME.colors.brand.violet}40`,
-    backgroundColor: `${THEME.colors.brand.violet}10`,
-    color: THEME.colors.brand.violet,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-};
-
 export const BuilderRepertoirePanel: React.FC<BuilderRepertoirePanelProps> = ({
-    filteredTracks,
-    customTracks,
-    isPlaying,
-    importOpen,
-    search,
-    selectedMood,
-    onToggleImport,
-    onSearchChange,
-    onMoodChange,
-    onAddTrack,
-    onAppendToQueue,
-    onEditTrack,
-    onRemoveCustomTrack,
+    isPlaying, importOpen, search, selectedMood, onToggleImport, onSearchChange, onMoodChange, onAddTrack, onAppendToQueue, onEditTrack, onRemoveCustomTrack
 }) => {
+    const { 
+        customTracks = [], 
+        repertoire = [], 
+        addToRepertoire, 
+        removeFromRepertoire, 
+        addMultipleToRepertoire 
+    } = useProjectStore();
+
+    const [tab, setTab] = useState<"all" | "local" | "cloud">("all");
+
+    // Unified Library Catalog
+    const fullCatalog = useMemo(() => {
+        const all = [...TRACKS, ...(customTracks || []).filter(ct => !TRACKS.some(t => t.id === ct.id))];
+        return all.filter(t => {
+            const matchesSearch = !search || t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase());
+            const matchesMood = !selectedMood || t.mood === selectedMood;
+            const matchesTab = tab === "all" || (tab === "local" && t.isCustom) || (tab === "cloud" && !t.isCustom);
+            return matchesSearch && matchesMood && matchesTab;
+        }).sort((a, b) => a.title.localeCompare(b.title));
+    }, [customTracks, search, selectedMood, tab]);
+
+    const repertoireIds = useMemo(() => new Set((repertoire || []).map(t => t.id)), [repertoire]);
+
     return (
-        <>
-            <div style={{ padding: "16px", borderBottom: `1px solid ${THEME.colors.border}`, display: "flex", flexDirection: "column", gap: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: THEME.colors.text.primary }}>REPERTOIRE</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 11, color: THEME.colors.text.muted, fontFamily: THEME.fonts.mono }}>{filteredTracks.length + customTracks.length} items</span>
-                        <button
-                            onClick={onToggleImport}
-                            title="Importar mis archivos de audio"
-                            style={{
-                                padding: "4px 10px",
-                                borderRadius: THEME.radius.sm,
-                                border: `1px solid ${importOpen ? THEME.colors.brand.violet : THEME.colors.border}`,
-                                backgroundColor: importOpen ? `${THEME.colors.brand.violet}15` : "transparent",
-                                color: importOpen ? THEME.colors.brand.violet : THEME.colors.text.muted,
-                                cursor: "pointer",
-                                fontSize: 11,
-                                fontWeight: 600,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 5,
-                                transition: "all 0.2s",
-                            }}
-                        >
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="17 8 12 3 7 8" />
-                                <line x1="12" y1="3" x2="12" y2="15" />
-                            </svg>
-                            Import
-                        </button>
-                    </div>
-                </div>
-
-                {importOpen && (
-                    <div style={{ borderRadius: THEME.radius.md, border: `1px solid ${THEME.colors.border}`, overflow: "hidden" }}>
-                        <ImportZone onClose={onToggleImport} />
-                    </div>
-                )}
-
-                <div style={{ position: "relative" }}>
-                    <input
-                        type="text"
-                        placeholder="Search artist or title..."
-                        value={search}
-                        onChange={(event) => onSearchChange(event.target.value)}
-                        style={{
-                            width: "100%",
-                            padding: "10px 12px",
-                            borderRadius: THEME.radius.md,
-                            border: `1px solid ${THEME.colors.border}`,
-                            backgroundColor: THEME.colors.surface,
-                            color: THEME.colors.text.primary,
-                            fontSize: 13,
-                            outline: "none",
-                            boxSizing: "border-box",
-                            transition: "border-color 0.2s",
-                        }}
-                        onFocus={(event) => {
-                            event.target.style.borderColor = THEME.colors.brand.cyan;
-                        }}
-                        onBlur={(event) => {
-                            event.target.style.borderColor = THEME.colors.border;
-                        }}
-                    />
-                </div>
-
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    <button
-                        onClick={() => onMoodChange(null)}
-                        style={{
-                            padding: "4px 10px",
-                            borderRadius: THEME.radius.sm,
-                            border: "none",
-                            cursor: "pointer",
-                            backgroundColor: !selectedMood ? "rgba(255,255,255,0.1)" : "transparent",
-                            color: !selectedMood ? "white" : THEME.colors.text.muted,
-                            fontSize: 11,
-                            fontWeight: 600,
-                        }}
-                    >
-                        All
+        <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "#0a0a0f" }}>
+            {/* ── HEADER ── */}
+            <div style={{ padding: "12px", borderBottom: `1px solid ${THEME.colors.border}20` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 10, fontWeight: 900, color: THEME.colors.brand.cyan, letterSpacing: 1 }}>LIBRARY CATALOG</span>
+                    <button onClick={onToggleImport} style={{ padding: "4px 8px", borderRadius: 4, background: importOpen ? THEME.colors.brand.violet : "rgba(255,255,255,0.05)", border: "none", color: "white", fontSize: 9, fontWeight: 800 }}>
+                        {importOpen ? "CLOSE" : "IMPORT"}
                     </button>
-                    {MOODS.map((mood) => (
-                        <button
-                            key={mood}
-                            onClick={() => onMoodChange(selectedMood === mood ? null : mood)}
-                            style={{
-                                padding: "4px 10px",
-                                borderRadius: THEME.radius.sm,
-                                border: "none",
-                                cursor: "pointer",
-                                backgroundColor: selectedMood === mood ? mc(mood) + "20" : "transparent",
-                                color: selectedMood === mood ? mc(mood) : THEME.colors.text.muted,
-                                fontSize: 11,
-                                fontWeight: 600,
-                                textTransform: "capitalize",
-                            }}
-                        >
-                            {mood}
+                </div>
+
+                {importOpen && <div style={{ marginBottom: 12 }}><ImportZone onClose={onToggleImport} /></div>}
+
+                <input 
+                    type="text" placeholder="Search catalog..." value={search} onChange={e => onSearchChange(e.target.value)}
+                    style={{ width: "100%", padding: "8px", borderRadius: 4, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.3)", color: "white", fontSize: 12, marginBottom: 8 }}
+                />
+
+                <div style={{ display: "flex", gap: 4 }}>
+                    {(["all", "local", "cloud"] as const).map((t) => (
+                        <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: "4px", borderRadius: 4, border: "none", background: tab === t ? "rgba(255,255,255,0.1)" : "transparent", color: tab === t ? "white" : "#666", fontSize: 9, fontWeight: 800, textTransform: "uppercase" }}>
+                            {t}
                         </button>
                     ))}
                 </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
-                {filteredTracks.map((track) => (
-                    <div key={track.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <TrackRow track={track} small idx={0} onAdd={onAddTrack} onEdit={onEditTrack} />
-                        </div>
-                        {isPlaying && (
-                            <button
-                                onClick={() => onAppendToQueue(track)}
-                                title="Agregar a la cola del Player sin interrumpir"
-                                style={{ ...queueButtonStyle, fontSize: 14, fontWeight: 700, transition: "all 0.15s", marginRight: 4 }}
-                                onMouseEnter={(event) => {
-                                    event.currentTarget.style.backgroundColor = `${THEME.colors.brand.violet}25`;
-                                    event.currentTarget.style.transform = "scale(1.1)";
-                                }}
-                                onMouseLeave={(event) => {
-                                    event.currentTarget.style.backgroundColor = `${THEME.colors.brand.violet}10`;
-                                    event.currentTarget.style.transform = "scale(1)";
-                                }}
-                            >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                    <path d="M12 5v14M5 12l7 7 7-7" />
-                                </svg>
-                            </button>
-                        )}
-                    </div>
-                ))}
+            {/* ── LIST ── */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "4px" }} className="no-scrollbar">
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 4px" }}>
+                    <span style={{ fontSize: 9, fontWeight: 800, color: "#555" }}>{fullCatalog.length} TRACKS FOUND</span>
+                    <button 
+                        onClick={() => addMultipleToRepertoire(customTracks)}
+                        style={{ background: "none", border: "none", color: THEME.colors.brand.cyan, fontSize: 9, fontWeight: 800, cursor: "pointer" }}
+                    >
+                        ADD ALL LOCAL TO BUILDER
+                    </button>
+                </div>
 
-                {customTracks.length > 0 && (
-                    <>
-                        <div style={{ fontSize: 10, color: THEME.colors.brand.violet, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", padding: "10px 10px 4px" }}>
-                            Mis archivos importados
-                        </div>
-                        {customTracks
-                            .filter(ct => !filteredTracks.some(ft => ft.file_path === ct.file_path))
-                            .map((track) => (
-                            <div key={track.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <TrackRow track={track} small idx={0} onAdd={onAddTrack} onEdit={onEditTrack} />
-                                </div>
-                                {isPlaying && (
-                                    <button onClick={() => onAppendToQueue(track)} title="Agregar a la cola" style={queueButtonStyle}>
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                                            <path d="M12 5v14M5 12l7 7 7-7" />
-                                        </svg>
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => onRemoveCustomTrack(track.id)}
-                                    title="Eliminar archivo importado"
-                                    style={{
-                                        flexShrink: 0,
-                                        width: 24,
-                                        height: 24,
-                                        borderRadius: THEME.radius.sm,
-                                        border: "none",
-                                        backgroundColor: "transparent",
-                                        color: THEME.colors.text.muted,
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontSize: 16,
-                                        lineHeight: 1,
-                                        marginRight: 4,
-                                    }}
-                                    onMouseEnter={(event) => {
-                                        event.currentTarget.style.color = THEME.colors.status.error;
-                                    }}
-                                    onMouseLeave={(event) => {
-                                        event.currentTarget.style.color = THEME.colors.text.muted;
-                                    }}
-                                >
-                                    x
-                                </button>
+                {fullCatalog.map((track) => {
+                    const isInRepertoire = repertoireIds.has(track.id);
+                    return (
+                        <div key={track.id} style={{ 
+                            display: "flex", alignItems: "center", height: 40, padding: "0 8px", borderRadius: 4,
+                            background: isInRepertoire ? "rgba(6,182,212,0.05)" : "transparent",
+                            borderBottom: "1px solid rgba(255,255,255,0.02)"
+                        }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: isInRepertoire ? THEME.colors.brand.cyan : "white", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{track.title}</div>
+                                <div style={{ fontSize: 9, color: "#555" }}>{track.artist} • {track.bpm || "--"} BPM</div>
                             </div>
-                        ))}
-                    </>
-                )}
+                            
+                            <div style={{ display: "flex", gap: 4 }}>
+                                <button 
+                                    onClick={() => isInRepertoire ? removeFromRepertoire(track.id) : addToRepertoire(track)}
+                                    title={isInRepertoire ? "Quitar de la lógica de generación" : "Añadir a la lógica de generación"}
+                                    style={{ background: isInRepertoire ? THEME.colors.brand.cyan : "rgba(255,255,255,0.05)", border: "none", borderRadius: 4, width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                                >
+                                    {isInRepertoire ? "✓" : "+"}
+                                </button>
+                                <button onClick={() => onAddTrack(track)} style={{ background: "rgba(255,255,255,0.05)", border: "none", borderRadius: 4, width: 24, height: 24, fontSize: 10 }}>⚡</button>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
-        </>
+        </div>
     );
 };

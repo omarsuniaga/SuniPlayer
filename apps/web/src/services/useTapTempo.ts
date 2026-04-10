@@ -1,10 +1,17 @@
 import { useEffect, useRef } from "react";
 import { useProjectStore, updateTrackMetadata } from "../store/useProjectStore";
 
+declare global {
+    interface WindowEventMap {
+        'suni-tap-border': Event;
+    }
+}
+
 /**
  * useTapTempo — Detects rhythm from border clicks and updates track BPM.
  */
 export function useTapTempo() {
+// ... (rest of the hook)
     const pQueue = useProjectStore(s => s.pQueue);
     const ci = useProjectStore(s => s.ci);
     const ct = pQueue[ci];
@@ -50,7 +57,7 @@ export function useTapTempo() {
             }
         };
 
-        window.addEventListener('suni-tap-border' as any, handleTap);
-        return () => window.removeEventListener('suni-tap-border' as any, handleTap);
+        window.addEventListener('suni-tap-border', handleTap);
+        return () => window.removeEventListener('suni-tap-border', handleTap);
     }, [ct]);
 }

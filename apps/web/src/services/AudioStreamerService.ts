@@ -20,35 +20,60 @@ export class AudioStreamerService {
         onProgress: (p: DownloadProgress) => void,
         trackId?: string // Agregamos trackId para búsqueda en storage
     ): Promise<string> {
-        // 🚀 CORTOCIRCUITO: Blob URLs vivas no necesitan re-procesarse.
-        // Re-fetchear un blob crea una nueva URL → isNewSrc=true → audio.load() → posición reseteada + sin fade.
+        // 🚀 CORTOCIRCUITO 1: Blob URLs vivas no necesitan re-procesarse.
         if (url.startsWith('blob:')) {
             onProgress({ percentage: 100, speedKbps: 0, loadedBytes: 0, totalBytes: 0 });
             return url;
         }
 
+        // 🚀 CORTOCIRCUITO 2: IDs de tracks locales (custom_ o lib-) no son URLs de fetch.
+        // Si la URL empieza por estos prefijos y no parece una ruta de archivo (.mp3, .wav, etc),
+        // vamos directo a recuperación local.
+        const isInternalId = url.startsWith('custom_') || url.startsWith('lib-');
+        const isFilePath = url.includes('.') && !url.includes(' '); // Tiene extensión y no espacios
+
+        if (isInternalId && !isFilePath) {
+            return this.recoverLocal(trackId || url, onProgress, url);
+        }
+
         try {
             const response = await fetch(url);
             if (response.ok) {
-                // Si el fetch funciona (URL viva), procesamos normalmente
+                const contentType = response.headers.get('Content-Type') ?? '';
+                if (contentType.startsWith('text/html')) {
+                    // Vite/server returned SPA fallback (index.html) — file not found
+                    console.warn(`[AudioStreamer] Fetch returned HTML for ${url}, attempting recovery...`);
+                    return this.recoverLocal(trackId || url, onProgress, url);
+                }
                 return await this.processResponse(response, onProgress);
             }
         } catch (e) {
-            console.warn("[AudioStreamer] Fetch failed, attempting local recovery for:", trackId);
+            console.warn("[AudioStreamer] Fetch failed, attempting local recovery for:", trackId || url, e);
         }
 
-        // 🛡️ RECUPERACIÓN LOCAL: Si falló el fetch o la URL era un blob muerto
-        if (trackId) {
-            const { storage } = await import("../platform/index");
-            const localBlob = await storage.getAudioFile(trackId);
-            if (localBlob) {
-                console.log("[AudioStreamer] 🛡️ Successfully recovered track from local storage:", trackId);
-                onProgress({ percentage: 100, speedKbps: 0, loadedBytes: localBlob.size, totalBytes: localBlob.size });
-                return URL.createObjectURL(localBlob);
-            }
+        return this.recoverLocal(trackId || url, onProgress, url);
+    }
+
+    /**
+     * Intenta recuperar el audio del storage local (IndexedDB/OPFS).
+     */
+    private static async recoverLocal(
+        trackId: string, 
+        onProgress: (p: DownloadProgress) => void,
+        originalUrl: string
+    ): Promise<string> {
+        if (!trackId) throw new Error(`No se pudo cargar el audio: ${originalUrl}`);
+
+        const { storage } = await import("../platform/index");
+        const localBlob = await storage.getAudioFile(trackId);
+        
+        if (localBlob) {
+            console.log("[AudioStreamer] 🛡️ Successfully recovered track from local storage:", trackId);
+            onProgress({ percentage: 100, speedKbps: 0, loadedBytes: localBlob.size, totalBytes: localBlob.size });
+            return URL.createObjectURL(localBlob);
         }
 
-        throw new Error(`No se pudo cargar el audio: ${url}`);
+        throw new Error(`Archivo no encontrado en almacenamiento local: ${trackId}. Es posible que el navegador haya limpiado los archivos temporales.`);
     }
 
     private static async processResponse(response: Response, onProgress: (p: DownloadProgress) => void): Promise<string> {
@@ -58,7 +83,7 @@ export class AudioStreamerService {
         const contentLength = +(response.headers.get('Content-Length') ?? 0);
         
         let receivedLength = 0;
-        let chunks: Uint8Array[] = [];
+        const chunks: Uint8Array[] = [];
 
         while(true) {
             const {done, value} = await reader.read();
@@ -77,7 +102,7 @@ export class AudioStreamerService {
             });
         }
 
-        const fullBlob = new Blob(chunks as any, { type: response.headers.get('Content-Type') ?? 'audio/mpeg' });
+        const fullBlob = new Blob(chunks as BlobPart[], { type: response.headers.get('Content-Type') ?? 'audio/mpeg' });
         return URL.createObjectURL(fullBlob);
     }
 }

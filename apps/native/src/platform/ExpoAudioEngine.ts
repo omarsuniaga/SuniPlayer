@@ -21,11 +21,25 @@ export class ExpoAudioEngine implements IAudioEngine {
   private _initialized = false;
   private _initializingPromise: Promise<void> | null = null;
   private _currentRate: number = 1.0;
+  private _isPlaying: boolean = false;
+  private _currentUrl: string | null = null;
 
   // Analytics state
   private _lastTrackId: string | null = null;
   private _lastPos: number = 0;
   private _lastDur: number = 0;
+
+  get isPlaying(): boolean {
+    return this._isPlaying;
+  }
+
+  get durationMs(): number {
+    return this._lastDur * 1000;
+  }
+
+  get currentUrl(): string | null {
+    return this._currentUrl;
+  }
 
   private async _ensureInitialized(): Promise<void> {
     if (this._initialized) return;
@@ -87,6 +101,7 @@ export class ExpoAudioEngine implements IAudioEngine {
         if (duration > 0) this._lastDur = duration;
       }),
       TrackPlayer.addEventListener(Event.PlaybackState, ({ state }: { state: State }) => {
+        this._isPlaying = state === State.Playing;
         const isBuffering = state === State.Buffering || state === State.Loading;
         this._bufferingListener?.(isBuffering);
 
@@ -144,6 +159,7 @@ export class ExpoAudioEngine implements IAudioEngine {
     this._lastTrackId = options?.id ?? null;
     this._lastPos = 0;
     this._lastDur = (options?.duration ?? 0) / 1000;
+    this._currentUrl = url;
 
     // Reset queue before loading a new track so we don't accumulate phantom items.
     await TrackPlayer.reset();
@@ -168,6 +184,26 @@ export class ExpoAudioEngine implements IAudioEngine {
   private _fadeInterval: ReturnType<typeof setInterval> | null = null;
 
   async play(): Promise<void> { await TrackPlayer.play(); }
+
+  async playAt(targetTimeMs: number, positionMs: number): Promise<void> {
+    await this.seek(positionMs);
+    
+    const now = performance.now();
+    const delay = targetTimeMs - now;
+
+    console.log(`[ExpoAudioEngine] playAt scheduled in ${delay.toFixed(2)}ms`);
+
+    if (delay <= 0) {
+      await TrackPlayer.play();
+    } else {
+      // Temporary JS fallback. For sub-10ms precision, this should move to 
+      // a native module using mach_absolute_time (iOS) or System.nanoTime (Android).
+      setTimeout(async () => {
+        await TrackPlayer.play();
+      }, delay);
+    }
+  }
+
   pause(): void { TrackPlayer.pause(); }
   seek(positionMs: number): void { TrackPlayer.seekTo(positionMs / 1000); }
 
@@ -217,8 +253,24 @@ export class ExpoAudioEngine implements IAudioEngine {
 
   setTempo(rate: number): void {
     this._currentRate = rate;
-    TrackPlayer.setRate(rate);
+    this._updateEffectiveRate();
   }
+
+  /** 
+   * Internal rate adjustment for sync. 
+   * In RNTP, this must be combined with user tempo.
+   */
+  private _syncRateAdjustment: number = 1.0;
+  setPlaybackRate(rate: number): void {
+    this._syncRateAdjustment = rate;
+    this._updateEffectiveRate();
+  }
+
+  private _updateEffectiveRate(): void {
+    const effectiveRate = this._currentRate * this._syncRateAdjustment;
+    TrackPlayer.setRate(effectiveRate);
+  }
+
   setVolume(volume: number): void {
     // Clamp to [0, 1] — security: no amplification beyond system level
     TrackPlayer.setVolume(Math.max(0, Math.min(1, volume)));

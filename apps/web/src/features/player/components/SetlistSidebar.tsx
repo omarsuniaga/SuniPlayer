@@ -40,14 +40,14 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
 
     return (
         <>
-            {showQueue && isMobile && (
+            {showQueue && (
                 <div 
                     onClick={onClose} 
                     style={{ 
                         position: "fixed", 
                         inset: 0, 
-                        backgroundColor: "rgba(0,0,0,0.8)", 
-                        backdropFilter: "blur(8px)", 
+                        backgroundColor: "rgba(0,0,0,0.6)", 
+                        backdropFilter: "blur(4px)", 
                         zIndex: 2000 
                     }} 
                 />
@@ -56,7 +56,7 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 style={{
-                position: isMobile ? "fixed" : "relative",
+                position: "fixed",
                 right: 0, top: 0, bottom: 0,
                 width: showQueue ? (isMobile ? "85vw" : "360px") : 0, 
                 transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -65,7 +65,8 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
                 display: "flex", flexDirection: "column", 
                 overflow: "hidden",
                 zIndex: 2001, 
-                boxShadow: isMobile && showQueue ? "-20px 0 50px rgba(0,0,0,0.5)" : "none"
+                boxShadow: showQueue ? "-20px 0 50px rgba(0,0,0,0.5)" : "none",
+                pointerEvents: showQueue ? "auto" : "none"
             }}>
                 <div style={{ width: isMobile ? "85vw" : 360, maxWidth: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
                     <div style={{ 

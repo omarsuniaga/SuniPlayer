@@ -12,11 +12,11 @@ const SNAPSHOT_KEY = "suniplayer-session-snapshot";
 export interface ShowSessionSnapshot {
     id: string;
     capturedAt: string;
-    builder: any;
-    player: any;
-    history: any;
-    library: any;
-    settings: any;
+    builder: Record<string, unknown>;
+    player: Record<string, unknown>;
+    history: Record<string, unknown>;
+    library: Record<string, unknown>;
+    settings: Record<string, unknown>;
     warnings: {
         requiresAudioReconnect: boolean;
         missingCustomTrackIds: string[];
@@ -38,7 +38,7 @@ export function buildShowSessionSnapshot(): ShowSessionSnapshot {
     let player  = playerRaw  ? JSON.parse(playerRaw).state : {};
     let library = libraryRaw ? JSON.parse(libraryRaw).state : {};
     const settings = settingsRaw ? JSON.parse(settingsRaw).state : {};
-    let history = historyRaw ? JSON.parse(historyRaw).state : { history: [] };
+    const history = historyRaw ? JSON.parse(historyRaw).state : { history: [] };
 
     // Sanitize blob URLs: remove temporary blob URLs and mark as sourceMissing
     const sanitizeTrack = (track: Track): Track => {
@@ -77,15 +77,19 @@ export function buildShowSessionSnapshot(): ShowSessionSnapshot {
 
     // Sanitize history: ensure all sets have tracks array
     if (history.history && Array.isArray(history.history)) {
-        history.history = history.history.map((show: any) => {
+        history.history = history.history.map((show: unknown) => {
             if (!show || typeof show !== 'object') return show;
+            const s = show as Record<string, unknown>;
             return {
-                ...show,
-                sets: Array.isArray(show.sets)
-                    ? show.sets.map((set: any) => ({
-                        ...set,
-                        tracks: Array.isArray(set.tracks) ? set.tracks : [],
-                    }))
+                ...s,
+                sets: Array.isArray(s.sets)
+                    ? s.sets.map((set: unknown) => {
+                        const st = set as Record<string, unknown>;
+                        return {
+                            ...st,
+                            tracks: Array.isArray(st.tracks) ? st.tracks : [],
+                        };
+                    })
                     : [],
             };
         });
@@ -160,7 +164,8 @@ export function clearShowSessionSnapshot(): void {
 
 export function hasActiveSession(snapshot: ShowSessionSnapshot | null): boolean {
     if (!snapshot) return false;
-    return !!(snapshot.player?.pQueue?.length || snapshot.builder?.genSet?.length);
+    return !!((snapshot.player as Record<string, unknown>)?.pQueue as unknown[] | undefined)?.length || 
+           !!((snapshot.builder as Record<string, unknown>)?.genSet as unknown[] | undefined)?.length;
 }
 
 /**

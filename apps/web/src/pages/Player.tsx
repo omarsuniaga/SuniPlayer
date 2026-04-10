@@ -114,7 +114,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
             const { customTracks } = useLibraryStore.getState();
             setPQueue(customTracks.length > 0 ? customTracks : catalogTracks as Track[]);
         }
-    }, []);
+    }, [pQueue.length, setPQueue]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -147,7 +147,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
             usePlayerStore.getState().trackStart(ct.id);
             lastTrackStarted.current = ct.id;
         }
-    }, [ct?.id, playing]);
+    }, [ct, playing]);
 
     useEffect(() => {
         if (!ct) return;
@@ -285,15 +285,12 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                             mirrorMode={mirrorMode}
                             onToggleMirrorMode={() => {
                                 if (!isMirrorOpen) {
-                                    // Si está cerrada, abrirla directamente en modo flotante (pedido por usuario)
                                     setMirrorMode('floating');
                                     toggleMirror();
                                 } else {
-                                    // Si ya está abierta, simplemente alternar el modo
                                     setMirrorMode(mirrorMode === 'docked' ? 'floating' : 'docked');
                                 }
                             }}
-                            onToggleQueue={() => setShowQueue(!showQueue)} 
                         />
 
                         {/* DOCKED STAGE MIRROR */}

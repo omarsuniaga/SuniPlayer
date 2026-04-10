@@ -62,12 +62,6 @@ export function useMouseGestureBindings() {
                         executePedalAction(action, addLog);
                     }
                 }
-            } else {
-                // Si no hubo arrastre suficiente, lo tratamos como un Click simple
-                const action = gestureBindings.click;
-                if (action && action !== "none") {
-                    executePedalAction(action, addLog);
-                }
             }
 
             startPos.current = null;

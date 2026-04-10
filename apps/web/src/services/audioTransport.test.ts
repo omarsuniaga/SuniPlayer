@@ -11,8 +11,11 @@ describe("audioTransport", () => {
         const nextIndex = resolveNextTrackIndex({
             ci: 0,
             pQueue: [
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { id: "a", title: "A" } as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { id: "b", title: "B" } as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { id: "c", title: "C" } as any,
             ],
             stackOrder: ["c"],
@@ -25,7 +28,9 @@ describe("audioTransport", () => {
         expect(resolveNextTrackIndex({
             ci: 0,
             pQueue: [
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { id: "a", title: "A" } as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { id: "b", title: "B" } as any,
             ],
             stackOrder: [],
@@ -34,7 +39,9 @@ describe("audioTransport", () => {
         expect(resolveNextTrackIndex({
             ci: 0,
             pQueue: [
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { id: "a", title: "A" } as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { id: "b", title: "B" } as any,
             ],
             stackOrder: ["missing"],
@@ -45,7 +52,9 @@ describe("audioTransport", () => {
         const nextIndex = resolveNextTrackIndex({
             ci: 1,
             pQueue: [
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { id: "a", title: "A" } as any,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 { id: "b", title: "B" } as any,
             ],
             stackOrder: [],

@@ -12,185 +12,51 @@ SuniPlayer now uses a **monorepo architecture**.
 - `apps/native` contains the Expo / React Native app for iOS and Android.
 - `packages/core` contains shared domain logic, Zustand stores, data contracts, and reusable services.
 
-The previous single-app root structure is no longer the primary implementation path.
+---
+
+## 2. Layer responsibilities
+
+### 2.1 `packages/core`
+Owns shared domain logic, including the new **SyncEnsemble** engine.
+- `network/`: NTP Clock Sync, Session Orchestration, P2P Interfaces.
+- `store/`: Centralized state management (Zustand).
+- `platform/interfaces/`: Contracts for Audio, Storage, and File Access.
+
+### 2.2 `apps/web`
+Implements web-specific adapters:
+- `BrowserAudioEngine`: SoundTouchJS integration.
+- `FirestoreTransport`: Firebase Signaling + simple-peer WebRTC.
 
 ---
 
-## 2. High-level layout
+## 3. Capa de Red y Sincronía (SyncEnsemble)
 
-```text
-apps/
-  web/
-    src/
-      app/
-      components/
-      features/
-      pages/
-      platform/
-      services/
-      store/
-  native/
-    app/
-    src/
-      components/
-      platform/
-      screens/
+Para la colaboración en tiempo real, implementamos una arquitectura **P2P Híbrida** (Signaling via Firestore + Data via WebRTC):
 
-packages/
-  core/
-    src/
-      data/
-      platform/interfaces/
-      services/
-      store/
-      utils/
-```
+*   **ISyncClockService**: Algoritmo NTP adaptado. Calcula el offset temporal entre dispositivos con filtros de Mediana y EMA (Exponential Moving Average) para lograr una precisión de ≤5ms.
+*   **IP2PTransport**: Abstracción de bajo nivel. Usa `FirestoreTransport` para señalización serverless y `simple-peer` para canales de datos directos.
+*   **SessionManager**: Orquestador de la presencia. Maneja creación de salas, unión de miembros y rastreo de conectividad (mecanismo de nombres legendarios como Hendrix/Charly).
+*   **SyncEnsembleOrchestrator**: El "Cerebro". Intercepta el transporte de audio para coordinar el `playAt` global, el conteo regresivo de 5s y la corrección activa de *drift* (±0.1%).
+*   **YjsStore**: Motor de CRDT para sincronizar anotaciones y estado compartido sin conflictos.
 
 ---
 
-## 3. Layer responsibilities
+## 4. State architecture
 
-### 3.1 `packages/core`
-
-Owns:
-
-- shared `Track` and domain types
-- builder/player/history/library/settings stores
-- cross-domain actions
-- set-building logic
-- platform interfaces such as storage, file access, and audio engine contracts
-
-This package should remain UI-agnostic and platform-agnostic as much as practical.
-
-### 3.2 `apps/web`
-
-Owns:
-
-- React/Vite UI and PWA runtime
-- browser-specific platform adapters
-- web audio behavior and PWA recovery features
-- web-only UX, tests, and integration points
-
-### 3.3 `apps/native`
-
-Owns:
-
-- Expo Router navigation and React Native screens
-- mobile platform adapters
-- SQLite and native file access implementation
-- native audio engine integration
-- iOS/Android-specific behavior and constraints
+El estado es persistente y reactivo:
+- **usePlayerStore**: Ahora persiste `sessionId`, `isLeader` y `userId` para permitir re-conexiones automáticas tras un refresco de página.
+- **Countdown State**: Nuevo estado para coordinar el pre-roll de 5 segundos en toda la banda.
 
 ---
 
-## 4. Platform adapter model
+## 5. Audio architecture (High Precision)
 
-The project is moving toward explicit platform boundaries.
-
-### Shared contracts
-
-- `IAudioEngine`
-- `IFileAccess`
-- `IStorage`
-
-### Web implementations
-
-Live under `apps/web/src/platform/browser/`.
-
-### Native implementations
-
-Live under `apps/native/src/platform/`.
-
-This is the key mechanism that allows the same product logic to target browser and mobile with different runtime capabilities.
+Evolucionamos el contrato `IAudioEngine` para soportar:
+- `playAt(targetTimeMs, positionMs)`: Permite programar arranques sincronizados a futuro.
+- `setPlaybackRate(rate)`: Ajuste fino para corrección de drift sin artefactos audibles.
 
 ---
 
-## 5. State architecture
+## 6. Decision summary
 
-The state model remains Zustand-based, but now it is intentionally shared through `@suniplayer/core`.
-
-Core stores include:
-
-- `useBuilderStore`
-- `usePlayerStore`
-- `useSettingsStore`
-- `useHistoryStore`
-- `useLibraryStore`
-- `useProjectStore` as compatibility/composition layer
-
-Important rule:
-
-- platform-specific side effects must stay in the app layer
-- domain state shape and cross-domain actions should stay in `packages/core`
-
----
-
-## 6. Audio architecture
-
-### Web
-
-- browser audio engine
-- waveform analysis
-- PWA recovery and simulation fallback
-- current transposition behavior is web-constrained and not equivalent to high-end native DSP
-
-### Native
-
-- Expo / native audio engine path
-- Track Player based integration already exists as a platform layer
-- intended to become the preferred route for reliable show playback on iPad/iPhone/Android
-
----
-
-## 7. Persistence architecture
-
-### Web
-
-- `localStorage` for lightweight state
-- `IndexedDB` for stronger session recovery and heavier browser persistence
-
-### Native
-
-- AsyncStorage for store persistence
-- SQLite for stronger local data storage
-
-This means persistence strategy is now explicitly platform-dependent, while the data contracts remain shared.
-
----
-
-## 8. Current strengths
-
-- correct monorepo split by delivery surface and shared core
-- real native app scaffolding already present
-- shared store contracts already extracted to `packages/core`
-- platform adapter direction is sound
-
-## 9. Current weaknesses
-
-- documentation still needs full convergence around the monorepo reality
-- some legacy/transitional files still exist outside the main app paths
-- not all functionality is guaranteed feature-parity between web and native yet
-- validation is stronger on web than on native runtime behavior
-
----
-
-## 10. Near-term architecture priorities
-
-1. finish documentation convergence around `apps/` + `packages/`
-2. reduce leftover ambiguity from root-level legacy structure
-3. continue pushing domain logic into `packages/core`
-4. close critical parity gaps between `apps/web` and `apps/native`
-5. harden native reliability for real iPad/phone usage
-
----
-
-## 11. Decision summary
-
-SuniPlayer is no longer architecturally “web-first with a future mobile idea”.
-
-It is now:
-
-- a shared-core product
-- with a real web app
-- and a real native app
-- in an active migration toward cleaner platform separation
+SuniPlayer es ahora una herramienta de **colaboración profesional**. La arquitectura soporta sincronía de alta precisión (<10ms) y persistencia de sesión, preparada para ser desplegada en entornos Serverless (Netlify + Firebase).

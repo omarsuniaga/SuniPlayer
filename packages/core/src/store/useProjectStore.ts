@@ -119,6 +119,7 @@ export interface ProjectState {
     // Library
     customTracks: Track[];
     addCustomTrack: (track: Track) => void;
+    addMultipleToRepertoire: (tracks: Track[]) => void;
     removeCustomTrack: (id: string) => void;
     clearCustomTracks: () => void;
     availableTags: string[];
@@ -203,7 +204,10 @@ export function updateTrackMetadata(trackId: string, updates: Partial<Track>) {
 /** Generate a set using current builder config + settings filters */
 export function doGen() {
     const { targetMin, curve, venue } = useBuilderStore.getState();
-    const { bpmMin, bpmMax } = useSettingsStore.getState();
+    const { 
+        bpmMin, bpmMax, 
+        harmonicMixing, maxBpmJump, energyContinuity 
+    } = useSettingsStore.getState();
     const { repertoire } = useLibraryStore.getState();
     const tSec = targetMin * 60;
     
@@ -213,8 +217,11 @@ export function doGen() {
         return;
     }
 
-    // Usar el Repertorio en lugar del catálogo estático TRACKS
-    const rawSet = buildSet(repertoire, tSec, { curve, venue, bpmMin, bpmMax });
+    // Usar el Repertorio con todas las reglas de inteligencia DJ
+    const rawSet = buildSet(repertoire, tSec, { 
+        curve, venue, bpmMin, bpmMax,
+        harmonicMixing, maxBpmJump, energyContinuity
+    });
     
     useBuilderStore.setState({
         genSet: applyOverrides(rawSet),
@@ -395,6 +402,7 @@ export function useProjectStore<T = ProjectState>(
         // Library
         customTracks: library.customTracks,
         addCustomTrack: library.addCustomTrack,
+        addMultipleToRepertoire: library.addMultipleToRepertoire,
         removeCustomTrack: library.removeCustomTrack,
         clearCustomTracks: library.clearCustomTracks,
         availableTags: library.availableTags,

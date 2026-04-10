@@ -1,3 +1,7 @@
+---
+name: developer
+description: "Execution skill for implementing changes in the active SuniPlayer codebase."
+---
 # Skill: Developer
 Description: Execution skill for implementing changes in the active SuniPlayer codebase.
 

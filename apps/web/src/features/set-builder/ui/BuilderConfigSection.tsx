@@ -1,5 +1,4 @@
 import React from "react";
-
 import { CURVES, VENUES } from "@suniplayer/core";
 import { THEME } from "../../../data/theme";
 import { EnergyCurveChart } from "../../../components/common/EnergyCurveChart";
@@ -16,340 +15,78 @@ interface BuilderConfigSectionProps {
     onVenueChange: (venue: string) => void;
     onCurveChange: (curve: string) => void;
     onGenerate: () => void;
-    // Show context props
-    currentShow?: Show | null;
     genSetLength?: number;
-    onNewShow?: () => void;
-    onAddSet?: () => void;
 }
 
 export const BuilderConfigSection: React.FC<BuilderConfigSectionProps> = ({
-    targetMin,
-    venue,
-    curve,
-    onTargetMinChange,
-    onVenueChange,
-    onCurveChange,
-    onGenerate,
-    currentShow,
-    genSetLength = 0,
-    onNewShow,
-    onAddSet,
+    targetMin, venue, curve, onTargetMinChange, onVenueChange, onCurveChange, onGenerate, genSetLength = 0
 }) => {
-    const { durationPresets, addDurationPreset, removeDurationPreset } = useSettingsStore();
-    const customTracks = useLibraryStore(s => s.customTracks);
-    
-    // Calculate total library capacity in minutes
-    const totalLibMs = customTracks.reduce((sum: number, t: Track) => sum + t.duration_ms, 0);
-    const totalLibMin = Math.floor(totalLibMs / 60000);
-
-    const [isAdding, setIsAdding] = React.useState(false);
-    const [customVal, setCustomVal] = React.useState("");
-
-    const handleAdd = () => {
-        const val = parseInt(customVal);
-        if (!isNaN(val) && val > 0) {
-            addDurationPreset(val);
-            onTargetMinChange(val);
-            setCustomVal("");
-            setIsAdding(false);
-        }
-    };
-
-    // Determine which action button to render
-    const hasShow = !!currentShow;
-    const hasGeneratedSet = genSetLength > 0;
-    const activeSetLabel = currentShow ? currentShow.sets[currentShow.sets.length - 1].label : "Set";
-    const nextSetNum = currentShow ? currentShow.sets.length + 1 : 2;
+    const { 
+        durationPresets, addDurationPreset, harmonicMixing, setHarmonicMixing,
+        energyContinuity, setEnergyContinuity, bpmMin, setBpmMin, bpmMax, setBpmMax,
+        djProfiles, saveDJProfile, loadDJProfile, deleteDJProfile
+    } = useSettingsStore();
+    const repertoire = useLibraryStore(s => s.repertoire);
+    const [showAdvanced, setShowAdvanced] = React.useState(false);
+    const [newProfileName, setNewProfileName] = React.useState("");
+    const [isSavingProfile, setIsSavingProfile] = React.useState(false);
 
     return (
-        <>
-            <section>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Set Configuration</h2>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: THEME.colors.text.muted }}>
-                        LIB CAPACITY: <span style={{ color: totalLibMin < targetMin ? THEME.colors.status.warning : THEME.colors.brand.cyan }}>{totalLibMin} min</span>
-                    </span>
-                </div>
+        <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <style>{`
+                .config-row { display: flex; alignItems: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                .config-label { font-size: 8px; font-weight: 900; color: #666; text-transform: uppercase; width: 40px; flex-shrink: 0; }
+                .btn-pill { padding: 4px 8px; border-radius: 4px; border: 1px solid #333; background: #111; color: #aaa; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+                .btn-pill.active { border-color: ${THEME.colors.brand.cyan}; color: ${THEME.colors.brand.cyan}; background: rgba(6,182,212,0.1); }
+                @media (max-width: 640px) {
+                    .config-row { gap: 4px; }
+                    .btn-pill { padding: 8px 12px; font-size: 11px; }
+                }
+            `}</style>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    
-                    {/* ── Row 1: Duration ── */}
-                    <div style={{ 
-                        display: "flex", 
-                        alignItems: "center", 
-                        gap: 16,
-                        padding: "4px 0",
-                        borderBottom: `1px solid ${THEME.colors.border}20`
-                    }}>
-                        <label style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 800, width: 70, flexShrink: 0 }}>Duration</label>
-                        <div style={{ 
-                            display: "flex", 
-                            gap: 6, 
-                            overflowX: "auto", 
-                            scrollbarWidth: "none", 
-                            msOverflowStyle: "none",
-                            paddingBottom: 2
-                        }} className="no-scrollbar">
-                            {durationPresets.map((minutes) => {
-                                const isInsufficient = minutes > totalLibMin;
-                                return (
-                                <button
-                                    key={minutes}
-                                    onClick={() => onTargetMinChange(minutes)}
-                                    style={{
-                                        padding: "6px 12px",
-                                        borderRadius: THEME.radius.sm,
-                                        cursor: "pointer",
-                                        border: `1px solid ${targetMin === minutes ? THEME.colors.brand.cyan : (isInsufficient ? THEME.colors.border + "40" : THEME.colors.border)}`,
-                                        backgroundColor: targetMin === minutes ? "rgba(6,182,212,0.1)" : THEME.colors.surface,
-                                        color: targetMin === minutes ? THEME.colors.brand.cyan : (isInsufficient ? THEME.colors.text.muted : THEME.colors.text.secondary),
-                                        fontWeight: 700,
-                                        fontSize: 11,
-                                        fontFamily: THEME.fonts.mono,
-                                        transition: "all 0.2s",
-                                        whiteSpace: "nowrap"
-                                    }}
-                                >
-                                    {minutes}m
-                                </button>
-                            )})}
-                            
-                            {isAdding ? (
-                                <input 
-                                    type="number" 
-                                    value={customVal}
-                                    autoFocus
-                                    onChange={e => setCustomVal(e.target.value)}
-                                    onBlur={handleAdd}
-                                    onKeyDown={e => e.key === "Enter" && handleAdd()}
-                                    style={{ width: 50, padding: "4px 8px", borderRadius: THEME.radius.sm, border: `1px solid ${THEME.colors.brand.cyan}`, backgroundColor: THEME.colors.surface, color: "white", textAlign: "center", fontSize: 11 }}
-                                />
-                            ) : (
-                                <button 
-                                    onClick={() => setIsAdding(true)}
-                                    style={{ padding: "6px 12px", borderRadius: THEME.radius.sm, cursor: "pointer", border: `1px dashed ${THEME.colors.border}`, backgroundColor: "transparent", color: THEME.colors.text.muted, fontSize: 11, fontWeight: 600 }}
-                                >
-                                    +
-                                </button>
-                            )}
+            <div className="config-row">
+                <label className="config-label">Tiempo</label>
+                <div style={{ display: "flex", gap: 4, overflowX: "auto" }} className="no-scrollbar">
+                    {durationPresets.map(m => (
+                        <button key={m} onClick={() => onTargetMinChange(m)} className={`btn-pill ${targetMin === m ? "active" : ""}`}>{m}m</button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="config-row">
+                <label className="config-label">Energía</label>
+                <div style={{ display: "flex", gap: 4, overflowX: "auto" }} className="no-scrollbar">
+                    {CURVES.map(c => (
+                        <button key={c.id} onClick={() => onCurveChange(c.id)} className={`btn-pill ${curve === c.id ? "active" : ""}`}>{c.label}</button>
+                    ))}
+                </div>
+            </div>
+
+            <div style={{ marginTop: 4 }}>
+                <button onClick={() => setShowAdvanced(!showAdvanced)} style={{ background: "none", border: "none", color: THEME.colors.brand.violet, fontSize: 9, fontWeight: 900, textTransform: "uppercase", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                    {showAdvanced ? "▼ Ocultar Estrategia" : "▶ Estrategia DJ"}
+                </button>
+
+                {showAdvanced && (
+                    <div style={{ marginTop: 8, padding: 8, background: "rgba(139, 92, 246, 0.05)", borderRadius: 4, border: "1px solid rgba(139, 92, 246, 0.2)", display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: 10, fontWeight: 700 }}>Mezcla Armónica</span>
+                            <button onClick={() => setHarmonicMixing(!harmonicMixing)} style={{ width: 32, height: 16, borderRadius: 8, border: "none", background: harmonicMixing ? THEME.colors.brand.violet : "#333", position: "relative" }}>
+                                <span style={{ position: "absolute", top: 2, left: harmonicMixing ? 18 : 2, width: 12, height: 12, borderRadius: "50%", background: "white" }} />
+                            </button>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: "#888", width: 40 }}>BPM</span>
+                            <input type="range" min={60} max={180} value={bpmMax} onChange={e => setBpmMax(Number(e.target.value))} style={{ flex: 1, accentColor: THEME.colors.brand.violet }} />
+                            <span style={{ fontSize: 9, fontFamily: THEME.fonts.mono }}>{bpmMax}</span>
                         </div>
                     </div>
+                )}
+            </div>
 
-                    {/* ── Row 2: Venue ── */}
-                    <div style={{ 
-                        display: "flex", 
-                        alignItems: "center", 
-                        gap: 16,
-                        padding: "4px 0",
-                        borderBottom: `1px solid ${THEME.colors.border}20`
-                    }}>
-                        <label style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 800, width: 70, flexShrink: 0 }}>Venue</label>
-                        <div style={{ 
-                            display: "flex", 
-                            gap: 6, 
-                            overflowX: "auto", 
-                            scrollbarWidth: "none", 
-                            msOverflowStyle: "none"
-                        }} className="no-scrollbar">
-                            {VENUES.map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => onVenueChange(item.id)}
-                                    style={{
-                                        padding: "6px 14px",
-                                        borderRadius: THEME.radius.sm,
-                                        cursor: "pointer",
-                                        border: `1px solid ${venue === item.id ? item.color + "80" : THEME.colors.border}`,
-                                        backgroundColor: venue === item.id ? item.color + "15" : THEME.colors.surface,
-                                        color: venue === item.id ? item.color : THEME.colors.text.secondary,
-                                        fontWeight: 600,
-                                        fontSize: 11,
-                                        transition: "all 0.2s",
-                                        whiteSpace: "nowrap"
-                                    }}
-                                >
-                                    {item.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* ── Row 3: Energy Curve ── */}
-                    <div style={{ 
-                        display: "flex", 
-                        alignItems: "center", 
-                        gap: 16,
-                        padding: "8px 0"
-                    }}>
-                        <label style={{ fontSize: 9, color: THEME.colors.text.muted, textTransform: "uppercase", letterSpacing: 1, fontWeight: 800, width: 70, flexShrink: 0 }}>Energy</label>
-                        <div style={{ 
-                            display: "flex", 
-                            gap: 8, 
-                            overflowX: "auto", 
-                            scrollbarWidth: "none", 
-                            msOverflowStyle: "none",
-                            paddingBottom: 4
-                        }} className="no-scrollbar">
-                            {CURVES.map((item) => {
-                                const isActive = curve === item.id;
-                                return (
-                                <button
-                                    key={item.id}
-                                    onClick={() => onCurveChange(item.id)}
-                                    style={{
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        alignItems: "center",
-                                        gap: 6,
-                                        padding: "10px 16px",
-                                        borderRadius: THEME.radius.md,
-                                        cursor: "pointer",
-                                        border: `1px solid ${isActive ? THEME.colors.brand.violet + "80" : THEME.colors.border}`,
-                                        backgroundColor: isActive ? THEME.colors.brand.violet + "10" : THEME.colors.surface,
-                                        color: isActive ? THEME.colors.brand.violet : THEME.colors.text.secondary,
-                                        transition: "all 0.2s",
-                                        minWidth: 110,
-                                        flexShrink: 0
-                                    }}
-                                >
-                                    <div style={{ width: "100%", height: 24, opacity: isActive ? 1 : 0.6 }}>
-                                        <EnergyCurveChart
-                                            type={item.id as CurveType}
-                                            size="mini"
-                                            active={isActive}
-                                        />
-                                    </div>
-                                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.03em" }}>{item.label}</span>
-                                </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-                
-                <style>{`
-                    .no-scrollbar::-webkit-scrollbar { display: none; }
-                    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-                `}</style>
-            </section>
-
-            {/* ── Action Button ── */}
-            {!hasShow ? (
-                // No active show — offer "New Show"
-                <div
-                    style={{
-                        position: "relative",
-                        padding: "2px",
-                        background: THEME.gradients.brand,
-                        borderRadius: THEME.radius.xl,
-                        boxShadow: `0 8px 32px ${THEME.colors.brand.cyan}20`,
-                    }}
-                >
-                    <button
-                        onClick={onNewShow}
-                        style={{
-                            width: "100%",
-                            padding: "18px",
-                            borderRadius: "10px",
-                            border: "none",
-                            cursor: "pointer",
-                            backgroundColor: THEME.colors.bg,
-                            color: "white",
-                            fontSize: 16,
-                            fontWeight: 700,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 12,
-                            transition: "background 0.2s",
-                        }}
-                        onMouseEnter={(event) => { event.currentTarget.style.backgroundColor = "transparent"; }}
-                        onMouseLeave={(event) => { event.currentTarget.style.backgroundColor = THEME.colors.bg; }}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M12 5v14M5 12h14" />
-                        </svg>
-                        New Show
-                    </button>
-                </div>
-            ) : !hasGeneratedSet ? (
-                // Show exists, set is empty — Generate the active set
-                <div
-                    style={{
-                        position: "relative",
-                        padding: "2px",
-                        background: THEME.gradients.brand,
-                        borderRadius: THEME.radius.xl,
-                        boxShadow: `0 8px 32px ${THEME.colors.brand.cyan}20`,
-                    }}
-                >
-                    <button
-                        onClick={onGenerate}
-                        style={{
-                            width: "100%",
-                            padding: "18px",
-                            borderRadius: "10px",
-                            border: "none",
-                            cursor: "pointer",
-                            backgroundColor: THEME.colors.bg,
-                            color: "white",
-                            fontSize: 16,
-                            fontWeight: 700,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 12,
-                            transition: "background 0.2s",
-                        }}
-                        onMouseEnter={(event) => { event.currentTarget.style.backgroundColor = "transparent"; }}
-                        onMouseLeave={(event) => { event.currentTarget.style.backgroundColor = THEME.colors.bg; }}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                        </svg>
-                        Generate {activeSetLabel}
-                    </button>
-                </div>
-            ) : (
-                // Show exists and set has tracks — offer "+ Add Set N"
-                <div
-                    style={{
-                        position: "relative",
-                        padding: "2px",
-                        background: `linear-gradient(135deg, ${THEME.colors.brand.violet}, ${THEME.colors.brand.cyan})`,
-                        borderRadius: THEME.radius.xl,
-                        boxShadow: `0 8px 32px ${THEME.colors.brand.violet}30`,
-                    }}
-                >
-                    <button
-                        onClick={onAddSet}
-                        style={{
-                            width: "100%",
-                            padding: "18px",
-                            borderRadius: "10px",
-                            border: "none",
-                            cursor: "pointer",
-                            backgroundColor: THEME.colors.bg,
-                            color: "white",
-                            fontSize: 16,
-                            fontWeight: 700,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 12,
-                            transition: "background 0.2s",
-                        }}
-                        onMouseEnter={(event) => { event.currentTarget.style.backgroundColor = "transparent"; }}
-                        onMouseLeave={(event) => { event.currentTarget.style.backgroundColor = THEME.colors.bg; }}
-                    >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                            <path d="M12 5v14M5 12h14" />
-                        </svg>
-                        + Add Set {nextSetNum}
-                    </button>
-                </div>
-            )}
-        </>
+            <button onClick={onGenerate} style={{ width: "100%", padding: "10px", borderRadius: 4, border: "none", background: THEME.gradients.brand, color: "white", fontSize: 11, fontWeight: 900, marginTop: 4 }}>
+                GENERAR SET
+            </button>
+        </section>
     );
 };

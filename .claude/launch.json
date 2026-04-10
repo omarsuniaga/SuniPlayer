@@ -6,7 +6,8 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["C:\\Users\\omare\\.claude\\projects\\SuniPlayer\\node_modules\\vite\\bin\\vite.js"],
       "cwd": "apps/web",
-      "port": 5173
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "Native (Expo Metro)",

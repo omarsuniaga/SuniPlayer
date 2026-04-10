@@ -1,7 +1,7 @@
 // src/platform/index.ts
 
 import { BrowserAudioEngine } from './browser/BrowserAudioEngine';
-import { IDBStorage } from './browser/IDBStorage';
+import { IDBStorage, dbStorage } from './browser/IDBStorage'; // Importamos la instancia única
 import { BlobFileAccess } from './browser/BlobFileAccess';
 
 export type { IAudioEngine, AudioLoadOptions } from './interfaces/IAudioEngine';
@@ -10,16 +10,13 @@ export type { IFileAccess, ImportedFile, FileSource } from './interfaces/IFileAc
 
 // Instancias únicas (Singletons)
 const _audioEngine = new BrowserAudioEngine();
-const _storage = new IDBStorage();
 const _fileAccess = new BlobFileAccess();
 
 // Exportamos las instancias directamente. 
-// Al ser objetos reales, no perdemos el contexto 'this'.
 export const audioEngine = _audioEngine;
-export const storage = _storage;
+export const storage = dbStorage; // Usamos la instancia que viene de IDBStorage
 export const fileAccess = _fileAccess;
 
-// Mantener los getters por compatibilidad si algún componente los usa
 export function getAudioEngine() { return _audioEngine; }
-export function getStorage() { return _storage; }
+export function getStorage() { return dbStorage; }
 export function getFileAccess() { return _fileAccess; }

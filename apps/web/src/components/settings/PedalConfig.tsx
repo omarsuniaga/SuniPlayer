@@ -19,7 +19,6 @@ export const PedalConfig: React.FC = () => {
     const setLearningAction = useSettingsStore((s) => s.setLearningAction);
     const clearPedalBindings = useSettingsStore((s) => s.clearPedalBindings);
     
-    const lastEvent = useDebugStore(s => s.lastEvent);
     const isFocused = useDebugStore(s => s.isFocused);
     const addLog = useDebugStore(s => s.addLog);
 
@@ -50,68 +49,27 @@ export const PedalConfig: React.FC = () => {
         const el = document.getElementById("suni-pedal-focus") as HTMLInputElement;
         if (el) {
             el.focus();
-            const btn = document.getElementById("btn-activate-ipad");
-            if (btn) {
-                btn.style.backgroundColor = THEME.colors.brand.cyan;
-                setTimeout(() => { if (btn) btn.style.backgroundColor = "transparent"; }, 500);
-            }
         }
     };
 
     return (
         <div style={{ position: "relative", zIndex: 10 }}>
+            {/* Input invisible para iPad (Requerido para capturar teclado) */}
+            <input 
+                id="suni-pedal-focus"
+                type="text"
+                style={{ position: "absolute", opacity: 0, pointerEvents: "none", zIndex: -1 }}
+                readOnly
+            />
+
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "20px 0 8px" }}>
-                <span style={{ fontSize: 18 }}>🦵</span>
+                <span style={{ fontSize: 18 }}>📱</span>
                 <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.colors.text.muted, flex: 1 }}>
-                    Pedalera Bluetooth
+                    Bluetooth
                 </span>
                 {activityFlash && (
                     <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: THEME.colors.brand.cyan, boxShadow: `0 0 6px ${THEME.colors.brand.cyan}`, display: "inline-block" }} />
                 )}
-            </div>
-            
-            <div style={{ backgroundColor: "rgba(0,0,0,0.3)", borderRadius: THEME.radius.md, padding: "12px", border: `1px solid ${THEME.colors.border}`, marginBottom: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.brand.violet }}>DIAGNÓSTICO IPAD</span>
-                        <div style={{ 
-                            fontSize: 9, padding: "2px 6px", borderRadius: 4, 
-                            backgroundColor: isFocused ? `${THEME.colors.status.success}20` : `${THEME.colors.status.error}20`,
-                            color: isFocused ? THEME.colors.status.success : THEME.colors.status.error,
-                            border: `1px solid ${isFocused ? THEME.colors.status.success : THEME.colors.status.error}40`,
-                            fontWeight: 900
-                        }}>
-                            {isFocused ? "LISTO" : "DESCONECTADO"}
-                        </div>
-                    </div>
-                    <span style={{ fontSize: 10, color: THEME.colors.text.muted }}>Señal: <strong style={{ color: THEME.colors.brand.cyan }}>{lastEvent}</strong></span>
-                </div>
-
-                {!isFocused && (
-                    <button 
-                        id="btn-activate-ipad"
-                        onClick={() => forceiPadFocus("ACTIVACIÓN")}
-                        style={{
-                            width: "100%", padding: "14px", borderRadius: THEME.radius.sm,
-                            border: `2px solid ${THEME.colors.brand.cyan}`,
-                            background: "rgba(0,255,255,0.1)", color: "white",
-                            fontSize: 12, fontWeight: 900, cursor: "pointer", marginBottom: 12,
-                            transition: "all 0.2s"
-                        }}
-                    >
-                        PULSA AQUÍ PARA CONECTAR PEDALERA
-                    </button>
-                )}
-
-                <input 
-                    type="text" 
-                    placeholder="Prueba tu pedal aquí..."
-                    style={{
-                        width: "100%", background: "rgba(255,255,255,0.1)", border: "none",
-                        borderRadius: 4, padding: "10px", fontSize: 14, color: "white",
-                        outline: "none", borderBottom: `2px solid ${THEME.colors.brand.cyan}`
-                    }}
-                />
             </div>
 
             {/* Listening banner */}
@@ -187,9 +145,7 @@ const GestureConfig: React.FC = () => {
     const ringControlEnabled = useSettingsStore(s => s.ringControlEnabled);
     const setRingControlEnabled = useSettingsStore(s => s.setRingControlEnabled);
 
-    const directions: { dir: 'up' | 'down' | 'left' | 'right' | 'click' | 'dblclick', label: string, icon: string }[] = [
-        { dir: 'click',    label: 'Botón Anillo (Click)', icon: '🖱️' },
-        { dir: 'dblclick', label: 'Doble Click Anillo',  icon: '🖱️×2' },
+    const directions: { dir: 'up' | 'down' | 'left' | 'right', label: string, icon: string }[] = [
         { dir: 'up',       label: 'Presionar y Arrastrar Arriba', icon: '↑' },
         { dir: 'down',     label: 'Presionar y Arrastrar Abajo',  icon: '↓' },
         { dir: 'left',     label: 'Presionar y Arrastrar Izq.',   icon: '←' },

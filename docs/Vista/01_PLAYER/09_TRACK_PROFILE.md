@@ -1,35 +1,32 @@
-# COMPONENTE: TRACK PROFILE (Perfil del Track)
+# COMPONENTE: FICHA TÉCNICA (Track Profile)
 
 ## Propósito
-El **Track Profile** es el centro de mando individual para cada canción. Su misión es permitir al músico personalizar la metadata, el comportamiento técnico y los recursos adicionales de un track específico, asegurando que cada tema esté "curado" para el show.
+Modal soberano (`zIndex: 9999`) para el ajuste fino de cada obra musical. Es el puente entre el archivo crudo y la interpretación en el escenario.
 
-## Elementos y Funcionalidades (Vista Detallada)
+## 🛠️ Pestañas Técnicas
 
-### 1. Metadata Musical (El ADN del Track)
-- **Título y Artista**: Permite corregir o refinar los nombres que vienen de los archivos (ID3).
-- **BPM (Beats Per Minute)**: Ajuste manual del tempo. Vital para que las transiciones automáticas y efectos rítmicos funcionen con precisión.
-- **Key (Tonalidad)**: Especificación de la nota raíz. Ayuda al músico a elegir qué tema sigue basándose en la armonía.
+### 1. Motor de Audio (Core)
+- **Visualizador de Recorte (Trimmer)**: Ajuste de `startTime` y `endTime` mediante visualización de onda (Waveform) con máscaras de exclusión.
+- **Normalización**: Slider de ganancia (±6dB) para equilibrar el volumen relativo del track.
+- **Pitch & Tempo**: 
+    - Cambio de Tono: Ajuste cromático (±12 semitonos). Comparativa de Tono Original vs Objetivo.
+    - Cambio de Velocidad: Factor de tiempo (0.8x - 1.2x) sin afectar el tono (WSOLA).
+- **Test Audio**: Botón de pre-escucha inmediata de los ajustes.
 
-### 2. Configuración Técnica (Performance)
-- **Recorte (Trim Start/End)**: Define exactamente cuándo empieza y termina el audio. Permite saltar intros largas o silencios al final sin editar el archivo original.
-- **Compensación de Ganancia (Gain Offset)**: Ajuste de volumen individual para que todos los temas del setlist suenen al mismo nivel percibido.
-- **Marcadores (Cue Points)**: Puntos de referencia visuales en la waveform para indicar secciones (Intro, Solo, Coro).
+### 2. Detalles (Metadata)
+- Edición de Título, Artista y Autor.
+- Gestión de **Mood (Energía)** para el algoritmo del Builder.
+- Sistema de Tags dinámicos.
 
-### 3. Organización y Notas
-- **Etiquetas (Tags)**: Clasificación por género, energía o instrumentos (ej: "Jazz", "High Energy", "Con Piano").
-- **Notas del Track**: Un campo de texto libre donde el músico puede anotar recordatorios críticos (ej: "Empezar con fade in", "Ojo con el solo de saxo").
+### 3. Notas de Escenario
+- Campo de texto enriquecido para recordatorios críticos que se muestran durante el show (ej: "Intro de 4 compases").
 
-### 4. Recursos Adicionales
-- **Partituras / Letras (Sheet Music)**: Permite asociar archivos PDF o imágenes que se abrirán automáticamente cuando el track esté en el reproductor.
+### 4. Partituras (Papel)
+- Gestión de archivos adjuntos (PDF/Imagen) vinculados al track.
 
-## Comportamiento del Componente (UX)
-- **Persistencia Reactiva**: Cada cambio guardado se propaga instantáneamente a todas las instancias del track (en la Biblioteca, en el Setlist actual y en el Historial).
-- **Validación en Tiempo Real**: Asegura que el tiempo de "Fin" no sea menor al de "Inicio" y que los BPM sean valores lógicos.
-- **Cierre de Seguridad**: Pide confirmación si hay cambios sin guardar antes de cerrar el modal.
-
-## Conexiones (Inputs/Outputs)
-- **Recibe (Input)**: El objeto `Track` completo desde el Store.
-- **Acciones (Output)**: Llama a funciones globales como `updateTrackMetadata` y `setTrackTrim` para persistir los cambios en el almacenamiento local (IndexedDB).
+## 🏗️ Diseño Atómico
+- **Alta Densidad**: Todo el control del motor de audio cabe en una sola pantalla sin necesidad de scroll.
+- **Visualización Pro**: Uso de contrastes entre valores detectados (gris) y ajustados (cian/brillante).
 
 ---
-*El Track Profile convierte un simple archivo de audio en una pieza de artillería para el escenario.*
+*El Track Profile convierte un archivo de audio en un instrumento configurable.*

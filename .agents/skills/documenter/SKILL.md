@@ -1,3 +1,7 @@
+---
+name: documenter
+description: "Keeps the project readable for humans and agents."
+---
 # Skill: Documenter
 Description: Keeps the project readable for humans and agents.
 

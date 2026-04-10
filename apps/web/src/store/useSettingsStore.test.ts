@@ -11,17 +11,21 @@ describe("useSettingsStore — pedal bindings", () => {
         resetStore();
     });
 
-    it("starts with empty bindings", () => {
+    it("starts with default bindings (next, prev, play_pause)", () => {
         const { pedalBindings } = useSettingsStore.getState();
-        expect(pedalBindings).toEqual({});
+        expect(pedalBindings).toEqual({
+            next: { key: "ArrowRight", label: "→" },
+            prev: { key: "ArrowLeft", label: "←" },
+            play_pause: { key: " ", label: "Espacio" },
+        });
     });
 
     it("setPedalBinding saves a binding for an action", () => {
         const { setPedalBinding } = useSettingsStore.getState();
-        setPedalBinding("next", { key: "ArrowRight", label: "→" });
+        setPedalBinding("vol_up", { key: "PageUp", label: "Pág↑" });
 
         const { pedalBindings } = useSettingsStore.getState();
-        expect(pedalBindings.next).toEqual({ key: "ArrowRight", label: "→" });
+        expect(pedalBindings.vol_up).toEqual({ key: "PageUp", label: "Pág↑" });
     });
 
     it("clearPedalBindings resets all bindings to {}", () => {
@@ -71,9 +75,9 @@ describe("useSettingsStore — curve panel visibility", () => {
         expect(useSettingsStore.getState().curveVisible).toBe(true);
     });
 
-    it("curveExpanded defaults to true", () => {
+    it("curveExpanded defaults to false", () => {
         const { curveExpanded } = useSettingsStore.getState();
-        expect(curveExpanded).toBe(true);
+        expect(curveExpanded).toBe(false);
     });
 
     it("setCurveExpanded toggles expansion", () => {

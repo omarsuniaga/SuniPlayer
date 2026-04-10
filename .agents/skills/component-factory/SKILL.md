@@ -1,3 +1,7 @@
+---
+name: component-factory
+description: "Guía de ingeniería para la creación de componentes, modales y conectores de datos en SuniPlayer. Su objetivo es evitar la saturación de archivos y maximizar la reutilización."
+---
 # Skill: Component Factory
 Description: Guía de ingeniería para la creación de componentes, modales y conectores de datos en SuniPlayer. Su objetivo es evitar la saturación de archivos y maximizar la reutilización.
 

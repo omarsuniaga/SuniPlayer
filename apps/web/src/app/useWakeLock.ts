@@ -5,23 +5,26 @@ import { useEffect, useRef, useCallback } from "react";
  * Robust implementation that handles visibility changes and initial user interaction.
  */
 export function useWakeLock() {
-    const wakeLockRef = useRef<any>(null);
+    const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
     const requestWakeLock = useCallback(async () => {
+        const nav = navigator as Navigator & { wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> } };
         // Only proceed if the API is supported and we don't already have a lock
-        if ("wakeLock" in navigator && !wakeLockRef.current) {
+        if (nav.wakeLock && !wakeLockRef.current) {
             try {
-                wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+                const lock = await nav.wakeLock.request("screen");
+                wakeLockRef.current = lock;
                 console.log("[WakeLock] 🛡️ Screen lock active and protected");
 
                 // If the lock is released (e.g. by the system), clear our ref
-                wakeLockRef.current.addEventListener("release", () => {
+                lock.addEventListener("release", () => {
                     console.log("[WakeLock] 🔓 Screen lock was released");
                     wakeLockRef.current = null;
                 });
-            } catch (err: any) {
+            } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
                 // This usually happens if the tab is not active or no user gesture yet
-                console.warn(`[WakeLock] ⚠️ Failed to acquire lock: ${err.message}`);
+                console.warn(`[WakeLock] ⚠️ Failed to acquire lock: ${message}`);
             }
         }
     }, []);

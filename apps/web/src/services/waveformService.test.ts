@@ -35,7 +35,9 @@ describe("waveformService", () => {
         vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
             ok: true,
             arrayBuffer: async () => new ArrayBuffer(8),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         vi.stubGlobal("AudioContext", MockAudioContext as any);
 
         const waveform = await getWaveformData("/audio/test.mp3", "track-1", 4);

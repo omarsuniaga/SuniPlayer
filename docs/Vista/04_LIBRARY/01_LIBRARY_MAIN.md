@@ -1,26 +1,28 @@
-# VISTA: LIBRARY (Catálogo y Gestión de Repertorio)
+# VISTA: BIBLIOTECA (Command Center)
 
 ## Propósito
-La **Library** es el almacén central de SuniPlayer. Su misión es permitir al músico gestionar su colección de audios (locales y en la nube), organizar su repertorio y preparar los tracks para ser enviados al **Setlist Queue**.
+La **Biblioteca** es el centro de mando para la ingesta y curaduría del catálogo. Su misión es permitir al músico gestionar su colección de audios y preparar el repertorio para el algoritmo de generación.
 
-## Elementos y Funcionalidades Principales
+## 🏗️ Interfaz Cockpit (v2.0)
+Diseñada para alta densidad de información y operación rápida:
+- **Layout Fijo**: Pantalla completa sin scroll externo (`100dvh`).
+- **Header Comprimido**: Buscador elástico y filtros rápidos (Todos/Local).
+- **Filas de 40px**: Visualización técnica de Título, Artista, **BPM** y **Key** en una sola línea.
+- **Zonas de Seguridad**: Desvanecimiento (fade) inferior para evitar colisiones con el mini-reproductor.
 
-### 1. Gestión de Catálogo Dual
-- **Tracks Locales**: Archivos importados por el usuario que residen en el almacenamiento del dispositivo (IndexedDB en web / SQLite en native).
-- **Tracks de Catálogo (Mocks/Cloud)**: Temas pre-cargados o remotos que sirven como base para la generación de sets.
+## 🛠️ Funcionalidades Pro
+1. **Modo Batch (Selección Masiva)**: 
+    - Selección mediante checkboxes laterales o "Seleccionar Todo".
+    - Barra de acciones cian para: Borrado masivo y Habilitación masiva para el Generador.
+2. **Flag de Algoritmo (Cerebro 🧠)**: 
+    - Permite incluir/excluir temas del **Repertorio Estratégico** con un solo clic. Solo temas con el cerebro activo son usados por el Builder.
+3. **Ingesta Inteligente**: 
+    - Importación híbrida: Audio a **OPFS** y Metadata a **IndexedDB**.
+    - Análisis automático de BPM, Key y Energía al importar.
 
-### 2. Acciones de Repertorio
-- **Quick Play**: Al hacer doble clic en un track, se limpia la cola actual y se inicia la reproducción inmediata de ese tema.
-- **Add to Queue**: Al tocar un track, se añade al final de la cola activa (`pQueue`), permitiendo construir un show de forma manual y rápida.
-- **Track Profiling**: Acceso directo al **Track Profile** para cada canción del catálogo.
-
-### 3. Herramientas de Organización (Toolbar)
-- **Buscador Dinámico**: Filtrado en tiempo real por título, artista o etiquetas.
-- **Batch Actions**: Funciones para "Borrar Todo" o "Sincronizar" la biblioteca local.
-
-## Comportamiento (UX)
-- **Virtualización de Lista**: Para bibliotecas de miles de temas, se usa scroll virtual para mantener la fluidez a 60fps.
-- **Estado de Disponibilidad**: Indica visualmente si un track está listo para sonar o si requiere descarga/sincronización.
+## 🎨 Estética y UX
+- **Colores**: Fondo negro puro (`#050508`), acentos en Cian (`#00FFFF`) para datos técnicos.
+- **Mobile-First**: Touch targets de 48px en dispositivos móviles con reubicación automática de botones.
 
 ---
-*La Library convierte una carpeta de archivos en un repertorio listo para el escenario.*
+*La Biblioteca es ahora una herramienta de curaduría de datos profesional.*

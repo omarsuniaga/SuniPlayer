@@ -23,10 +23,22 @@ export interface AudioLoadOptions {
  * Multiply semitones × 100 when setting pitch in AVAudioEngine adapters.
  */
 export interface IAudioEngine {
+    readonly isPlaying: boolean;
+    readonly durationMs: number;
+    readonly currentUrl: string | null;
+
     /** Load a track URL and prepare for playback. Resolves when ready. */
     load(url: string, options?: AudioLoadOptions): Promise<void>;
 
     play(): Promise<void>;
+
+    /** 
+     * Schedules playback to start at a specific absolute monotonic time.
+     * @param targetTimeMs The performance.now() timestamp when playback should start.
+     * @param positionMs The position in the audio file to start from.
+     */
+    playAt(targetTimeMs: number, positionMs: number): Promise<void>;
+
     pause(): void;
     seek(positionMs: number): void;
 
@@ -41,6 +53,12 @@ export interface IAudioEngine {
 
     /** Set tempo factor (0.8–1.2). Applies immediately even while playing. */
     setTempo(rate: number): void;
+
+    /** 
+     * Set internal playback rate adjustment (e.g. 1.001 or 0.999) 
+     * for synchronization correction. This is independent of the user-facing tempo.
+     */
+    setPlaybackRate(rate: number): void;
 
     setVolume(volume: number): void;
 

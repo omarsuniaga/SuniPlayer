@@ -2,6 +2,7 @@
 import React from "react";
 import { THEME } from "../../../data/theme.ts";
 import { useIsMobile } from "../../../utils/useMediaQuery";
+import { usePlayerStore } from "@suniplayer/core";
 
 interface Props {
     playing: boolean;
@@ -21,6 +22,7 @@ export const PlayerControls: React.FC<Props> = ({
     onPlayPause, onPrev, onNext, onVolumeChange,
 }) => {
     const isMobile = useIsMobile();
+    const countdown = usePlayerStore(s => s.countdown);
     const playSize = isMobile ? 64 : 80;
     const iconSize = isMobile ? 28 : 32;
 
@@ -43,7 +45,7 @@ export const PlayerControls: React.FC<Props> = ({
                         opacity: isLive ? 0.15 : ci > 0 ? 0.6 : 0.1,
                         transition: "opacity 0.2s",
                         position: "relative",
-                        padding: isMobile ? "12px" : "8px", // Larger hit area
+                        padding: isMobile ? "12px" : "8px", 
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center"
@@ -55,20 +57,26 @@ export const PlayerControls: React.FC<Props> = ({
                 {/* Play/Pause — always allowed */}
                 <button
                     onClick={onPlayPause}
+                    disabled={countdown !== null}
                     style={{
                         width: playSize, height: playSize,
                         borderRadius: "50%",
                         border: "none",
-                        cursor: "pointer",
-                        background: THEME.gradients.brand,
+                        cursor: countdown !== null ? "default" : "pointer",
+                        background: countdown !== null ? THEME.colors.brand.cyan : THEME.gradients.brand,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: playing ? `0 0 40px ${mCol}40` : "0 10px 30px rgba(0,0,0,0.5)",
-                        transition: "transform 0.2s, box-shadow 0.2s",
+                        boxShadow: countdown !== null ? `0 0 30px ${THEME.colors.brand.cyan}60` : playing ? `0 0 40px ${mCol}40` : "0 10px 30px rgba(0,0,0,0.5)",
+                        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                        transform: countdown !== null ? "scale(1.15)" : "scale(1)"
                     }}
-                    onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
-                    onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                    onMouseEnter={e => countdown === null && (e.currentTarget.style.transform = "scale(1.08)")}
+                    onMouseLeave={e => countdown === null && (e.currentTarget.style.transform = "scale(1)")}
                 >
-                    {playing
+                    {countdown !== null ? (
+                        <span data-testid="play-countdown" style={{ fontSize: isMobile ? 28 : 32, fontWeight: 900, fontFamily: THEME.fonts.mono, color: "white" }}>
+                            {countdown}
+                        </span>
+                    ) : playing
                         ? <svg width={isMobile ? 28 : 32} height={isMobile ? 28 : 32} viewBox="0 0 24 24" fill="white"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" /></svg>
                         : <svg width={isMobile ? 28 : 32} height={isMobile ? 28 : 32} viewBox="0 0 24 24" fill="white" style={{ marginLeft: isMobile ? 3 : 4 }}><path d="M8 5v14l11-7z" /></svg>
                     }
@@ -83,7 +91,7 @@ export const PlayerControls: React.FC<Props> = ({
                         cursor: isLive ? "not-allowed" : "pointer",
                         opacity: isLive ? 0.15 : ci < queueLen - 1 ? 0.6 : 0.1,
                         transition: "opacity 0.2s",
-                        padding: isMobile ? "12px" : "8px", // Larger hit area
+                        padding: isMobile ? "12px" : "8px", 
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center"

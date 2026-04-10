@@ -109,6 +109,14 @@ export class SQLiteStorage implements IStorage {
     );
   }
 
+  async saveFullTrack(trackId: string, file: Blob, analysis: AnalysisData, waveform?: number[]): Promise<void> {
+    await this.saveAudioFile(trackId, file);
+    await this.saveAnalysis(trackId, analysis);
+    if (waveform) {
+      await this.saveWaveform(trackId, waveform);
+    }
+  }
+
   async getAudioFile(trackId: string): Promise<Blob | null> {
     const db = this.assertReady();
     const row = await db.getFirstAsync<{ file_path: string }>(

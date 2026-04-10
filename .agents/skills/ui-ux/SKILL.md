@@ -1,3 +1,7 @@
+---
+name: ui-ux
+description: "Diseñador de la experiencia visual y funcional de SuniPlayer. Enfoque en \"Stage-Ready Performance\"."
+---
 # Skill: UI/UX Expert
 Description: Diseñador de la experiencia visual y funcional de SuniPlayer. Enfoque en "Stage-Ready Performance".
 

@@ -18,7 +18,6 @@ export class SyncEnsembleOrchestrator {
     private lastReportedLeaderPos: number = 0;
     private reportInterval: ReturnType<typeof setInterval> | null = null;
     private readyMembers: Set<string> = new Set();
-    private audioChunkBuffers: Map<string, { chunks: string[]; totalChunks: number }> = new Map();
 
     constructor(audioEngine: IAudioEngine, sessionManager: SessionManager, clockSync: ClockSyncService) {
         this.audioEngine = audioEngine;
@@ -58,21 +57,14 @@ export class SyncEnsembleOrchestrator {
                     break;
                 case 'AUDIO_REQUEST':
                     if (this.sessionManager.getIsLeader()) {
+                        console.log(`[SYNC:FOLLOWER→] Requesting audio from leader | track: ${msg.payload.trackId}`);
                         this.handleAudioRequest(msg.senderId, msg.payload.trackId);
                     }
                     break;
-                case 'AUDIO_CHUNK':
+                case 'AUDIO_URL':
                     if (!this.sessionManager.getIsLeader()) {
-                        this.handleAudioChunk(
-                            msg.payload.trackId,
-                            msg.payload.chunkIndex,
-                            msg.payload.totalChunks,
-                            msg.payload.data
-                        );
+                        this.handleRemoteAudioUrl(msg.payload.trackId, msg.payload.url);
                     }
-                    break;
-                case 'AUDIO_CHUNK_DONE':
-                    console.log(`[SyncOrchestrator] Audio transfer complete for track: ${msg.payload.trackId}`);
                     break;
             }
         });
@@ -82,6 +74,8 @@ export class SyncEnsembleOrchestrator {
         if (!this.sessionManager.getIsLeader()) return;
         this.readyMembers.clear(); // Reset readiness for the new track
 
+        console.log(`[SYNC:LEADER→] Broadcasting TRACK_CHANGE | track: ${trackId}`);
+
         const msg: Omit<P2PMessage, 'sequence'> = {
             type: 'TRACK_CHANGE',
             senderId: this.sessionManager['userId'],
@@ -90,7 +84,6 @@ export class SyncEnsembleOrchestrator {
             payload: { trackId }
         };
         this.sessionManager['transport']?.broadcast(msg as P2PMessage);
-        console.log(`[SyncOrchestrator] Broadcasting TRACK_CHANGE: ${trackId}`);
     }
 
     /**
@@ -98,6 +91,8 @@ export class SyncEnsembleOrchestrator {
      */
     public sendReadySignal(): void {
         if (this.sessionManager.getIsLeader()) return;
+
+        console.log(`[SYNC:FOLLOWER→] Sending MEMBER_READY to leader`);
 
         const msg: Omit<P2PMessage, 'sequence'> = {
             type: 'MEMBER_READY',
@@ -107,7 +102,6 @@ export class SyncEnsembleOrchestrator {
             payload: {}
         };
         this.sessionManager['transport']?.broadcast(msg as P2PMessage);
-        console.log(`[SyncOrchestrator] Sent MEMBER_READY signal.`);
     }
 
     public async startGlobalPlayback(positionMs: number): Promise<void> {
@@ -120,7 +114,7 @@ export class SyncEnsembleOrchestrator {
         // LEAD TIME DINÁMICO:
         // Si hay otros miembros pero ninguno reportó listo, esperamos 8s.
         // Si ya hay quórum o estamos solos, 4s es suficiente.
-        const peerCount = this.sessionManager.getMembers().length - 1;
+        const peerCount = this.sessionManager.getMembers().length;
         const countdownSeconds = (peerCount > 0 && this.readyMembers.size === 0) ? 8 : 4;
 
         const bufferTimeMs = countdownSeconds * 1000;
@@ -128,6 +122,8 @@ export class SyncEnsembleOrchestrator {
         // performance.now() is relative to page load — different on each device.
         // Date.now() is Unix epoch wall clock — comparable across devices.
         const targetWallMs = Date.now() + bufferTimeMs;
+
+        console.log(`[SYNC:LEADER→] Broadcasting PLAY | track: ${currentTrack.id} | targetWallMs: ${targetWallMs} | countdown: ${countdownSeconds}s | peers: ${peerCount}`);
 
         const playMsg: Omit<P2PMessage, 'sequence'> = {
             type: 'PLAY',
@@ -183,6 +179,8 @@ export class SyncEnsembleOrchestrator {
 
         const delayMs = targetWallMs - Date.now();
 
+        console.log(`[SYNC:FOLLOWER←] PLAY received | track: ${trackId} | delayMs: ${delayMs.toFixed(0)}ms | targetWallMs: ${targetWallMs}`);
+
         // Solo mostrar cuenta regresiva si el tiempo es significativo
         if (delayMs > 500) {
             this.startLocalCountdown(Math.round(delayMs / 1000));
@@ -198,22 +196,28 @@ export class SyncEnsembleOrchestrator {
                 trackId
             }
         });
+
+        console.log(`[SYNC:FOLLOWER] scheduledPlay SET | will execute in ${Math.max(0, delayMs).toFixed(0)}ms`);
     }
 
     private handleRemoteTrackChange(trackId: string): void {
         if (this.sessionManager.getIsLeader()) return;
+
+        console.log(`[SYNC:FOLLOWER←] TRACK_CHANGE received | trackId: ${trackId}`);
 
         const { pQueue, setCi, setPQueue } = usePlayerStore.getState();
         let index = pQueue.findIndex(t => t.id === trackId);
 
         if (index !== -1) {
             setCi(index);
+            console.log(`[SYNC:FOLLOWER] ci updated to index: ${index} | track: ${trackId}`);
         } else {
             const catalogTrack = TRACKS.find((t: any) => t.id === trackId);
             if (catalogTrack) {
                 const newQueue = [...pQueue, catalogTrack];
                 setPQueue(newQueue);
                 setCi(newQueue.length - 1);
+                console.log(`[SYNC:FOLLOWER] ci updated to index: ${newQueue.length - 1} | track: ${trackId}`);
             }
         }
     }
@@ -232,6 +236,7 @@ export class SyncEnsembleOrchestrator {
 
         // Umbral relajado de 5ms -> 15ms para mayor estabilidad en redes reales
         if (Math.abs(diff) > 15 && Math.abs(diff) < 150) {
+            console.log(`[SYNC:FOLLOWER] Drift detected: ${diff.toFixed(1)}ms | adjusting playback rate`);
             const adjustment = diff > 0 ? 0.999 : 1.001;
             this.audioEngine.setPlaybackRate(adjustment);
         } else if (Math.abs(diff) >= 150) {
@@ -261,146 +266,67 @@ export class SyncEnsembleOrchestrator {
         }, 1000);
     }
 
-    private handleAudioChunk(
-        trackId: string,
-        chunkIndex: number,
-        totalChunks: number,
-        base64Data: string
-    ): void {
-        if (!this.audioChunkBuffers.has(trackId)) {
-            this.audioChunkBuffers.set(trackId, {
-                chunks: new Array(totalChunks).fill(''),
-                totalChunks
-            });
-            console.log(`[SyncOrchestrator] Starting reception of ${totalChunks} chunks for ${trackId}`);
-        }
-
-        const buffer = this.audioChunkBuffers.get(trackId)!;
-        buffer.chunks[chunkIndex] = base64Data;
-
-        const received = buffer.chunks.filter(c => c !== '').length;
-        if (received % 10 === 0 || received === totalChunks) {
-            console.log(`[SyncOrchestrator] Audio transfer: ${received}/${totalChunks} chunks (${Math.round(received / totalChunks * 100)}%)`);
-        }
-
-        const allReceived = buffer.chunks.every(c => c !== '');
-        if (!allReceived) return;
-
-        console.log(`[SyncOrchestrator] Assembling complete audio for ${trackId}`);
-
-        try {
-            const byteArrays = buffer.chunks.map(b64 => {
-                const binary = atob(b64);
-                const bytes = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) {
-                    bytes[i] = binary.charCodeAt(i);
-                }
-                return bytes;
-            });
-
-            const totalSize = byteArrays.reduce((acc, b) => acc + b.length, 0);
-            const combined = new Uint8Array(totalSize);
-            let offset = 0;
-            for (const bytes of byteArrays) {
-                combined.set(bytes, offset);
-                offset += bytes.length;
-            }
-
-            const blob = new Blob([combined.buffer], { type: 'audio/mpeg' });
-            const blobUrl = URL.createObjectURL(blob);
-
-            const { pQueue, setPQueue } = usePlayerStore.getState();
-            const updatedQueue = pQueue.map(t =>
-                t.id === trackId ? { ...t, blob_url: blobUrl } : t
-            );
-            setPQueue(updatedQueue);
-
-            this.audioChunkBuffers.delete(trackId);
-            console.log(`[SyncOrchestrator] ✅ Audio for ${trackId} ready as blob URL`);
-        } catch (err) {
-            console.error(`[SyncOrchestrator] Error assembling audio:`, err);
-            this.audioChunkBuffers.delete(trackId);
-        }
-    }
-
     /**
      * Handles a follower's audio file request.
-     * Reads the currently-loaded audio URL from the engine and streams it
-     * in 64KB base64 chunks to the requesting peer.
+     * Uploads the audio to Firebase Storage once, then sends the download URL
+     * as a single AUDIO_URL message — avoids DataChannel overflow from chunk transfer.
      */
     private async handleAudioRequest(requesterId: string, trackId: string): Promise<void> {
-        console.log(`[SyncOrchestrator] Follower ${requesterId} solicita audio de: ${trackId}`);
+        console.log(`[SYNC:LEADER→] Audio request received | from: ${requesterId} | track: ${trackId}`);
 
         const currentUrl = this.audioEngine.currentUrl;
         if (!currentUrl) {
-            console.warn(`[SyncOrchestrator] No hay URL cargada en el engine para enviar.`);
+            console.warn(`[SYNC:LEADER] No audio URL loaded in engine — cannot fulfill request`);
             return;
         }
 
         try {
-            const response = await fetch(currentUrl);
-            const arrayBuffer = await response.arrayBuffer();
+            const sessionId = this.sessionManager.getSessionId()!;
 
-            const CHUNK_SIZE = 16384; // 16KB — reduced from 64KB to avoid RTCDataChannel queue overflow
-            const totalChunks = Math.ceil(arrayBuffer.byteLength / CHUNK_SIZE);
+            // Upload to Firebase Storage (transport-specific — uses @ts-ignore like joinRoom does)
+            // @ts-ignore — uploadAudioForSession is defined in FirestoreTransport
+            const downloadUrl: string = await this.sessionManager['transport']?.uploadAudioForSession(
+                sessionId,
+                trackId,
+                currentUrl
+            );
 
-            console.log(`[SyncOrchestrator] Enviando ${totalChunks} chunks (${(arrayBuffer.byteLength / 1024 / 1024).toFixed(1)}MB) a ${requesterId}`);
-
-            for (let i = 0; i < totalChunks; i++) {
-                const start = i * CHUNK_SIZE;
-                const end = Math.min(start + CHUNK_SIZE, arrayBuffer.byteLength);
-                const chunk = arrayBuffer.slice(start, end);
-                const base64 = btoa(String.fromCharCode(...new Uint8Array(chunk)));
-
-                const chunkMsg: Omit<P2PMessage, 'sequence'> = {
-                    type: 'AUDIO_CHUNK',
-                    senderId: this.sessionManager['userId'],
-                    timestamp: performance.now(),
-                    sessionId: this.sessionManager.getSessionId()!,
-                    payload: { trackId, chunkIndex: i, totalChunks, data: base64 }
-                };
-
-                // Backpressure: retry with increasing delay if the channel is full
-                let sent = false;
-                let retries = 0;
-                while (!sent) {
-                    try {
-                        await this.sessionManager['transport']?.sendTo(requesterId, chunkMsg as P2PMessage);
-                        sent = true;
-                    } catch (e) {
-                        retries++;
-                        if (retries > 30) {
-                            console.error(`[SyncOrchestrator] Chunk ${i} failed after ${retries} retries. Aborting transfer.`);
-                            this.audioChunkBuffers?.delete(trackId);
-                            return;
-                        }
-                        const backoff = Math.min(50 * retries, 500);
-                        await new Promise(r => setTimeout(r, backoff));
-                    }
-                }
-
-                // Yield to event loop every chunk to allow channel drain
-                await new Promise(r => setTimeout(r, 0));
+            if (!downloadUrl) {
+                console.error(`[SYNC:LEADER] Upload returned no URL — aborting`);
+                return;
             }
 
-            const doneMsg: Omit<P2PMessage, 'sequence'> = {
-                type: 'AUDIO_CHUNK_DONE',
+            // Broadcast the URL (tiny message, reliable over DataChannel)
+            const urlMsg: Omit<P2PMessage, 'sequence'> = {
+                type: 'AUDIO_URL',
                 senderId: this.sessionManager['userId'],
                 timestamp: performance.now(),
-                sessionId: this.sessionManager.getSessionId()!,
-                payload: { trackId, totalChunks }
+                sessionId,
+                payload: { trackId, url: downloadUrl }
             };
-            await this.sessionManager['transport']?.sendTo(requesterId, doneMsg as P2PMessage);
+            await this.sessionManager['transport']?.sendTo(requesterId, urlMsg as P2PMessage);
+            console.log(`[SYNC:LEADER→] AUDIO_URL sent to ${requesterId} | track: ${trackId}`);
 
-            console.log(`[SyncOrchestrator] Transferencia completa a ${requesterId}`);
         } catch (err) {
-            console.error(`[SyncOrchestrator] Error en handleAudioRequest:`, err);
+            console.error(`[SYNC:LEADER] Error in handleAudioRequest:`, err);
         }
+    }
+
+    private handleRemoteAudioUrl(trackId: string, url: string): void {
+        console.log(`[SYNC:FOLLOWER←] AUDIO_URL received | track: ${trackId} | downloading from CDN...`);
+
+        const { pQueue, setPQueue } = usePlayerStore.getState();
+        const updatedQueue = pQueue.map(t =>
+            t.id === trackId ? { ...t, blob_url: url } : t
+        );
+        setPQueue(updatedQueue);
+
+        console.log(`[SYNC:FOLLOWER] Track ${trackId} injected with Storage URL — useAudio will reload`);
     }
 
     /**
      * Sends an audio file request to the leader.
-     * The leader will respond with AUDIO_CHUNK messages followed by AUDIO_CHUNK_DONE.
+     * The leader will respond with an AUDIO_URL message pointing to Firebase Storage.
      */
     public requestAudioFromLeader(trackId: string): void {
         if (this.sessionManager.getIsLeader()) return;

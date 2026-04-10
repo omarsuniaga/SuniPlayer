@@ -13,6 +13,11 @@ export interface AnalysisData {
     skips?: number;
     totalPlayTimeMs?: number;
     lastPlayedAt?: string;
+    startTime?: number;
+    endTime?: number;
+    targetKey?: string;
+    playbackTempo?: number;
+    transposeSemitones?: number;
 }
 
 /**
@@ -26,6 +31,7 @@ export interface IStorage {
 
     /** Raw audio persistence (Binary storage) */
     saveAudioFile(trackId: string, file: Blob): Promise<void>;
+    saveFullTrack(trackId: string, file: Blob, analysis: AnalysisData, waveform?: number[]): Promise<void>;
     getAudioFile(trackId: string): Promise<Blob | null>;
     deleteAudioFile(trackId: string): Promise<void>;
     getAllStoredTrackIds(): Promise<string[]>;

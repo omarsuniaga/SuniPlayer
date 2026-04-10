@@ -1,25 +1,33 @@
 # SERVICIO: AUDIO ENGINE (Motor de Renderizado Sonoro)
 
 ## Propósito
-El **Audio Engine** es el responsable de la generación física del sonido. Actúa como una capa de abstracción sobre la **Web Audio API** (web) y los drivers nativos (móvil), permitiendo un control quirúrgico sobre cada muestra de audio.
+El **Audio Engine** es el responsable de la generación física del sonido. Actúa como una capa de abstracción de alto rendimiento sobre la **Web Audio API**, permitiendo un control quirúrgico sobre el tono y el tiempo de cada muestra de audio.
 
-## Arquitectura de Nodos (Grafo de Audio)
-SuniPlayer construye un grafo de nodos para procesar el sonido antes de que llegue a los parlantes:
-1. **Source Node**: El buffer de audio cargado desde el archivo.
-2. **Gain Node (Track)**: Aplica la compensación individual (`gainOffset`).
-3. **Fader Node**: Maneja los desvanecimientos automáticos (Fade In/Out).
-4. **Master Gain Node**: Controlado por el slider de volumen maestro.
-5. **Analyser Node**: Extrae datos en tiempo real para alimentar la Waveform y el medidor SPL.
-6. **Destination**: La salida física (parlantes o auriculares).
+## 🏗️ Arquitectura Técnica (Engine 4.0)
 
-## Capacidades Técnicas
-- **Precisión de Milisegundos**: Utiliza el reloj de hardware del sistema (`audioContext.currentTime`) para asegurar que los saltos y fades sean exactos, independientemente del lag de la interfaz.
-- **Resampleo Automático**: Ajusta la frecuencia de muestreo del archivo a la del sistema de salida para evitar cambios de tono (Pitch) accidentales.
-- **Gestión de Suspensión**: Monitorea el estado del contexto de audio para reanudarlo automáticamente tras una interacción del usuario (requisito de seguridad de los navegadores modernos).
+El motor opera bajo un modelo de **Canales A/B** independientes para permitir crossfades perfectos y pre-carga proactiva.
 
-## Conexiones (Inputs/Outputs)
-- **Recibe (Input)**: Blobs de audio y comandos de nivel de volumen.
-- **Acciones (Output)**: Stream de audio estéreo y datos de análisis de frecuencia para la UI.
+### 1. Motor de Procesamiento (Ferraris)
+- **Tecnología**: `AudioWorkletNode` (vía `@soundtouchjs/audio-worklet`).
+- **Aislamiento**: El procesamiento ocurre en un hilo de audio dedicado, garantizando inmunidad ante bloqueos de la UI.
+- **Algoritmo**: WSOLA para control independiente de **Pitch** (tono) y **Tempo** (velocidad).
+- **Capacidades**: 
+    - Cambio de tono en tiempo real (±12 semitonos).
+    - Time Stretching sin afectar el tono (0.5x - 2.0x).
+
+### 2. Capa de Almacenamiento (Persistence)
+- **Binarios**: Origin Private File System (**OPFS**). Almacenamiento directo en disco del navegador para máximo rendimiento.
+- **Metadata**: **IndexedDB** (v2). Guarda exclusivamente BPM, Key, Waveforms y Marcadores.
+
+### 3. Grafo de Nodos
+`[Buffer (OPFS)] -> [AudioWorklet (Pitch/Tempo)] -> [GainNode (Master/Fade)] -> [AnalyserNode] -> [Destination]`
+
+## Principios de Operación (Reglas de Oro)
+
+1. **Soberanía del Audio**: El motor de audio es sagrado. Ningún cambio de vista o apertura de modal puede detener el audio activo, a menos que sea un comando explícito de transporte.
+2. **Reproducción Atómica (`quickPlay`)**: Los cambios de track se gestionan centralmente para asegurar que la limpieza y el arranque ocurran en una transacción única.
+3. **Normalización Inteligente**: Aplica compensación de ganancia (`gainOffset`) por track para mantener un nivel de salida coherente en todo el show.
+4. **Handoff Invisible**: Las transiciones entre el Builder y el Player no deben causar micro-cortes.
 
 ---
 *El Audio Engine es el que garantiza que SuniPlayer no solo reproduzca música, sino que la interprete con fidelidad audiófila.*

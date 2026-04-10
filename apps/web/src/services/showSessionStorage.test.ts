@@ -86,8 +86,10 @@ describe("showSessionStorage", () => {
                             label: "Set 1",
                             durationMs: 0,
                             builtAt: "2026-03-25T00:00:00.000Z",
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         } as any,
                     ],
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any,
             ],
         });

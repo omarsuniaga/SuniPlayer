@@ -1,3 +1,7 @@
+---
+name: architect
+description: "Technical planning skill for the current SuniPlayer repo. Optimizes for the active React + TypeScript + Vite prototype while keeping future platform options explicit rather than assumed."
+---
 # Skill: Architect
 Description: Technical planning skill for the current SuniPlayer repo. Optimizes for the active React + TypeScript + Vite prototype while keeping future platform options explicit rather than assumed.
 

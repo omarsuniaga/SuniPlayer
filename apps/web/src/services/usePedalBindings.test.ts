@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handlePedalEvent } from "./usePedalBindings";
 import { useSettingsStore, usePlayerStore } from "@suniplayer/core";
 import type { Track } from "@suniplayer/core";
+import { registerAudioTransportController } from "./audioTransport";
 
 const makeTrack = (id: string): Track => ({
     id,
@@ -33,10 +34,24 @@ const fireKey = (key: string, target?: EventTarget) => {
 describe("usePedalBindings", () => {
     beforeEach(() => {
         resetStores();
+        // Mock the graceful transport controller so actions actually trigger store changes in tests
+        registerAudioTransportController({
+            skipToNextGracefully: () => {
+                const { ci, pQueue, setCi, setPos } = usePlayerStore.getState();
+                if (ci < pQueue.length - 1) {
+                    setCi(ci + 1);
+                    setPos(0);
+                }
+            },
+            togglePlaybackGracefully: () => {
+                const { playing, setPlaying } = usePlayerStore.getState();
+                setPlaying(!playing);
+            }
+        });
     });
 
     it("'next' binding advances ci by 1", () => {
-        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
+        // use default ArrowRight
         usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
         const event = fireKey("ArrowRight");
@@ -46,7 +61,6 @@ describe("usePedalBindings", () => {
     });
 
     it("'next' at last track does not advance (no wrap)", () => {
-        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1")], ci: 0 });
 
         const event = fireKey("ArrowRight");
@@ -56,7 +70,6 @@ describe("usePedalBindings", () => {
     });
 
     it("'prev' at ci=0 stays at 0 (no-op)", () => {
-        useSettingsStore.getState().setPedalBinding("prev", { key: "ArrowLeft", label: "←" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
         const event = fireKey("ArrowLeft");
@@ -66,7 +79,6 @@ describe("usePedalBindings", () => {
     });
 
     it("'play_pause' toggles playing state", () => {
-        useSettingsStore.getState().setPedalBinding("play_pause", { key: " ", label: "Espacio" });
         usePlayerStore.setState({ playing: false });
 
         let event = fireKey(" ");
@@ -79,7 +91,6 @@ describe("usePedalBindings", () => {
     });
 
     it("ignores keypresses when target is an INPUT element", () => {
-        useSettingsStore.getState().setPedalBinding("next", { key: "ArrowRight", label: "→" });
         usePlayerStore.setState({ pQueue: [makeTrack("t1"), makeTrack("t2")], ci: 0 });
 
         const input = document.createElement("input");
@@ -90,6 +101,8 @@ describe("usePedalBindings", () => {
     });
 
     it("learn mode: Escape cancels without saving", () => {
+        // Clear defaults first to test that it stays undefined/unchanged
+        useSettingsStore.getState().clearPedalBindings();
         useSettingsStore.getState().setLearningAction("next");
 
         const event = fireKey("Escape");

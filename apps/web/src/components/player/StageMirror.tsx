@@ -117,7 +117,7 @@ export const StageMirror: React.FC = () => {
             window.removeEventListener("touchmove", handleMouseMove);
             window.removeEventListener("touchend", handleMouseUp);
         };
-    }, [dragging, mirrorMode]);
+    }, [dragging, mirrorMode, width, height]);
 
     const cycleSize = (e: React.MouseEvent) => {
         e.stopPropagation();

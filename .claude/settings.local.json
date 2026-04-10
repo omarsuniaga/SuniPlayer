@@ -117,7 +117,11 @@
       "Bash(npx eas-cli@latest build:inspect --platform android --stage archive --output inspect-output.zip)",
       "Bash(dir /b)",
       "Bash(echo $ANDROID_HOME)",
-      "Bash(where adb:*)"
+      "Bash(where adb:*)",
+      "Bash(python3 -c \"import json,sys; tracks=json.load\\(sys.stdin\\); [print\\(repr\\(t.get\\(''''file_path'''',''''''''\\)\\)\\) for t in tracks]\")",
+      "Bash(python3 -c \"import json; tracks=json.load\\(open\\(''C:/Users/omare/.claude/projects/SuniPlayer/packages/core/src/data/tracks.json''\\)\\); [print\\(t.get\\(''id''\\), ''|'', t.get\\(''file_path'',''''\\)[:60]\\) for t in tracks]\")",
+      "Bash(find C:/Users/omare/.claude/projects/SuniPlayer/apps/web/src/services/network/ -name *.ts)"
     ]
-  }
+  },
+  "outputStyle": "Gentleman"
 }

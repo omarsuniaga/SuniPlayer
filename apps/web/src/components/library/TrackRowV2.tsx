@@ -65,7 +65,6 @@ export const TrackRowV2: React.FC<TrackRowV2Props> = ({
                 userSelect: "none",
             }}
             onClick={() => selectionMode ? onSelect(track) : onQueue(track)}
-            onDoubleClick={(e) => { e.stopPropagation(); onPlay(track); }}
             onContextMenu={(e) => { e.preventDefault(); onSelect(track); }}
         >
             {/* 🟦 SELECTION CHECKBOX (Only in Selection Mode) */}

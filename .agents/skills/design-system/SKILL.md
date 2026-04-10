@@ -1,3 +1,7 @@
+---
+name: design-system
+description: "Guardián de la consistencia visual y de marca de SuniPlayer. Asegura que cada píxel siga la línea estética \"Stage-Ready Performance\"."
+---
 # Skill: Design System Authority
 Description: Guardián de la consistencia visual y de marca de SuniPlayer. Asegura que cada píxel siga la línea estética "Stage-Ready Performance".
 

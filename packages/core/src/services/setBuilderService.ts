@@ -14,7 +14,25 @@ export function genWave(seed: number, n = 100): number[] {
     return d;
 }
 
-// ── Mood distance matrix (lower = more compatible) ────────────────────────────
+// ── Camelot Wheel Compatibility ──────────────────────────────────────────────
+export function getCamelotDistance(k1: string, k2: string): number {
+    if (!k1 || !k2 || k1 === "N/A" || k2 === "N/A") return 2;
+    if (k1 === k2) return 0;
+    const parse = (k: string) => {
+        const num = parseInt(k);
+        const letter = k.replace(/[0-9]/g, '').toUpperCase();
+        return { num, letter };
+    };
+    try {
+        const p1 = parse(k1);
+        const p2 = parse(k2);
+        const numDiff = Math.abs(p1.num - p2.num);
+        const circularDiff = numDiff > 6 ? 12 - numDiff : numDiff;
+        if (p1.letter === p2.letter) return circularDiff;
+        return circularDiff === 0 ? 1 : circularDiff + 1;
+    } catch { return 2; }
+}
+
 const MOOD_DIST: Record<string, Record<string, number>> = {
     happy: { happy: 0, calm: 1, melancholic: 2, energetic: 1 },
     calm: { happy: 1, calm: 0, melancholic: 1, energetic: 2 },
@@ -22,189 +40,212 @@ const MOOD_DIST: Record<string, Record<string, number>> = {
     energetic: { happy: 1, calm: 2, melancholic: 3, energetic: 0 },
 };
 
-/** Score a sequence: higher = smoother BPM & mood transitions */
-function scoreTransitions(tracks: Track[]): number {
+/** Score a sequence of tracks based on DJ rules */
+function scoreTransitions(tracks: Track[], opts: BuildOpts): number {
     if (tracks.length < 2) return 0;
     let score = 0;
+    const { harmonicMixing = true, maxBpmJump = 10, energyContinuity = true } = opts;
+
     for (let i = 1; i < tracks.length; i++) {
-        const currentBpm = tracks[i].bpm ?? 120;
-        const prevBpm = tracks[i - 1].bpm ?? 120;
-        const bpmDiff = Math.abs(currentBpm - prevBpm);
-        score += bpmDiff > 40 ? -2 : bpmDiff < 15 ? 1 : 0;
-        const prevMood = tracks[i - 1].mood ?? "calm";
-        const currentMood = tracks[i].mood ?? "calm";
-        const md = MOOD_DIST[prevMood]?.[currentMood] ?? 1;
-        score += md === 0 ? 1 : md === 1 ? 0 : -(md * 0.5);
+        const t1 = tracks[i-1];
+        const t2 = tracks[i];
+        const bpm1 = t1.bpm ?? 120;
+        const bpm2 = t2.bpm ?? 120;
+        const bpmDiff = Math.abs(bpm1 - bpm2);
+        
+        if (bpmDiff <= 3) score += 2;
+        else if (bpmDiff > maxBpmJump) score -= 10; // Penalización más pesada en el nuevo motor
+
+        if (harmonicMixing) {
+            const dist = getCamelotDistance(t1.key || "", t2.key || "");
+            if (dist === 0) score += 4;
+            else if (dist === 1) score += 2;
+            else if (dist > 2) score -= 5;
+        }
+
+        if (energyContinuity) {
+            const md = MOOD_DIST[t1.mood ?? "calm"]?.[t2.mood ?? "calm"] ?? 1;
+            if (md === 0) score += 1;
+            else if (md > 1) score -= 4;
+        }
     }
     return score;
 }
 
-interface BuildOpts {
+export interface BuildOpts {
     curve?: string;
-    /** Tolerance in SECONDS around the target. Default: adaptive */
     tol?: number;
-    /** BPM range filter — tracks outside this range are excluded before generation */
     bpmMin?: number;
     bpmMax?: number;
-    /** Venue type — biases the energy range of selected tracks */
     venue?: string;
+    harmonicMixing?: boolean;
+    maxBpmJump?: number;
+    energyContinuity?: boolean;
+    anchors?: Record<number, Track>; // { index: Track }
 }
 
-// ── Venue → energy range bias ─────────────────────────────────────────────────
-const VENUE_ENERGY: Record<string, [number, number]> = {
-    lobby:    [0.3,  0.7],   // Neutral ambient, not too intense
-    dinner:   [0.2,  0.6],   // Quiet dinner, soft music
-    cocktail: [0.5,  0.85],  // Lively but not club-level
-    event:    [0.65, 1.0],   // High energy, celebration
-    cruise:   [0.0,  1.0],   // No restriction (variety)
-};
+/** 
+ * Find a single replacement for a gap 
+ */
+export function findSmartReplacement(
+    currentIndex: number,
+    currentSet: Track[],
+    repertoire: Track[],
+    opts: BuildOpts
+): Track | null {
+    const prevTrack = currentIndex > 0 ? currentSet[currentIndex - 1] : null;
+    const nextTrack = currentIndex < currentSet.length - 1 ? currentSet[currentIndex + 1] : null;
+    const currentIds = new Set(currentSet.map(t => t.id));
+    const available = repertoire.filter(t => !currentIds.has(t.id));
+    if (available.length === 0) return null;
+
+    let bestTrack: Track | null = null;
+    let bestScore = Infinity;
+
+    for (const t of available) {
+        let dist = 0;
+        if (prevTrack) dist += Math.abs((t.bpm ?? 120) - (prevTrack.bpm ?? 120));
+        if (nextTrack && opts.harmonicMixing) dist += getCamelotDistance(t.key || "", nextTrack.key || "") * 15;
+        if (dist < bestScore) { bestScore = dist; bestTrack = t; }
+    }
+    return bestTrack;
+}
 
 /**
- * Build an optimized performance set.
- *
- * @param repo    Full track catalog
- * @param target  Target duration in SECONDS (e.g. 45*60 = 2700)
- * @param opts    curve, tolerance, bpmMin, bpmMax, venue
+ * RE-WRITTEN CORE: Build set respecting fixed anchors
  */
 export function buildSet(
     repo: Track[],
     target: number,
     opts: BuildOpts = {}
 ): Track[] {
-    const { curve = "steady", bpmMin, bpmMax, venue } = opts;
+    const { anchors = {}, targetMin, bpmMin, bpmMax } = opts as any;
+    
+    // 1. Filtrado inicial
+    const workingPool = repo.filter(t => {
+        const b = t.bpm ?? 120;
+        const inBpm = (bpmMin === undefined || b >= bpmMin) && (bpmMax === undefined || b <= bpmMax);
+        const isAnchored = Object.values(anchors).some((a: any) => a.id === t.id);
+        return inBpm && !isAnchored;
+    });
 
-    // ── Pre-filter by BPM range ───────────────────────────────────────────────
-    const bpmFiltered = (bpmMin !== undefined || bpmMax !== undefined)
-        ? repo.filter(t => {
-            const b = t.bpm ?? 120;
-            return (bpmMin === undefined || b >= bpmMin) &&
-                   (bpmMax === undefined || b <= bpmMax);
-        })
-        : repo;
+    let bestSet: Track[] = [];
+    let bestGlobalScore = -Infinity;
 
-    // ── Pre-filter by venue energy range ─────────────────────────────────────
-    let workRepo = bpmFiltered.length >= 3 ? bpmFiltered : repo;
-    if (venue && VENUE_ENERGY[venue]) {
-        const [eMin, eMax] = VENUE_ENERGY[venue];
-        const venueFiltered = workRepo.filter(t => {
-            const e = t.energy ?? 0.5;
-            return e >= eMin && e <= eMax;
-        });
-        // Only apply if enough tracks remain; otherwise fall back to BPM-filtered set
-        workRepo = venueFiltered.length >= 3 ? venueFiltered : workRepo;
-    }
+    // 2. Monte Carlo Global
+    for (let m = 0; m < 1000; m++) {
+        let currentSet: Track[] = [];
+        let totalTime = 0;
+        
+        // --- CURVE BIAS ---
+        let available = [...workingPool];
+        if (opts.curve === "ascending") {
+            available.sort((a, b) => (a.energy || 0) - (b.energy || 0));
+        } else if (opts.curve === "descending") {
+            available.sort((a, b) => (b.energy || 0) - (a.energy || 0));
+        } else {
+            available.sort(() => Math.random() - 0.5);
+        }
+        
+        // Simular construcción
+        let i = 0;
+        while (totalTime < (target + 30) && available.length > 0) {
+            if (anchors[i]) {
+                const a = anchors[i];
+                currentSet[i] = a;
+                totalTime += a.duration_ms / 1000;
+                available = available.filter(t => t.id !== a.id);
+            } else {
+                // Window selection for curve adherence + duration flexibility
+                const windowSize = (opts.curve === "ascending" || opts.curve === "descending") ? Math.min(5, available.length) : available.length;
+                const pickIdx = Math.floor(Math.random() * windowSize);
+                const pick = available[pickIdx];
 
-    // Adaptive tolerance: 15% of target or at least 180s (3 min), capped at 300s
-    const adaptiveTol = Math.max(180, Math.min(300, Math.round(target * 0.15)));
-    const tol = opts.tol !== undefined ? opts.tol : adaptiveTol;
+                // Safety: if adding this track puts us way over target, try to find a better fit or stop
+                if (totalTime + (pick.duration_ms / 1000) > (target + 60) && i > 3) {
+                    break; 
+                }
 
-    const mn = target - tol;
-    const mx = target + tol;
-
-    let best: Track[] | null = null;
-    let bestScore = -Infinity;
-    let bestDist = Infinity; // distance from target when no valid set found
-
-    // ── Phase 1: Monte Carlo (600 iterations) ────────────────────────────────
-    for (let attempt = 0; attempt < 600; attempt++) {
-        const shuffled = [...workRepo].sort(() => Math.random() - 0.5);
-        const candidate: Track[] = [];
-        let tot = 0;
-
-        for (const t of shuffled) {
-            const d = t.duration_ms / 1000;
-            if (tot + d <= mx) {
-                candidate.push(t);
-                tot += d;
+                currentSet[i] = available.splice(pickIdx, 1)[0];
+                totalTime += currentSet[i].duration_ms / 1000;
             }
-            // Stop early if we're well into the target range
-            if (tot >= mn && (tot >= target - 30)) break;
+            i++;
+            if (i > 60) break; 
         }
 
-        const dist = Math.abs(tot - target);
+        const filteredSet = currentSet.filter(Boolean);
+        let score = scoreTransitions(filteredSet, opts);
 
-        if (tot >= mn && tot <= mx && candidate.length > 0) {
-            // Valid set — score it
-            const score = scoreTransitions(candidate) - (dist / 60);
-            if (score > bestScore) {
-                bestScore = score;
-                best = [...candidate];
-            }
-        } else if (!best && dist < bestDist) {
-            // Not yet valid — track the closest attempt as fallback
-            bestDist = dist;
-            best = [...candidate];
-        }
-    }
+        // --- DURATION PENALTY ---
+        const durationDiff = Math.abs(totalTime - target);
+        if (durationDiff > 90) score -= 100; // Strong penalty for missing duration target
+        else score += (90 - durationDiff) / 10; // Bonus for getting closer to target
 
-    // ── Phase 2: Greedy fallback (always produces a result) ──────────────────
-    if (!best || best.length === 0) {
-        best = [];
-        let tot = 0;
-        // Sort longest-first for greedy fill
-        const sorted = [...workRepo].sort((a, b) => b.duration_ms - a.duration_ms);
-        for (const t of sorted) {
-            const d = t.duration_ms / 1000;
-            if (tot + d <= mx) {
-                best.push(t);
-                tot += d;
-            }
-            if (tot >= mn) break;
-        }
-        // If still nothing (e.g. target is very short), just take first N tracks
-        if (best.length === 0) {
-            let tot2 = 0;
-            for (const t of workRepo) {
-                if (tot2 + t.duration_ms / 1000 > mx) break;
-                best.push(t);
-                tot2 += t.duration_ms / 1000;
-            }
+        if (score > bestGlobalScore) {
+            bestGlobalScore = score;
+            bestSet = filteredSet;
         }
     }
 
-    return applyCurve(best, curve);
+    return applyCurve(bestSet, opts.curve || "steady", opts);
 }
 
-// ── Energy curve ordering ─────────────────────────────────────────────────────
-function applyCurve(tracks: Track[], curve: string): Track[] {
-    if (tracks.length === 0) return tracks;
-
-    switch (curve) {
-        case "ascending":
-            return [...tracks].sort((a, b) => (a.energy ?? 0.5) - (b.energy ?? 0.5));
-
-        case "descending":
-            return [...tracks].sort((a, b) => (b.energy ?? 0.5) - (a.energy ?? 0.5));
-
-        case "wave": {
-            const sorted = [...tracks].sort((a, b) => (a.energy ?? 0.5) - (b.energy ?? 0.5));
-            const m = Math.ceil(sorted.length / 2);
-            const low = sorted.slice(0, m);
-            const high = sorted.slice(m).reverse();
-            const waved: Track[] = [];
-            for (let i = 0; i < Math.max(low.length, high.length); i++) {
-                if (i < low.length) waved.push(low[i]);
-                if (i < high.length) waved.push(high[i]);
+function applyCurve(tracks: Track[], curve: string, opts: BuildOpts): Track[] {
+    if (tracks.length < 2) return tracks;
+    
+    const result: Track[] = new Array(tracks.length);
+    
+    // 1. Colocar anclas primero
+    if (opts.anchors) {
+        Object.entries(opts.anchors).forEach(([idx, track]) => {
+            const index = Number(idx);
+            if (index < result.length) {
+                result[index] = track;
             }
-            return waved;
-        }
+        });
+    }
 
-        case "steady":
-        default: {
-            // Nearest-neighbor by BPM for smooth transitions
-            if (tracks.length < 3) return tracks;
-            const result: Track[] = [tracks[0]];
-            const remaining = tracks.slice(1);
-            while (remaining.length > 0) {
-                const last = result[result.length - 1];
-                const nextIdx = remaining.reduce((bestI, t, i) => {
-                    const d = Math.abs((t.bpm ?? 120) - (last.bpm ?? 120));
-                    const bd = Math.abs((remaining[bestI].bpm ?? 120) - (last.bpm ?? 120));
-                    return d < bd ? i : bestI;
-                }, 0);
-                result.push(remaining.splice(nextIdx, 1)[0]);
-            }
-            return result;
+    // 2. Identificar tracks ya usados como anclas para no repetirlos
+    const anchoredTrackIds = new Set(Object.values(opts.anchors || {}).map(a => a.id));
+    
+    // 3. Filtrar tracks restantes (los que no son anclas)
+    const remaining = tracks.filter(t => !anchoredTrackIds.has(t.id));
+    
+    // 4. Si la curva es de energía, ordenar 'remaining'
+    if (curve === "ascending") {
+        remaining.sort((a, b) => (a.energy ?? 0.5) - (b.energy ?? 0.5));
+    } else if (curve === "descending") {
+        remaining.sort((a, b) => (b.energy ?? 0.5) - (a.energy ?? 0.5));
+    }
+
+    // 5. Llenar el resto de las posiciones
+    for (let i = 0; i < result.length; i++) {
+        if (result[i]) continue;
+        
+        if (remaining.length === 0) break;
+
+        if (curve === "ascending" || curve === "descending") {
+            result[i] = remaining.shift()!;
+        } else {
+            // Lógica original de "mejor vecino" (greedy neighbor)
+            const prev = i > 0 ? result[i - 1] : null;
+            let bestIdx = 0;
+            let bestScore = Infinity;
+
+            remaining.forEach((t, rIdx) => {
+                let s = Math.abs((t.energy ?? 0.5) - 0.5);
+                if (prev) {
+                    s = Math.abs((t.bpm ?? 120) - (prev.bpm ?? 120)) + (getCamelotDistance(t.key || "", prev.key || "") * 10);
+                }
+                if (s < bestScore) {
+                    bestScore = s;
+                    bestIdx = rIdx;
+                }
+            });
+
+            result[i] = remaining.splice(bestIdx, 1)[0];
         }
     }
+
+    return result.filter(Boolean);
 }

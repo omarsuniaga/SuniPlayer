@@ -1,12 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { THEME } from "../../data/theme";
 
+interface BeforeInstallPromptEvent extends Event {
+    readonly platforms: string[];
+    readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed', platform: string }>;
+    prompt(): Promise<void>;
+}
+
+declare global {
+    interface WindowEventMap {
+        beforeinstallprompt: BeforeInstallPromptEvent;
+    }
+}
+
 export const InstallButton: React.FC = () => {
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-    const [isVisible, setIsVisible] = useState(false);
+    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+    const [isVisible, setIsVisible] = useState(() => {
+        if (typeof window === "undefined") return false;
+        return !window.matchMedia('(display-mode: standalone)').matches;
+    });
 
     useEffect(() => {
-        const handler = (e: Event) => {
+        const handler = (e: BeforeInstallPromptEvent) => {
             // Prevent Chrome 67 and earlier from automatically showing the prompt
             e.preventDefault();
             // Stash the event so it can be triggered later.
@@ -15,15 +30,10 @@ export const InstallButton: React.FC = () => {
             console.log("[PWA] beforeinstallprompt event fired");
         };
 
-        window.addEventListener("beforeinstallprompt", handler as any);
-
-        // Check if app is already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            setIsVisible(false);
-        }
+        window.addEventListener("beforeinstallprompt", handler);
 
         return () => {
-            window.removeEventListener("beforeinstallprompt", handler as any);
+            window.removeEventListener("beforeinstallprompt", handler);
         };
     }, []);
 

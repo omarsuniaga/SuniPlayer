@@ -178,10 +178,14 @@ interface LibraryState {
                     const newRepertoire = state.repertoire.map((t) => (t.id === id ? { ...t, ...updates } : t));
                     const newOverrides = { ...state.trackOverrides, [id]: { ...state.trackOverrides[id], ...updates } };
 
-                    const analyticsFields = ["affinityScore", "playCount", "completePlays", "skips", "bpm", "key", "energy", "gainOffset", "totalPlayTimeMs", "lastPlayedAt"];
-                    const hasAnalyticsUpdate = Object.keys(updates).some((k) => analyticsFields.includes(k));
+                    const technicalFields = [
+                        "affinityScore", "playCount", "completePlays", "skips", 
+                        "bpm", "key", "energy", "gainOffset", "totalPlayTimeMs", "lastPlayedAt",
+                        "startTime", "endTime", "targetKey", "playbackTempo", "transposeSemitones"
+                    ];
+                    const hasTechnicalUpdate = Object.keys(updates).some((k) => technicalFields.includes(k));
 
-                    if (hasAnalyticsUpdate) {
+                    if (hasTechnicalUpdate) {
                         const track = newTracks.find((t) => t.id === id);
                         if (track) {
                             getStorage().saveAnalysis(id, {
@@ -189,6 +193,11 @@ interface LibraryState {
                                 key: track.key,
                                 energy: track.energy,
                                 gainOffset: track.gainOffset,
+                                startTime: track.startTime,
+                                endTime: track.endTime,
+                                targetKey: track.targetKey,
+                                playbackTempo: track.playbackTempo,
+                                transposeSemitones: track.transposeSemitones,
                                 affinityScore: track.affinityScore,
                                 playCount: track.playCount,
                                 completePlays: track.completePlays,
