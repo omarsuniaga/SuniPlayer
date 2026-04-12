@@ -17,6 +17,7 @@ import {
     resolveNextTrackIndex,
 } from "./audioTransport";
 import { syncEnsemble } from "./network/SyncEnsembleOrchestrator";
+import { usePreviewStore } from "../store/usePreviewStore";
 
 export function useAudio() {
     const pQueue = usePlayerStore(s => s.pQueue);
@@ -40,13 +41,18 @@ export function useAudio() {
     const sessionId = usePlayerStore(s => s.sessionId);
     const isLeader = usePlayerStore(s => s.isLeader);
 
+    const isPreviewPlaying = usePreviewStore(s => s.isPlaying);
+
     // ── MOTOR DE AUDIO (SyncEnsemble) ──
-    // Usamos el motor centralizado para que todos los dispositivos suenen al unísono
     const engine: IAudioEngine = syncEnsemble.audioEngine;
+
+    // Track the intended playback state to resolve race conditions during fades
+    const playbackIntent = useRef<"play" | "pause">(playing ? "play" : "pause");
 
     useEffect(() => {
         engine.onPositionUpdate((posMs: number) => {
-            if (usePlayerStore.getState().playing) {
+            const state = usePlayerStore.getState();
+            if (state.playing && state.pQueue[state.ci]) {
                 setPos(posMs);
             }
         });
@@ -54,14 +60,24 @@ export function useAudio() {
             console.log(`[useAudio] Fin del track detectado.`);
             const state = usePlayerStore.getState();
             const ct = state.pQueue[state.ci];
-            if (ct) trackEnd(ct.id, engine.durationMs);
+            
+            // Validation guard
+            if (!ct) {
+                console.warn("[useAudio] onEnded: No current track found in queue.");
+                setPlaying(false);
+                return;
+            }
+
+            trackEnd(ct.id, engine.durationMs);
             
             // Auto-next logic
             const next = resolveNextTrackIndex(state);
-            if (next !== null) {
+            if (next !== null && state.pQueue[next]) {
                 setPos(0);
                 setCi(next);
-            } else setPlaying(false);
+            } else {
+                setPlaying(false);
+            }
         });
     }, [engine, setCi, setPlaying, setPos, trackEnd]);
 
@@ -69,8 +85,23 @@ export function useAudio() {
     useEffect(() => {
         registerAudioTransportController({
             skipToNextGracefully: () => {
-                const next = resolveNextTrackIndex(usePlayerStore.getState());
-                if (next !== null) setCi(next);
+                const state = usePlayerStore.getState();
+                const next = resolveNextTrackIndex(state);
+                
+                if (next !== null && state.pQueue[next]) {
+                    const { fadeEnabled, fadeOutMs } = useSettingsStore.getState();
+                    
+                    if (fadeEnabled && state.playing) {
+                        // Intentional fade-out before skipping
+                        engine.fadeVolume(0, fadeOutMs).then(() => {
+                            setPos(0);
+                            setCi(next);
+                        });
+                    } else {
+                        setPos(0);
+                        setCi(next);
+                    }
+                }
             },
             togglePlaybackGracefully: () => {
                 const isPlaying = usePlayerStore.getState().playing;
@@ -81,15 +112,19 @@ export function useAudio() {
         return () => {
             registerAudioTransportController(null);
         };
-    }, [setCi, setPlaying]);
+    }, [setCi, setPlaying, setPos, engine]);
 
     // ── VOLUMEN ──
     useEffect(() => {
-        engine.setVolume(vol);
-    }, [engine, vol]);
+        // If preview is playing, we mute the main engine
+        if (isPreviewPlaying) {
+            engine.setVolume(0);
+        } else {
+            engine.setVolume(vol);
+        }
+    }, [engine, vol, isPreviewPlaying]);
 
     // ── SCHEDULED PLAY (SyncEnsemble) ──
-    // Executes a synchronized play exactly at targetWallMs, after the track is confirmed loaded.
     useEffect(() => {
         if (!scheduledPlay) return;
 
@@ -99,21 +134,20 @@ export function useAudio() {
         const delayMs = scheduledPlay.targetWallMs - Date.now();
 
         if (delayMs < -2000) {
-            // More than 2s late — play immediately
             console.warn(`[useAudio] Scheduled play arrived ${Math.abs(delayMs).toFixed(0)}ms late. Playing immediately.`);
             engine.seek(scheduledPlay.positionMs);
             engine.play();
+            playbackIntent.current = "play";
             usePlayerStore.setState({ playing: true });
             clearScheduledPlay();
             return;
         }
 
         const waitMs = Math.max(0, delayMs);
-        console.log(`[useAudio] Scheduled play in ${waitMs.toFixed(0)}ms for track ${scheduledPlay.trackId}`);
-
         const timer = setTimeout(() => {
             engine.seek(scheduledPlay.positionMs);
             engine.play();
+            playbackIntent.current = "play";
             usePlayerStore.setState({ playing: true });
             clearScheduledPlay();
         }, waitMs);
@@ -130,7 +164,6 @@ export function useAudio() {
         if (ct.transposeSemitones !== undefined) engine.setPitch(ct.transposeSemitones);
         if (ct.playbackTempo !== undefined) engine.setTempo(ct.playbackTempo);
 
-        // --- TRACK SYNC ---
         const state = usePlayerStore.getState();
         if (state.sessionId && state.isLeader) {
             syncEnsemble.orchestrator.broadcastTrackChange(ct.id);
@@ -138,14 +171,11 @@ export function useAudio() {
     }, [ci, ct, engine]);
 
     // ── CICLO DE REPRODUCCIÓN ──
-    // Fires ONLY on track change (ci/pQueue). Does NOT re-run on play/pause toggles.
-    // That prevents concurrent loads caused by pressing play during audio decoding.
     useEffect(() => {
         const ct = pQueue[ci];
         if (!ct) return;
 
-        let cancelled = false; // Guard against stale async completions after track change
-
+        let cancelled = false;
         const url = getTrackUrl(ct);
 
         AudioStreamerService.fetchWithProgress(url, (p) => updateDownload(ct.id, p), ct.id)
@@ -163,7 +193,6 @@ export function useAudio() {
                     if (ct.playbackTempo !== undefined) engine.setTempo(ct.playbackTempo);
                     engine.seek(startMs);
 
-                    // Notify leader this follower is ready
                     const state = usePlayerStore.getState();
                     if (state.sessionId && !state.isLeader) {
                         syncEnsemble.orchestrator.sendReadySignal();
@@ -172,13 +201,13 @@ export function useAudio() {
 
                 if (cancelled) return;
 
-                // Pending scheduledPlay for this track — execute it (track just finished loading)
                 const pendingPlay = usePlayerStore.getState().scheduledPlay;
                 if (pendingPlay && pendingPlay.trackId === ct.id) {
                     const delayMs = pendingPlay.targetWallMs - Date.now();
                     if (delayMs < -2000) {
                         engine.seek(pendingPlay.positionMs);
                         engine.play();
+                        playbackIntent.current = "play";
                         usePlayerStore.setState({ playing: true });
                         usePlayerStore.getState().clearScheduledPlay();
                     } else {
@@ -186,6 +215,7 @@ export function useAudio() {
                             if (cancelled) return;
                             engine.seek(pendingPlay.positionMs);
                             engine.play();
+                            playbackIntent.current = "play";
                             usePlayerStore.setState({ playing: true });
                             usePlayerStore.getState().clearScheduledPlay();
                         }, Math.max(0, delayMs));
@@ -193,7 +223,6 @@ export function useAudio() {
                     return;
                 }
 
-                // Normal play after load: honour whatever playing state is current
                 const { playing: currentPlaying, countdown, vol: currentVol } = usePlayerStore.getState();
                 const { fadeEnabled, fadeInMs } = useSettingsStore.getState();
                 const hasPendingScheduledPlay = usePlayerStore.getState().scheduledPlay !== null;
@@ -201,12 +230,12 @@ export function useAudio() {
                 if ((currentPlaying || countdown !== null) && !engine.isPlaying && !hasPendingScheduledPlay) {
                     if (fadeEnabled) engine.fadeVolume(currentVol, fadeInMs);
                     engine.play();
+                    playbackIntent.current = "play";
                 }
             })
             .catch(err => {
                 if (cancelled) return;
                 console.error("[useAudio] Error cargando track:", err);
-
                 const state = usePlayerStore.getState();
                 if (state.sessionId && !state.isLeader && ct) {
                     syncEnsemble.orchestrator.requestAudioFromLeader(ct.id);
@@ -217,30 +246,40 @@ export function useAudio() {
 
         return () => { cancelled = true; };
 
-    }, [ci, engine, pQueue, updateDownload]); // ← `playing` removed: prevents re-load on every toggle
+    }, [ci, engine, pQueue, updateDownload]);
 
-    // ── PLAY / PAUSE TOGGLE ──
-    // Fires on every play/pause change. Only acts if the engine is already loaded.
-    // If the engine isn't loaded yet, CICLO above will call play() after load completes.
+    // ── PLAY / PAUSE TOGGLE (With Race Condition Protection) ──
     useEffect(() => {
         const isEngineLoaded = engine.durationMs > 0;
-        if (!isEngineLoaded) return; // Not loaded yet — CICLO handles play-after-load
+        if (!isEngineLoaded) return;
 
         const hasPendingScheduledPlay = usePlayerStore.getState().scheduledPlay !== null;
-        if (hasPendingScheduledPlay) return; // Scheduled play takes precedence
+        if (hasPendingScheduledPlay) return;
 
         const { vol: currentVol } = usePlayerStore.getState();
         const { fadeEnabled, fadeInMs, fadeOutMs } = useSettingsStore.getState();
 
         if (playing) {
+            playbackIntent.current = "play";
             if (!engine.isPlaying) {
                 if (fadeEnabled) engine.fadeVolume(currentVol, fadeInMs);
                 engine.play();
+            } else {
+                // If already playing but volume was fading out, restore it
+                if (fadeEnabled) engine.fadeVolume(currentVol, fadeInMs);
             }
         } else {
+            playbackIntent.current = "pause";
             if (engine.isPlaying) {
                 if (fadeEnabled) {
-                    engine.fadeVolume(0, fadeOutMs).then(() => engine.pause());
+                    // Capture current position AT THE START of the fade to avoid drift
+                    const pausePosAtStartMs = usePlayerStore.getState().pos;
+                    engine.fadeVolume(0, fadeOutMs).then(() => {
+                        // ONLY pause if the intent is still to be paused
+                        if (playbackIntent.current === "pause") {
+                            engine.pause(pausePosAtStartMs);
+                        }
+                    });
                 } else {
                     engine.pause();
                 }

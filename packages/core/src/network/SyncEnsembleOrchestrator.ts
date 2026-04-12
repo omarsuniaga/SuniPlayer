@@ -73,9 +73,14 @@ export class SyncEnsembleOrchestrator {
                     if (msg.payload.trackId) {
                         this.handleRemoteTrackChange(msg.payload.trackId);
                     }
+                    
+                    // Sanitization and validation
+                    const safePositionMs = Math.max(0, Number(msg.payload.positionMs) || 0);
+                    const safeTargetWallMs = Math.max(Date.now(), Number(msg.payload.targetWallMs) || Date.now());
+                    
                     this.handleRemotePlay(
-                        msg.payload.targetWallMs,
-                        msg.payload.positionMs,
+                        safeTargetWallMs,
+                        safePositionMs,
                         msg.payload.trackId
                     );
                     break;
@@ -86,8 +91,10 @@ export class SyncEnsembleOrchestrator {
                     break;
 
                 case 'POSITION_REPORT':
-                    // v2: payload now includes sentAtWall for latency compensation
-                    this.handlePositionReport(msg.payload.positionMs, msg.payload.sentAtWall);
+                    // Sanitization
+                    const safeLeaderPos = Math.max(0, Number(msg.payload.positionMs) || 0);
+                    const safeSentAtWall = Math.max(0, Number(msg.payload.sentAtWall) || 0);
+                    this.handlePositionReport(safeLeaderPos, safeSentAtWall);
                     break;
 
                 case 'AUDIO_REQUEST':

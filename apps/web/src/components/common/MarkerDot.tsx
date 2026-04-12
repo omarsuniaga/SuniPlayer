@@ -19,7 +19,7 @@ export const MarkerDot: React.FC<MarkerDotProps> = ({ marker, durationMs, onClic
             style={{
                 position: "absolute",
                 left: `${leftPct}%`,
-                bottom: 0,
+                bottom: 4, // Ligeramente arriba del borde inferior
                 transform: "translateX(-50%)",
                 zIndex: 10,
                 cursor: "pointer",
@@ -28,15 +28,16 @@ export const MarkerDot: React.FC<MarkerDotProps> = ({ marker, durationMs, onClic
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
-            {/* Red dot */}
+            {/* Red dot with white border and glow */}
             <div style={{
-                width: 8,
-                height: 8,
+                width: 10,
+                height: 10,
                 borderRadius: "50%",
                 backgroundColor: "#ef4444",
-                boxShadow: "0 0 4px rgba(239,68,68,0.7)",
-                transition: "transform 0.15s",
-                transform: hovered ? "scale(1.5)" : "scale(1)",
+                border: "2px solid white", // Borde para contraste
+                boxShadow: "0 0 10px rgba(239,68,68,0.9)", // Brillo intenso
+                transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+                transform: hovered ? "scale(1.4)" : "scale(1)",
             }} />
 
             {/* Tooltip */}

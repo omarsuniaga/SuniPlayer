@@ -64,6 +64,8 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const setFadeExpanded = useProjectStore(s => s.setFadeExpanded);
     const crossExpanded = useProjectStore(s => s.crossExpanded);
     const setCrossExpanded = useProjectStore(s => s.setCrossExpanded);
+    const showMarkers = useProjectStore(s => s.showMarkers);
+    const setShowMarkers = useProjectStore(s => s.setShowMarkers);
     const isSimulating = useProjectStore(s => s.isSimulating);
     const stackOrder = useProjectStore(s => s.stackOrder);
     const setStackOrder = useProjectStore(s => s.setStackOrder);
@@ -264,7 +266,25 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                         onSheetMusicClick={() => setViewingSheetTrack(ct)} 
                     />
 
-                    <VisualizerSection track={ct} performanceMode={performanceMode} isLive={isLive} playing={playing} pos={pos} rem={rem} durMs={durMs} prog={prog} mCol={mCol} currentWave={currentWave} isLoadingWave={isLoadingWave} fadeEnabled={fadeEnabled} fadeInMs={fadeInMs} fadeOutMs={fadeOutMs} onMarkersChange={(markers) => ct && updateTrackMetadata(ct.id, { markers })} onSeek={(newPosMs) => { if (ct) setPos(newPosMs); }} />
+                    <VisualizerSection 
+                        track={ct} 
+                        performanceMode={performanceMode} 
+                        isLive={isLive} 
+                        playing={playing} 
+                        pos={pos} 
+                        rem={rem} 
+                        durMs={durMs} 
+                        prog={prog} 
+                        mCol={mCol} 
+                        currentWave={currentWave} 
+                        isLoadingWave={isLoadingWave} 
+                        fadeEnabled={fadeEnabled} 
+                        fadeInMs={fadeInMs} 
+                        fadeOutMs={fadeOutMs} 
+                        showMarkers={showMarkers}
+                        onMarkersChange={(markers) => ct && updateTrackMetadata(ct.id, { markers })} 
+                        onSeek={(newPosMs) => { if (ct) setPos(newPosMs); }} 
+                    />
 
                     <PlaybackControls playing={playing} isLive={isLive} ci={ci} queueLen={pQueue.length} pos={pos} performanceMode={performanceMode} mCol={mCol} onPlayPause={togglePlaybackGracefully} onPrev={() => { setCi(ci - 1); setPos(0); }} onNext={skipToNextGracefully} onStop={() => { setPlaying(false); setPos(0); }} />
 
@@ -279,6 +299,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                             fadeEnabled={fadeEnabled} setFadeEnabled={setFadeEnabled} 
                             splMeterEnabled={splMeterEnabled} setSplMeterEnabled={setSplMeterEnabled} 
                             curveVisible={curveVisible} setCurveVisible={setCurveVisible} 
+                            showMarkers={showMarkers} setShowMarkers={setShowMarkers}
                             hasCurve={Boolean(curve)} 
                             isMirrorOpen={isMirrorOpen}
                             onToggleMirror={toggleMirror}

@@ -116,6 +116,12 @@ export interface ProjectState {
     setSplMeterTarget: (v: "studio" | "small" | "hall" | "open") => void;
     splMeterExpanded: boolean;
     setSplMeterExpanded: (v: boolean) => void;
+    curveVisible: boolean;
+    setCurveVisible: (v: boolean) => void;
+    curveExpanded: boolean;
+    setCurveExpanded: (v: boolean) => void;
+    showMarkers: boolean;
+    setShowMarkers: (v: boolean) => void;
 
     // History
     history: Show[];
@@ -475,6 +481,12 @@ export function useProjectStore<T = ProjectState>(
         setSplMeterTarget: settings.setSplMeterTarget,
         splMeterExpanded: settings.splMeterExpanded,
         setSplMeterExpanded: settings.setSplMeterExpanded,
+        curveVisible: settings.curveVisible,
+        setCurveVisible: settings.setCurveVisible,
+        curveExpanded: settings.curveExpanded,
+        setCurveExpanded: settings.setCurveExpanded,
+        showMarkers: settings.showMarkers,
+        setShowMarkers: settings.setShowMarkers,
 
         // History
         history: hist.history,

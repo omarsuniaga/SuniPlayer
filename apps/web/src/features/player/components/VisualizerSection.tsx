@@ -24,6 +24,7 @@ interface VisualizerSectionProps {
     fadeEnabled: boolean;
     fadeInMs: number;
     fadeOutMs: number;
+    showMarkers: boolean;
     onMarkersChange: (markers: TrackMarker[]) => void;
     onSeek: (posMs: number) => void;
 }
@@ -31,7 +32,7 @@ interface VisualizerSectionProps {
 export const VisualizerSection: React.FC<VisualizerSectionProps> = ({
     track, performanceMode, isLive, playing, pos, rem, durMs, prog, mCol,
     currentWave, isLoadingWave, fadeEnabled, fadeInMs, fadeOutMs,
-    onMarkersChange, onSeek
+    showMarkers, onMarkersChange, onSeek
 }) => {
     const isMobile = useIsMobile();
     const url = track ? (track.blob_url ?? `/audio/${encodeURIComponent(track.file_path || "")}`) : "";
@@ -46,7 +47,7 @@ export const VisualizerSection: React.FC<VisualizerSectionProps> = ({
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <MarkerLayer
-                    markers={track?.markers || []}
+                    markers={showMarkers ? (track?.markers || []) : []}
                     posMs={pos}
                     durationMs={durMs}
                     isLive={isLive}

@@ -27,19 +27,27 @@ export class MetadataService {
                 coverArt = new Blob([picture.data as BlobPart], { type: picture.format });
             }
 
+            // Sanitización básica: limitamos a 256 caracteres y limpiamos HTML básico.
+            const sanitize = (s: string | undefined): string | undefined => {
+                if (!s) return undefined;
+                // Eliminamos cualquier cosa que parezca una etiqueta HTML para prevenir XSS.
+                return s.replace(/<[^>]*>?/gm, '').substring(0, 256).trim();
+            };
+
             // Priority: Real metadata tags -> filename parsing
-            let finalTitle = title;
-            let finalArtist = artist;
+            let finalTitle = sanitize(title);
+            let finalArtist = sanitize(artist);
+            const finalGenre = sanitize(genre);
 
             // If metadata is missing or explicitly placeholder-like, try filename
             if (!finalTitle || finalTitle.trim() === "") {
                 const filename = file.name.replace(/\.[^/.]+$/, ""); // remove extension
                 if (filename.includes(" - ")) {
                     const parts = filename.split(" - ");
-                    finalArtist = parts[0].trim();
-                    finalTitle = parts[1].trim();
+                    finalArtist = sanitize(parts[0]);
+                    finalTitle = sanitize(parts[1]);
                 } else {
-                    finalTitle = filename;
+                    finalTitle = sanitize(filename);
                 }
             }
 
@@ -49,9 +57,9 @@ export class MetadataService {
             }
 
             return {
-                title: finalTitle,
+                title: finalTitle || "Untitled",
                 artist: finalArtist,
-                genre,
+                genre: finalGenre,
                 bpm,
                 key,
                 duration,
@@ -61,7 +69,7 @@ export class MetadataService {
             console.error("Error extracting metadata:", error);
             // Minimal fallback if parsing fails completely
             return {
-                title: file.name.replace(/\.[^/.]+$/, ""),
+                title: file.name.replace(/<[^>]*>?/gm, '').substring(0, 256).replace(/\.[^/.]+$/, "") || "Unknown",
                 artist: "Unknown Artist",
                 duration: 0
             };

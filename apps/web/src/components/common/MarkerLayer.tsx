@@ -151,7 +151,7 @@ export const MarkerLayer: React.FC<MarkerLayerProps> = ({
         if (!mouseDownPos.current || !longPressTimer.current) return;
         const dx = Math.abs(e.clientX - mouseDownPos.current.x);
         const dy = Math.abs(e.clientY - mouseDownPos.current.y);
-        if (dx > 5 || dy > 5) {
+        if (dx > 15 || dy > 15) {
             clearTimeout(longPressTimer.current);
             longPressTimer.current = null;
         }
@@ -282,7 +282,13 @@ export const MarkerLayer: React.FC<MarkerLayerProps> = ({
             ref={containerRef}
             data-marker-mode={markerLayerMode}
             data-testid="marker-layer"
-            style={{ position: "relative", userSelect: "none" }}
+            style={{ 
+                position: "relative", 
+                userSelect: "none",
+                display: "flex",
+                flex: 1,
+                width: "100%"
+            }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

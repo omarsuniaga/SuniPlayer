@@ -39,7 +39,12 @@ export interface IAudioEngine {
      */
     playAt(targetTimeMs: number, positionMs: number): Promise<void>;
 
-    pause(): void;
+    /**
+     * Pause playback.
+     * @param atPositionMs Optional: If provided, the engine should record this as the current position.
+     * Useful for synchronizing pause state after a volume fade-out.
+     */
+    pause(atPositionMs?: number): void;
     seek(positionMs: number): void;
 
     /** Get current playback position in milliseconds. */

@@ -102,7 +102,7 @@ export const AppShell: React.FC = () => {
                     position: absolute;
                     inset: 0;
                     pointer-events: none;
-                    z-index: 9999;
+                    z-index: 500;
                     border: 3px solid ${THEME.colors.brand.violet};
                     box-shadow: inset 0 0 50px rgba(139, 92, 246, 0.2);
                     animation: livePulseBorder 3s ease-in-out infinite;

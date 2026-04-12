@@ -101,6 +101,10 @@ export interface SettingsState {
     curveExpanded: boolean;
     setCurveExpanded: (v: boolean) => void;
 
+    // Markers
+    showMarkers: boolean;
+    setShowMarkers: (v: boolean) => void;
+
     // Set duration presets (persisted)
     durationPresets: number[];
     addDurationPreset: (min: number) => void;
@@ -209,6 +213,9 @@ export const useSettingsStore = create<SettingsState>()(
             curveExpanded: false,
             setCurveExpanded: (curveExpanded) => set({ curveExpanded }),
 
+            showMarkers: true,
+            setShowMarkers: (showMarkers) => set({ showMarkers }),
+
             durationPresets: [15, 30, 45, 60, 90],
             addDurationPreset: (min) => set((s) => ({ durationPresets: Array.from(new Set([...s.durationPresets, min])).sort((a, b) => a - b) })),
             removeDurationPreset: (min) => set((s) => ({ durationPresets: s.durationPresets.filter((p) => p !== min) })),
@@ -263,6 +270,7 @@ export const useSettingsStore = create<SettingsState>()(
                 splMeterExpanded: state.splMeterExpanded,
                 curveVisible: state.curveVisible,
                 curveExpanded: state.curveExpanded,
+                showMarkers: state.showMarkers,
                 bpmMin: state.bpmMin,
                 bpmMax: state.bpmMax,
                 harmonicMixing: state.harmonicMixing,

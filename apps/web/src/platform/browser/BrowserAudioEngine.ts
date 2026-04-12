@@ -77,8 +77,8 @@ export class BrowserAudioEngine implements IAudioEngine {
         }, 100);
     }
 
-    pause(): void {
-        this.engine.pause();
+    pause(atPositionMs?: number): void {
+        this.engine.pause(atPositionMs);
     }
 
     seek(positionMs: number): void {

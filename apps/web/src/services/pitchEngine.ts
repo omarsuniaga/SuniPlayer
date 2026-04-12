@@ -24,6 +24,7 @@ export class PitchEngine {
 // ... (properties)
     private audioCtx: AudioContext;
     private gainNode: GainNode;
+    private limiterNode: DynamicsCompressorNode;
     private soundtouchNode: SoundTouchNode | null = null;
     private sourceNode: AudioBufferSourceNode | null = null;
     private audioBuffer: AudioBuffer | null = null;
@@ -45,12 +46,28 @@ export class PitchEngine {
     private _onEnd: (() => void) | null = null;
     private _updateInterval: ReturnType<typeof setInterval> | null = null;
     private _endedByUs = false; // flag to distinguish natural end from stop()
+    private _loadAbortController: AbortController | null = null;
+    private _lastLoadId = 0;
 
     constructor() {
         this.audioCtx = getSharedContext();
+        
+        // 1. Gain Node for volume control
         this.gainNode = this.audioCtx.createGain();
-        this.gainNode.gain.value = this._volume;
-        this.gainNode.connect(this.audioCtx.destination);
+        const safeVol = Math.max(0, Math.min(this._volume, 1.0));
+        this.gainNode.gain.value = safeVol;
+
+        // 2. Safety Limiter to prevent clipping and protect hearing
+        this.limiterNode = this.audioCtx.createDynamicsCompressor();
+        this.limiterNode.threshold.setValueAtTime(-1.0, this.audioCtx.currentTime); // Ataja antes de 0dB
+        this.limiterNode.knee.setValueAtTime(40, this.audioCtx.currentTime);
+        this.limiterNode.ratio.setValueAtTime(12, this.audioCtx.currentTime);
+        this.limiterNode.attack.setValueAtTime(0, this.audioCtx.currentTime);
+        this.limiterNode.release.setValueAtTime(0.25, this.audioCtx.currentTime);
+
+        // Chain: Gain -> Limiter -> Destination
+        this.gainNode.connect(this.limiterNode);
+        this.limiterNode.connect(this.audioCtx.destination);
     }
 
     private async _ensureWorklet() {
@@ -67,50 +84,70 @@ export class PitchEngine {
         return PitchEngine._workletPromise;
     }
 
+    private _cleanup() {
+        if (this._loadAbortController) {
+            this._loadAbortController.abort();
+            this._loadAbortController = null;
+        }
+        if (this.sourceNode) {
+            try { this.sourceNode.stop(); } catch (e) {}
+            this.sourceNode.disconnect();
+            this.sourceNode = null;
+        }
+        if (this.soundtouchNode) {
+            this.soundtouchNode.disconnect();
+            this.soundtouchNode = null;
+        }
+        if (this._updateInterval) {
+            clearInterval(this._updateInterval);
+            this._updateInterval = null;
+        }
+    }
+
     async load(url: string): Promise<boolean> {
+        const loadId = ++this._lastLoadId;
         try {
-            console.log("[PitchEngine] load() →", url);
-            // Don't call stop() here — it kills the active sourceNode.
-            // Just clear state for the new track.
-            if (this.sourceNode) {
-                try { this.sourceNode.stop(); } catch (e) {
-                    console.debug("[PitchEngine] sourceNode stop error (normal if already ended):", e);
-                }
-                this.sourceNode.disconnect();
-                this.sourceNode = null;
-            }
+            console.log(`[PitchEngine] load(${loadId}) →`, url);
+            this._cleanup();
+            
+            this._loadAbortController = new AbortController();
             this._isPlaying = false;
             this._isReady = false;
             this._currentUrl = url;
             this._startTime = 0;
             this._endTime = 0;
-            if (this._updateInterval) {
-                clearInterval(this._updateInterval);
-                this._updateInterval = null;
-            }
 
-            console.log("[PitchEngine] AudioContext state:", this.audioCtx.state);
             if (this.audioCtx.state === "suspended") {
                 await this.audioCtx.resume();
-                console.log("[PitchEngine] AudioContext resumed →", this.audioCtx.state);
             }
 
             await this._ensureWorklet();
-            console.log("[PitchEngine] Worklet ready, fetching audio...");
-            const response = await fetch(url);
-            console.log("[PitchEngine] Fetch response:", response.status, response.ok);
+            const response = await fetch(url, { signal: this._loadAbortController.signal });
             if (!response.ok) return false;
 
             const arrayBuffer = await response.arrayBuffer();
-            console.log("[PitchEngine] ArrayBuffer size:", arrayBuffer.byteLength);
+            
+            // Si mientras decodificamos se inició otra carga, abortamos esta.
+            if (loadId !== this._lastLoadId) {
+                console.log(`[PitchEngine] load(${loadId}) descartado: una carga más nueva (${this._lastLoadId}) está en curso.`);
+                return false;
+            }
+
             this.audioBuffer = await this.audioCtx.decodeAudioData(arrayBuffer);
-            console.log("[PitchEngine] Decoded! duration:", this.audioBuffer.duration, "channels:", this.audioBuffer.numberOfChannels, "sampleRate:", this.audioBuffer.sampleRate);
+            
+            if (loadId !== this._lastLoadId) {
+                return false;
+            }
 
             this._isReady = true;
-            console.log("[PitchEngine] Audio decoded, isReady=true");
+            console.log(`[PitchEngine] load(${loadId}) completo.`);
             return true;
-        } catch (err) {
-            console.error("[PitchEngine] Error cargando audio:", err);
+        } catch (err: any) {
+            if (err.name === 'AbortError') {
+                console.log(`[PitchEngine] load(${loadId}) abortado correctamente.`);
+            } else {
+                console.error(`[PitchEngine] Error cargando audio (${loadId}):`, err);
+            }
             return false;
         }
     }
@@ -136,23 +173,18 @@ export class PitchEngine {
             console.log("[PitchEngine] AudioContext resumed →", this.audioCtx.state);
         }
 
-        // Clean up previous source
-        if (this.sourceNode) {
-            try { this.sourceNode.stop(); } catch (e) {
-                console.debug("[PitchEngine] sourceNode stop error during play():", e);
-            }
-            this.sourceNode.disconnect();
-        }
+        // Clean up previous source/nodes before starting new ones
+        this._cleanup();
 
         const effectiveRate = this._tempo * this._syncRateAdjustment;
-
+        ...
         console.log("[PitchEngine] play() logic", {
             tempo: this._tempo,
             syncAdjustment: this._syncRateAdjustment,
             effectiveRate,
             volume: this._volume,
             gainValue: this.gainNode.gain.value
-        });
+        const effectiveRate = this._tempo * this._syncRateAdjustment;
 
         // Fresh SoundTouchNode on every play()
         if (this.soundtouchNode) {
@@ -160,15 +192,14 @@ export class PitchEngine {
         }
         this.soundtouchNode = new SoundTouchNode(this.audioCtx);
         this.soundtouchNode.pitchSemitones.value = this._pitchSemitones;
-        this.soundtouchNode.tempo.value = 1.0; // tempo driven by sourceNode.playbackRate
-        this.soundtouchNode.playbackRate.value = effectiveRate; // pitch compensation for speed
+        this.soundtouchNode.tempo.value = 1.0; 
+        this.soundtouchNode.playbackRate.setTargetAtTime(effectiveRate, this.audioCtx.currentTime, 0.02);
         this.soundtouchNode.connect(this.gainNode);
-        console.log("[PitchEngine] SoundTouchNode created — pitchSemitones:", this._pitchSemitones, "effectiveRate:", effectiveRate);
 
-        // Create fresh source node (AudioBufferSourceNode can only be started once)
+        // Create fresh source node
         this.sourceNode = this.audioCtx.createBufferSource();
         this.sourceNode.buffer = this.audioBuffer;
-        this.sourceNode.playbackRate.value = effectiveRate;
+        this.sourceNode.playbackRate.setTargetAtTime(effectiveRate, this.audioCtx.currentTime, 0.02);
 
         // Graph: Source → SoundTouchNode → GainNode → destination
         this.sourceNode.connect(this.soundtouchNode);
@@ -231,19 +262,26 @@ export class PitchEngine {
         }, 50);
     }
 
-    pause() {
-        if (!this._isPlaying) return;
+    pause(atPositionMs?: number) {
+        if (!this._isPlaying) {
+            if (atPositionMs !== undefined) this._startTime = atPositionMs;
+            return;
+        }
         
-        // Capture current position before stopping
-        const effectiveRate = this._tempo * this._syncRateAdjustment;
-        const elapsedCtx = this.audioCtx.currentTime - this._startCtxTime;
-        const elapsedAudioSec = elapsedCtx * effectiveRate;
-        this._startTime += elapsedAudioSec * 1000;
+        if (atPositionMs !== undefined) {
+            this._startTime = atPositionMs;
+        } else {
+            // Capture current position before stopping
+            const effectiveRate = this._tempo * this._syncRateAdjustment;
+            const elapsedCtx = this.audioCtx.currentTime - this._startCtxTime;
+            const elapsedAudioSec = elapsedCtx * effectiveRate;
+            this._startTime += elapsedAudioSec * 1000;
+        }
 
         // Stop and dispose source
         if (this.sourceNode) {
             this._endedByUs = true;
-            console.log("[PitchEngine] Setting _endedByUs=true, stopping sourceNode");
+            console.log("[PitchEngine] Setting _endedByUs=true, stopping sourceNode (requested pos:", atPositionMs, ")");
             try { this.sourceNode.stop(); } catch (e) {
                 console.debug("[PitchEngine] sourceNode stop error during pause():", e);
             }
@@ -298,21 +336,22 @@ export class PitchEngine {
 
     private _updateEffectiveRate() {
         const effectiveRate = this._tempo * this._syncRateAdjustment;
+        const now = this.audioCtx.currentTime;
         
-        // Update SoundTouchNode playbackRate so it compensates pitch correctly
         if (this.soundtouchNode?.playbackRate) {
-            this.soundtouchNode.playbackRate.value = effectiveRate;
+            this.soundtouchNode.playbackRate.setTargetAtTime(effectiveRate, now, 0.02);
         }
-        // Also update source node playbackRate if currently playing
         if (this.sourceNode) {
-            this.sourceNode.playbackRate.value = effectiveRate;
+            this.sourceNode.playbackRate.setTargetAtTime(effectiveRate, now, 0.02);
         }
     }
 
     set volume(v: number) {
-        this._volume = v;
+        // Hard Clamping: 0.0 to 1.0 (100%) only.
+        const safeVol = Math.max(0, Math.min(v, 1.0));
+        this._volume = safeVol;
         if (this.gainNode) {
-            this.gainNode.gain.setTargetAtTime(v, this.audioCtx.currentTime, 0.02);
+            this.gainNode.gain.setTargetAtTime(safeVol, this.audioCtx.currentTime, 0.02);
         }
     }
 
