@@ -35,6 +35,7 @@ export const ShowControl: React.FC<ShowControlProps> = ({
     fadeEnabled, setFadeEnabled,
     splMeterEnabled, setSplMeterEnabled,
     curveVisible, setCurveVisible,
+    showMarkers, setShowMarkers,
     hasCurve,
     isMirrorOpen, onToggleMirror,
     mirrorMode, onToggleMirrorMode

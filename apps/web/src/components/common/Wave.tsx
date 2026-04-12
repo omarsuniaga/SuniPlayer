@@ -12,7 +12,7 @@ interface WaveProps {
     totalMs?: number;
 }
 
-export const Wave: React.memo<WaveProps>(({ data, progress, color, fadeEnabled, fadeInMs = 0, fadeOutMs = 0, totalMs = 1 }) => {
+export const Wave = React.memo<WaveProps>(({ data, progress, color, fadeEnabled, fadeInMs = 0, fadeOutMs = 0, totalMs = 1 }) => {
     const { waveScale } = usePlayerStore();
 
     // Cache computed heights to avoid recalculating in every render

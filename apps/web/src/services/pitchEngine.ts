@@ -177,14 +177,14 @@ export class PitchEngine {
         this._cleanup();
 
         const effectiveRate = this._tempo * this._syncRateAdjustment;
-        ...
+
         console.log("[PitchEngine] play() logic", {
             tempo: this._tempo,
             syncAdjustment: this._syncRateAdjustment,
             effectiveRate,
             volume: this._volume,
             gainValue: this.gainNode.gain.value
-        const effectiveRate = this._tempo * this._syncRateAdjustment;
+        });
 
         // Fresh SoundTouchNode on every play()
         if (this.soundtouchNode) {
