@@ -53,7 +53,7 @@ export class BrowserAudioEngine implements IAudioEngine {
     async play(): Promise<void> {
         // Manual play always wins — clears any pending scheduled state
         this._isScheduled = false;
-        this.engine.play();
+        await this.engine.play();
     }
 
     async playAt(targetTimeMs: number, positionMs: number): Promise<void> {
@@ -66,7 +66,7 @@ export class BrowserAudioEngine implements IAudioEngine {
         const targetCtxTime = audioCtx.currentTime + deltaSec;
 
         this.seek(positionMs);
-        this.engine.play(targetCtxTime);
+        void this.engine.play(targetCtxTime);
 
         // Limpiamos el flag cuando el tiempo del contexto alcance el objetivo
         const checkInterval = setInterval(() => {

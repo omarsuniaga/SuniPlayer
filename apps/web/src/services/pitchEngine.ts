@@ -115,7 +115,7 @@ export class PitchEngine {
         }
     }
 
-    play(atCtxTime: number = 0) {
+    async play(atCtxTime: number = 0) {
         console.log("[PitchEngine] play() called", {
             atCtxTime,
             hasBuffer: !!this.audioBuffer,
@@ -132,8 +132,8 @@ export class PitchEngine {
             return;
         }
         if (this.audioCtx.state === "suspended") {
-            this.audioCtx.resume();
-            console.log("[PitchEngine] AudioContext resumed on play");
+            await this.audioCtx.resume();
+            console.log("[PitchEngine] AudioContext resumed →", this.audioCtx.state);
         }
 
         // Clean up previous source
@@ -271,7 +271,7 @@ export class PitchEngine {
         this._startTime = seconds * 1000;
         
         if (wasPlaying) {
-            this.play();
+            void this.play();
         } else if (this._onTimeUpdate && this.audioBuffer) {
             this._onTimeUpdate(seconds, seconds / this.audioBuffer.duration);
         }
