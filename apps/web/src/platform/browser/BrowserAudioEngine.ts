@@ -51,8 +51,8 @@ export class BrowserAudioEngine implements IAudioEngine {
     private _isScheduled: boolean = false;
 
     async play(): Promise<void> {
-        // Si ya hay un arranque programado a futuro, no hacemos nada
-        if (this._isScheduled) return;
+        // Manual play always wins — clears any pending scheduled state
+        this._isScheduled = false;
         this.engine.play();
     }
 
