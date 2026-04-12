@@ -9,6 +9,7 @@ import { useWakeLock } from "./useWakeLock";
 import { Navbar } from "../components/layout/Navbar";
 import { BottomNav } from "../components/layout/BottomNav";
 import { THEME } from "../data/theme.ts";
+import { ErrorBoundary } from "../components/common/ErrorBoundary";
 
 export const AppShell: React.FC = () => {
     const mode = useProjectStore(s => s.mode);
@@ -71,21 +72,27 @@ export const AppShell: React.FC = () => {
             />
 
             <AppAtmosphere />
-            
-            <Navbar />
 
-            <main style={{ 
-                flex: 1, 
-                position: "relative", 
-                display: "flex", 
+            <ErrorBoundary zone="Navbar" silent>
+                <Navbar />
+            </ErrorBoundary>
+
+            <main style={{
+                flex: 1,
+                position: "relative",
+                display: "flex",
                 flexDirection: "column",
-                overflow: "hidden", 
+                overflow: "hidden",
                 zIndex: 1
             }}>
-                <AppViewport />
+                <ErrorBoundary zone="Vista principal">
+                    <AppViewport />
+                </ErrorBoundary>
             </main>
 
-            <BottomNav />
+            <ErrorBoundary zone="BottomNav" silent>
+                <BottomNav />
+            </ErrorBoundary>
 
             <style>{`
                 .app-shell { transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); height: 100dvh; }

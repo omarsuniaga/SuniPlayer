@@ -114,15 +114,20 @@ export const SheetMusicViewer: React.FC<SheetMusicViewerProps> = ({ items, onClo
 
     useEffect(() => {
         if (!currentItem) return;
-        
+
         let active = true;
         const currentUrl = url;
-        getAsset(currentItem.id).then(blob => {
-            if (active && blob) {
-                const objectUrl = URL.createObjectURL(blob);
-                setUrl(objectUrl);
-            }
-        });
+        getAsset(currentItem.id)
+            .then(blob => {
+                if (active && blob) {
+                    const objectUrl = URL.createObjectURL(blob);
+                    setUrl(objectUrl);
+                }
+            })
+            .catch(err => {
+                console.error("[SheetMusicViewer] Failed to load asset:", err);
+                if (active) setLoading(false);
+            });
 
         return () => {
             active = false;
@@ -130,6 +135,15 @@ export const SheetMusicViewer: React.FC<SheetMusicViewerProps> = ({ items, onClo
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentIndex, currentItem?.id]);
+
+    // ESC key closes the viewer — prevents user from getting trapped
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [onClose]);
 
     // Input handlers (Combined Mouse & Touch)
     const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
