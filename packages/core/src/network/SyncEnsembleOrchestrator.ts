@@ -9,6 +9,14 @@ import { TRACKS } from '../data/constants';
 /**
  * SyncEnsembleOrchestrator — High-level logic for synchronized playback.
  * Connects the AudioEngine with the SessionManager and ClockSyncService.
+ *
+ * Optimizations (v2):
+ * 1. Wall-clock timestamps in POSITION_REPORT → followers compensate for network latency
+ * 2. Graduated drift correction (0.999 → 0.998 → 0.995 based on diff magnitude)
+ * 3. Quorum-based countdown with fallback timeout for N-device sync
+ * 4. Position reporting at 500ms intervals (was 1000ms)
+ * 5. Peer disconnection detection via lastSeen heartbeat map
+ * 6. Proper public API usage (getTransport(), getUserId()) — no more bracket hacks
  */
 export class SyncEnsembleOrchestrator {
     private audioEngine: IAudioEngine;
@@ -17,7 +25,25 @@ export class SyncEnsembleOrchestrator {
 
     private lastReportedLeaderPos: number = 0;
     private reportInterval: ReturnType<typeof setInterval> | null = null;
+    private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
+
+    /** Members that have sent MEMBER_READY for the current track */
     private readyMembers: Set<string> = new Set();
+
+    /** Wall-clock timestamp of last message received from each peer */
+    private lastSeen: Map<string, number> = new Map();
+
+    /** Timeout used for quorum fallback when not all peers respond */
+    private quorumTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    /** How long to wait for all members before starting with partial quorum (ms) */
+    private static readonly QUORUM_WAIT_MS = 6000;
+
+    /** Peer is considered disconnected if silent for this long (ms) */
+    private static readonly PEER_TIMEOUT_MS = 8000;
+
+    /** Position report interval in ms */
+    private static readonly REPORT_INTERVAL_MS = 500;
 
     constructor(audioEngine: IAudioEngine, sessionManager: SessionManager, clockSync: ClockSyncService) {
         this.audioEngine = audioEngine;
@@ -26,18 +52,23 @@ export class SyncEnsembleOrchestrator {
     }
 
     public initialize(): void {
-        // Handle incoming messages from SessionManager
-        this.sessionManager['transport']?.onMessage((msg: P2PMessage) => {
+        this.sessionManager.getTransport()?.onMessage((msg: P2PMessage) => {
+            // Track last-seen for disconnection detection
+            this.lastSeen.set(msg.senderId, Date.now());
+
             switch (msg.type) {
                 case 'TRACK_CHANGE':
                     this.handleRemoteTrackChange(msg.payload.trackId);
                     break;
+
                 case 'MEMBER_READY':
                     if (this.sessionManager.getIsLeader()) {
                         this.readyMembers.add(msg.senderId);
-                        console.log(`[SyncOrchestrator] Member ready: ${msg.senderId}. Total: ${this.readyMembers.size}`);
+                        console.log(`[SyncOrchestrator] Member ready: ${msg.senderId}. Ready: ${this.readyMembers.size}/${this.getActivePeerCount()}`);
+                        this.checkQuorum();
                     }
                     break;
+
                 case 'PLAY':
                     if (msg.payload.trackId) {
                         this.handleRemoteTrackChange(msg.payload.trackId);
@@ -48,19 +79,24 @@ export class SyncEnsembleOrchestrator {
                         msg.payload.trackId
                     );
                     break;
+
                 case 'PAUSE':
                     this.audioEngine.pause();
                     usePlayerStore.setState({ playing: false, countdown: null });
                     break;
+
                 case 'POSITION_REPORT':
-                    this.handlePositionReport(msg.payload.positionMs);
+                    // v2: payload now includes sentAtWall for latency compensation
+                    this.handlePositionReport(msg.payload.positionMs, msg.payload.sentAtWall);
                     break;
+
                 case 'AUDIO_REQUEST':
                     if (this.sessionManager.getIsLeader()) {
                         console.log(`[SYNC:FOLLOWER→] Requesting audio from leader | track: ${msg.payload.trackId}`);
                         this.handleAudioRequest(msg.senderId, msg.payload.trackId);
                     }
                     break;
+
                 case 'AUDIO_URL':
                     if (!this.sessionManager.getIsLeader()) {
                         this.handleRemoteAudioUrl(msg.payload.trackId, msg.payload.url);
@@ -68,26 +104,34 @@ export class SyncEnsembleOrchestrator {
                     break;
             }
         });
+
+        // Start peer heartbeat monitor
+        this.startHeartbeatMonitor();
     }
+
+    // ─── TRACK CHANGE ─────────────────────────────────────────────────────────
 
     public broadcastTrackChange(trackId: string): void {
         if (!this.sessionManager.getIsLeader()) return;
-        this.readyMembers.clear(); // Reset readiness for the new track
+        this.readyMembers.clear();
+        this.clearQuorumTimeout();
 
         console.log(`[SYNC:LEADER→] Broadcasting TRACK_CHANGE | track: ${trackId}`);
 
         const msg: Omit<P2PMessage, 'sequence'> = {
             type: 'TRACK_CHANGE',
-            senderId: this.sessionManager['userId'],
+            senderId: this.sessionManager.getUserId(),
             timestamp: performance.now(),
             sessionId: this.sessionManager.getSessionId()!,
             payload: { trackId }
         };
-        this.sessionManager['transport']?.broadcast(msg as P2PMessage);
+        this.sessionManager.getTransport()?.broadcast(msg as P2PMessage);
     }
 
+    // ─── MEMBER READY / QUORUM ────────────────────────────────────────────────
+
     /**
-     * Notifica al líder que este miembro está listo para reproducir el track actual.
+     * Notifies the leader that this follower is ready to play the current track.
      */
     public sendReadySignal(): void {
         if (this.sessionManager.getIsLeader()) return;
@@ -96,13 +140,42 @@ export class SyncEnsembleOrchestrator {
 
         const msg: Omit<P2PMessage, 'sequence'> = {
             type: 'MEMBER_READY',
-            senderId: this.sessionManager['userId'],
+            senderId: this.sessionManager.getUserId(),
             timestamp: performance.now(),
             sessionId: this.sessionManager.getSessionId()!,
             payload: {}
         };
-        this.sessionManager['transport']?.broadcast(msg as P2PMessage);
+        this.sessionManager.getTransport()?.broadcast(msg as P2PMessage);
     }
+
+    /**
+     * Called each time a new MEMBER_READY arrives.
+     * If all active peers are ready, triggers playback immediately.
+     * Otherwise relies on the quorum timeout set in startGlobalPlayback.
+     */
+    private checkQuorum(): void {
+        const activePeers = this.getActivePeerCount();
+        if (activePeers === 0) return;
+        if (this.readyMembers.size >= activePeers) {
+            console.log(`[SYNC:LEADER] Full quorum reached (${this.readyMembers.size}/${activePeers}) — starting playback now`);
+            this.clearQuorumTimeout();
+            this.triggerCountdownPlayback(3); // Tight 3s window — all members are ready
+        }
+    }
+
+    private clearQuorumTimeout(): void {
+        if (this.quorumTimeout) {
+            clearTimeout(this.quorumTimeout);
+            this.quorumTimeout = null;
+        }
+    }
+
+    /** Number of active (non-disconnected) peers excluding the leader itself */
+    private getActivePeerCount(): number {
+        return this.sessionManager.getMembers().filter(m => m.isConnected).length;
+    }
+
+    // ─── PLAYBACK ─────────────────────────────────────────────────────────────
 
     public async startGlobalPlayback(positionMs: number): Promise<void> {
         if (!this.sessionManager.getIsLeader()) return;
@@ -111,43 +184,68 @@ export class SyncEnsembleOrchestrator {
         const currentTrack = pQueue[ci];
         if (!currentTrack) return;
 
-        // LEAD TIME DINÁMICO:
-        // Si hay otros miembros pero ninguno reportó listo, esperamos 8s.
-        // Si ya hay quórum o estamos solos, 4s es suficiente.
-        const peerCount = this.sessionManager.getMembers().length;
-        const countdownSeconds = (peerCount > 0 && this.readyMembers.size === 0) ? 8 : 4;
+        const activePeers = this.getActivePeerCount();
 
-        const bufferTimeMs = countdownSeconds * 1000;
-        // Bug #1 fix: use Date.now() (wall clock) instead of performance.now()
-        // performance.now() is relative to page load — different on each device.
-        // Date.now() is Unix epoch wall clock — comparable across devices.
-        const targetWallMs = Date.now() + bufferTimeMs;
+        if (activePeers === 0) {
+            // Solo — no coordination needed, just start with a short buffer
+            console.log(`[SYNC:LEADER] No peers — starting solo with 2s buffer`);
+            this.triggerCountdownPlayback(2, positionMs, currentTrack.id);
+            return;
+        }
 
-        console.log(`[SYNC:LEADER→] Broadcasting PLAY | track: ${currentTrack.id} | targetWallMs: ${targetWallMs} | countdown: ${countdownSeconds}s | peers: ${peerCount}`);
+        // With peers: set quorum timeout. If all members respond via MEMBER_READY,
+        // checkQuorum() will fire early. Otherwise, we start after QUORUM_WAIT_MS.
+        console.log(`[SYNC:LEADER] Waiting for quorum | peers: ${activePeers} | timeout: ${SyncEnsembleOrchestrator.QUORUM_WAIT_MS}ms`);
+
+        this.quorumTimeout = setTimeout(() => {
+            const ready = this.readyMembers.size;
+            console.log(`[SYNC:LEADER] Quorum timeout — ${ready}/${activePeers} ready. Starting anyway.`);
+            this.triggerCountdownPlayback(4, positionMs, currentTrack.id);
+        }, SyncEnsembleOrchestrator.QUORUM_WAIT_MS);
+
+        // Also broadcast TRACK_CHANGE so followers start loading
+        this.broadcastTrackChange(currentTrack.id);
+    }
+
+    /**
+     * Core dispatch: sets targetWallMs, broadcasts PLAY, starts local countdown.
+     */
+    private triggerCountdownPlayback(
+        countdownSeconds: number,
+        positionMs?: number,
+        trackId?: string
+    ): void {
+        const { pQueue, ci } = usePlayerStore.getState();
+        const currentTrack = pQueue[ci];
+        if (!currentTrack) return;
+
+        const resolvedTrackId = trackId ?? currentTrack.id;
+        const resolvedPositionMs = positionMs ?? 0;
+        const targetWallMs = Date.now() + countdownSeconds * 1000;
+
+        console.log(`[SYNC:LEADER→] Broadcasting PLAY | track: ${resolvedTrackId} | countdown: ${countdownSeconds}s | targetWallMs: ${targetWallMs}`);
 
         const playMsg: Omit<P2PMessage, 'sequence'> = {
             type: 'PLAY',
-            senderId: this.sessionManager['userId'],
+            senderId: this.sessionManager.getUserId(),
             timestamp: performance.now(),
             sessionId: this.sessionManager.getSessionId()!,
             payload: {
                 targetWallMs,
-                positionMs,
-                trackId: currentTrack.id
+                positionMs: resolvedPositionMs,
+                trackId: resolvedTrackId
             }
         };
-        this.sessionManager['transport']?.broadcast(playMsg as P2PMessage);
+        this.sessionManager.getTransport()?.broadcast(playMsg as P2PMessage);
 
         this.startLocalCountdown(countdownSeconds);
         this.startPositionReporting();
 
-        // Leader dispatches to store just like followers do, so useAudio.ts
-        // handles the scheduled play after the track is confirmed loaded.
         usePlayerStore.setState({
             scheduledPlay: {
                 targetWallMs,
-                positionMs,
-                trackId: currentTrack.id
+                positionMs: resolvedPositionMs,
+                trackId: resolvedTrackId
             }
         });
     }
@@ -155,7 +253,6 @@ export class SyncEnsembleOrchestrator {
     private startLocalCountdown(seconds: number): void {
         const { setCountdown, setPlaying } = usePlayerStore.getState();
         let remaining = seconds;
-
         setCountdown(remaining);
 
         const interval = setInterval(() => {
@@ -178,17 +275,12 @@ export class SyncEnsembleOrchestrator {
         if (this.sessionManager.getIsLeader()) return;
 
         const delayMs = targetWallMs - Date.now();
+        console.log(`[SYNC:FOLLOWER←] PLAY received | track: ${trackId} | delayMs: ${delayMs.toFixed(0)}ms`);
 
-        console.log(`[SYNC:FOLLOWER←] PLAY received | track: ${trackId} | delayMs: ${delayMs.toFixed(0)}ms | targetWallMs: ${targetWallMs}`);
-
-        // Solo mostrar cuenta regresiva si el tiempo es significativo
         if (delayMs > 500) {
             this.startLocalCountdown(Math.round(delayMs / 1000));
         }
 
-        // Bug #2 fix: dispatch to store instead of calling audioEngine.playAt() directly.
-        // The audio track may not be loaded yet — useAudio.ts consumes scheduledPlay
-        // after the track finishes loading.
         usePlayerStore.setState({
             scheduledPlay: {
                 targetWallMs,
@@ -200,13 +292,15 @@ export class SyncEnsembleOrchestrator {
         console.log(`[SYNC:FOLLOWER] scheduledPlay SET | will execute in ${Math.max(0, delayMs).toFixed(0)}ms`);
     }
 
+    // ─── TRACK CHANGE (FOLLOWER) ──────────────────────────────────────────────
+
     private handleRemoteTrackChange(trackId: string): void {
         if (this.sessionManager.getIsLeader()) return;
 
         console.log(`[SYNC:FOLLOWER←] TRACK_CHANGE received | trackId: ${trackId}`);
 
         const { pQueue, setCi, setPQueue } = usePlayerStore.getState();
-        let index = pQueue.findIndex(t => t.id === trackId);
+        const index = pQueue.findIndex(t => t.id === trackId);
 
         if (index !== -1) {
             setCi(index);
@@ -222,27 +316,47 @@ export class SyncEnsembleOrchestrator {
         }
     }
 
-    public async handlePositionReport(leaderPosMs: number): Promise<void> {
+    // ─── POSITION SYNC ────────────────────────────────────────────────────────
+
+    /**
+     * v2: Receives leader position + wall-clock send time.
+     * Compensates for network latency: effectivePos = leaderPos + (now - sentAtWall).
+     * Uses graduated drift correction for smoother audio.
+     */
+    public async handlePositionReport(leaderPosMs: number, sentAtWall?: number): Promise<void> {
         if (this.sessionManager.getIsLeader()) return;
 
         // @ts-ignore
         const isReady = (this.audioEngine as any).engine?.isReady;
         if (!isReady) return;
 
-        const myPos = await this.audioEngine.getPosition();
-        const diff = myPos - leaderPosMs;
+        // Compensate for network latency using wall-clock timestamp
+        const networkLatencyMs = sentAtWall ? Math.max(0, Date.now() - sentAtWall) : 0;
+        const effectiveLeaderPos = leaderPosMs + networkLatencyMs;
 
+        const myPos = await this.audioEngine.getPosition();
+        const diff = myPos - effectiveLeaderPos; // positive = we're ahead
+
+        // Ignore absurd diffs (track not loaded, unit mismatch, etc.)
         if (Math.abs(diff) > 600000) return;
 
-        // Umbral relajado de 5ms -> 15ms para mayor estabilidad en redes reales
-        if (Math.abs(diff) > 15 && Math.abs(diff) < 150) {
-            console.log(`[SYNC:FOLLOWER] Drift detected: ${diff.toFixed(1)}ms | adjusting playback rate`);
-            const adjustment = diff > 0 ? 0.999 : 1.001;
-            this.audioEngine.setPlaybackRate(adjustment);
-        } else if (Math.abs(diff) >= 150) {
-            this.audioEngine.seek(leaderPosMs);
+        if (Math.abs(diff) <= 15) {
+            // In sync — reset rate
             this.audioEngine.setPlaybackRate(1.0);
+        } else if (Math.abs(diff) < 50) {
+            // Small drift (15–50ms): gentle nudge
+            const rate = diff > 0 ? 0.999 : 1.001;
+            console.log(`[SYNC:FOLLOWER] Drift ${diff.toFixed(1)}ms → rate ${rate}`);
+            this.audioEngine.setPlaybackRate(rate);
+        } else if (Math.abs(diff) < 150) {
+            // Medium drift (50–150ms): stronger correction
+            const rate = diff > 0 ? 0.998 : 1.002;
+            console.log(`[SYNC:FOLLOWER] Drift ${diff.toFixed(1)}ms → rate ${rate}`);
+            this.audioEngine.setPlaybackRate(rate);
         } else {
+            // Large drift (≥150ms): hard seek, reset rate
+            console.warn(`[SYNC:FOLLOWER] Hard seek: diff=${diff.toFixed(1)}ms | effectiveLeaderPos=${effectiveLeaderPos.toFixed(0)}ms`);
+            this.audioEngine.seek(effectiveLeaderPos);
             this.audioEngine.setPlaybackRate(1.0);
         }
     }
@@ -250,26 +364,50 @@ export class SyncEnsembleOrchestrator {
     private startPositionReporting(): void {
         if (this.reportInterval) clearInterval(this.reportInterval);
 
-        // Bug #3 fix: report every 1000ms (1s) instead of 5000ms for tighter sync
         this.reportInterval = setInterval(async () => {
             if (!this.sessionManager.getIsLeader()) return;
             const pos = await this.audioEngine.getPosition();
 
             const report: Omit<P2PMessage, 'sequence'> = {
                 type: 'POSITION_REPORT',
-                senderId: this.sessionManager['userId'],
+                senderId: this.sessionManager.getUserId(),
                 timestamp: performance.now(),
                 sessionId: this.sessionManager.getSessionId()!,
-                payload: { positionMs: pos }
+                payload: {
+                    positionMs: pos,
+                    sentAtWall: Date.now() // v2: followers use this to compensate latency
+                }
             };
-            this.sessionManager['transport']?.broadcast(report as P2PMessage);
-        }, 1000);
+            this.sessionManager.getTransport()?.broadcast(report as P2PMessage);
+        }, SyncEnsembleOrchestrator.REPORT_INTERVAL_MS);
     }
+
+    // ─── PEER DISCONNECTION DETECTION ─────────────────────────────────────────
+
+    /**
+     * Monitors lastSeen map. If a peer hasn't sent any message within PEER_TIMEOUT_MS,
+     * it's considered disconnected and removed from readyMembers (so quorum recalculates).
+     */
+    private startHeartbeatMonitor(): void {
+        if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+
+        this.heartbeatInterval = setInterval(() => {
+            const now = Date.now();
+            this.lastSeen.forEach((lastMs, peerId) => {
+                if (now - lastMs > SyncEnsembleOrchestrator.PEER_TIMEOUT_MS) {
+                    console.warn(`[SyncOrchestrator] Peer ${peerId} timed out — last seen ${(now - lastMs) / 1000}s ago`);
+                    this.lastSeen.delete(peerId);
+                    this.readyMembers.delete(peerId);
+                }
+            });
+        }, 2000);
+    }
+
+    // ─── AUDIO FILE TRANSFER ──────────────────────────────────────────────────
 
     /**
      * Handles a follower's audio file request.
-     * Uploads the audio to Firebase Storage once, then sends the download URL
-     * as a single AUDIO_URL message — avoids DataChannel overflow from chunk transfer.
+     * Uploads audio to Firebase Storage once, then sends the download URL.
      */
     private async handleAudioRequest(requesterId: string, trackId: string): Promise<void> {
         console.log(`[SYNC:LEADER→] Audio request received | from: ${requesterId} | track: ${trackId}`);
@@ -282,10 +420,10 @@ export class SyncEnsembleOrchestrator {
 
         try {
             const sessionId = this.sessionManager.getSessionId()!;
+            const transport = this.sessionManager.getTransport();
 
-            // Upload to Firebase Storage (transport-specific — uses @ts-ignore like joinRoom does)
             // @ts-ignore — uploadAudioForSession is defined in FirestoreTransport
-            const downloadUrl: string = await this.sessionManager['transport']?.uploadAudioForSession(
+            const downloadUrl: string = await transport?.uploadAudioForSession(
                 sessionId,
                 trackId,
                 currentUrl
@@ -296,15 +434,14 @@ export class SyncEnsembleOrchestrator {
                 return;
             }
 
-            // Broadcast the URL (tiny message, reliable over DataChannel)
             const urlMsg: Omit<P2PMessage, 'sequence'> = {
                 type: 'AUDIO_URL',
-                senderId: this.sessionManager['userId'],
+                senderId: this.sessionManager.getUserId(),
                 timestamp: performance.now(),
                 sessionId,
                 payload: { trackId, url: downloadUrl }
             };
-            await this.sessionManager['transport']?.sendTo(requesterId, urlMsg as P2PMessage);
+            await transport?.sendTo(requesterId, urlMsg as P2PMessage);
             console.log(`[SYNC:LEADER→] AUDIO_URL sent to ${requesterId} | track: ${trackId}`);
 
         } catch (err) {
@@ -326,24 +463,30 @@ export class SyncEnsembleOrchestrator {
 
     /**
      * Sends an audio file request to the leader.
-     * The leader will respond with an AUDIO_URL message pointing to Firebase Storage.
      */
     public requestAudioFromLeader(trackId: string): void {
         if (this.sessionManager.getIsLeader()) return;
 
         const msg: Omit<P2PMessage, 'sequence'> = {
             type: 'AUDIO_REQUEST',
-            senderId: this.sessionManager['userId'],
+            senderId: this.sessionManager.getUserId(),
             timestamp: performance.now(),
             sessionId: this.sessionManager.getSessionId()!,
             payload: { trackId }
         };
-        this.sessionManager['transport']?.broadcast(msg as P2PMessage);
+        this.sessionManager.getTransport()?.broadcast(msg as P2PMessage);
         console.log(`[SyncOrchestrator] Solicitando audio de ${trackId} al líder.`);
     }
 
+    // ─── CLEANUP ──────────────────────────────────────────────────────────────
+
     public stop(): void {
         if (this.reportInterval) clearInterval(this.reportInterval);
+        if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+        this.clearQuorumTimeout();
         this.reportInterval = null;
+        this.heartbeatInterval = null;
+        this.lastSeen.clear();
+        this.readyMembers.clear();
     }
 }

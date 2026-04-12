@@ -53,10 +53,10 @@ export const Builder: React.FC = () => {
     const [configExpanded, setConfigExpanded] = useState(false);
 
     return (
-        <div style={{ 
-            height: "100dvh", display: "flex", flexDirection: "column", 
+        <div style={{
+            flex: 1, display: "flex", flexDirection: "column",
             backgroundColor: "#050508", padding: "2px", gap: "2px", overflow: "hidden",
-            position: "fixed", inset: 0
+            minHeight: 0
         }}>
             {/* ── HELP MODAL ── */}
             {showHelp && (

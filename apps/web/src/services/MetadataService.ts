@@ -8,7 +8,10 @@ export class MetadataService {
      */
     static async extract(file: File): Promise<ExtractedMetadata> {
         try {
-            const metadata = await mm.parseBlob(file);
+            const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000));
+            const result = await Promise.race([mm.parseBlob(file), timeout]);
+            if (!result) throw new Error("metadata timeout");
+            const metadata = result;
             
             const duration = metadata.format.duration || 0;
             const title = metadata.common.title;

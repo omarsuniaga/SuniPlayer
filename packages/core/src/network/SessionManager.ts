@@ -180,4 +180,6 @@ export class SessionManager {
     public getSessionId(): string | null { return this.sessionId; }
     public getIsLeader(): boolean { return this.isLeader; }
     public getMembers(): SessionMember[] { return Array.from(this.members.values()); }
+    public getTransport(): IP2PTransport | null { return this.transport; }
+    public getUserId(): string { return this.userId; }
 }

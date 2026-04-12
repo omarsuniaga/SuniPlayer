@@ -1,11 +1,13 @@
 /**
  * analysisService.ts
- * 
+ *
  * Advanced Audio Analysis Engine
  * - BPM Detection: Autocorrelation of energy envelope
  * - Key Detection: Pitch Class Profile Matching (Simplified)
  * - Energy: Weighted RMS calibration
  */
+
+import { calculateGainOffsetFromRms } from "./audioNormalization";
 
 export interface AnalysisResults {
     bpm: number;
@@ -227,4 +229,3 @@ function generateWaveform(buffer: AudioBuffer, points: number): number[] {
 
     return result;
 }
-import { calculateGainOffsetFromRms } from "./audioNormalization";
