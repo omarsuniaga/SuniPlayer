@@ -1,4 +1,45 @@
+---
+ruta: docs/especificaciones/04-almacenamiento.md
+tipo: especificacion
+origen: "[[00-vision-general]]"
+estado: estable
+---
+
 # Almacenamiento y Persistencia
+
+## Función
+
+Definir qué datos persiste Suniplayer, en qué capa de almacenamiento los guarda y cuál es la estructura de la base de datos local.
+
+## Entrada
+
+- Marco de referencia del sistema ← [[00-vision-general]]
+- Propiedades y ajustes de canciones ← [[01-modelo-audio]]
+- Colecciones, sets y playlists ← [[02-modelo-colecciones]]
+- Estado de la sesión y modos ← [[03-modelo-sesion]]
+- Historial de shows completados ← [[12-cronometro]]
+- Preferencia de tema (dark/light) ← [[13-tema]]
+- Marcadores y su posición en canciones ← [[07-marcadores]]
+- Configuración del ecualizador ← [[16-ecualizador]]
+- Preferencias del perfil del usuario ← [[06-vista-perfil]]
+
+## Proceso
+
+El almacenamiento se organiza en tres capas según el ciclo de vida del dato: la base de datos local persiste datos estructurados consultables; el caché de audio guarda copias opcionales de archivos para independizarse del filesystem; y la memoria mantiene estado efímero de la sesión activa. La base de datos local es la fuente de verdad del sistema.
+
+## Salida
+
+- Datos estructurados para respaldar en la nube → [[14-sync-engine]]
+- Datos locales de uso para estadísticas → [[05-telemetria]]
+
+## Errores
+
+- **Lógico:** se intenta escribir en la base de datos cuando el almacenamiento del dispositivo está lleno — la operación falla; la app notifica al usuario y no corrompe el registro parcial.
+- **Semántico:** `fin_personalizado` de una canción es menor que `inicio_personalizado` — los valores son válidos individualmente pero inconsistentes entre sí; el registro se rechaza con aviso de que el punto de fin debe ser posterior al de inicio.
+
+Catálogo global: [[07-modelo-errores]]
+
+---
 
 ## ¿Qué datos maneja Suniplayer?
 

@@ -1,4 +1,42 @@
+---
+ruta: docs/especificaciones/01-modelo-audio.md
+tipo: especificacion
+origen: "[[00-vision-general]]"
+estado: estable
+---
+
 # Modelo de Audio (La Canción)
+
+## Función
+
+Definir la unidad fundamental del sistema: qué es una canción en Suniplayer, qué propiedades la componen y cómo se relaciona con el resto del sistema.
+
+## Entrada
+
+- Marco de referencia del sistema ← [[00-vision-general]]
+- BPM y energía analizados ← [[04-bpm-analyzer]]
+- Canciones importadas por el usuario ← [[03-vista-libreria]]
+
+## Proceso
+
+El modelo de audio describe una canción como un objeto compuesto por cuatro capas: propiedades físicas extraídas del archivo, propiedades calculadas por análisis automático, ajustes persistentes del músico y configuraciones de presentación efímeras. Cada capa tiene distinto ciclo de vida y responsable de escritura.
+
+## Salida
+
+- Canción con todas sus propiedades → [[01-audio-engine]]
+- Unidades a agrupar en colecciones → [[02-modelo-colecciones]]
+- Qué datos persistir y en qué tablas → [[04-almacenamiento]]
+- Archivo asociado (imagen/PDF) → [[09-partituras]]
+- Propiedades filtrables (BPM, energía, formato) → [[11-filtros]]
+
+## Errores
+
+- **Lógico:** el archivo referenciado por `ruta_archivo` no existe o no es legible en el momento de reproducción (fue movido o borrado) — la canción queda en estado "sin fuente"; se resuelve con caché local o reimportación.
+- **Semántico:** `tono_ajuste` ya está en +12 y el músico intenta aplicar otro +12 adicional — el valor resultante superaría el rango definido (-12 a +12); la operación se rechaza con aviso.
+
+Catálogo global: [[07-modelo-errores]]
+
+---
 
 ## ¿Qué es una "Canción" en Suniplayer?
 

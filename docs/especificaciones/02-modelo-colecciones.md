@@ -1,4 +1,43 @@
+---
+ruta: docs/especificaciones/02-modelo-colecciones.md
+tipo: especificacion
+origen: "[[00-vision-general]]"
+estado: estable
+---
+
 # Modelo de Colecciones
+
+## Función
+
+Definir los cuatro tipos de agrupación de canciones que existen en Suniplayer (Playlist, QuouList, Set y Colección Inteligente), sus reglas de creación, comportamiento y ciclo de vida.
+
+## Entrada
+
+- Marco de referencia del sistema ← [[00-vision-general]]
+- Canciones con sus propiedades ← [[01-modelo-audio]]
+- Colecciones de curva calculadas ← [[10-algoritmo-mood]]
+- Asignación de canciones a colecciones desde la UI ← [[03-vista-libreria]]
+
+## Proceso
+
+El modelo distingue colecciones creadas por el usuario (Playlist, Set, QuouList) de las generadas automáticamente por el sistema (Colección Inteligente). Cada tipo tiene reglas distintas de persistencia, ordenamiento, edición y vida útil. La QuouList es el único tipo efímero; el resto persiste en la base de datos local.
+
+## Salida
+
+- Fuente de reproducción activa → [[01-audio-engine]]
+- Colecciones disponibles para mostrar en pantalla de inicio → [[01-vista-inicio]]
+- Sets para configurar en modo Edit → [[05-vista-edit]]
+- Qué datos de colecciones persistir → [[04-almacenamiento]]
+- Base de la cola compartida en sesión multi-dispositivo → [[08-modelo-jam-session]]
+
+## Errores
+
+- **Lógico:** se intenta reproducir una colección de tipo Set vacía (sin canciones) en modo Show — la operación se bloquea con aviso porque no hay nada que ejecutar.
+- **Semántico:** se aplica Aleatorio a un Set — está prohibido (el orden en un Set es una decisión deliberada del músico); la operación se rechaza con mensaje explicativo.
+
+Catálogo global: [[07-modelo-errores]]
+
+---
 
 ## ¿Qué es una Colección?
 

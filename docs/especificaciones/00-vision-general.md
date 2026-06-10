@@ -1,4 +1,42 @@
+---
+ruta: docs/especificaciones/00-vision-general.md
+tipo: especificacion
+origen: "[[INDEX]]"
+estado: estable
+---
+
 # Visión General de Suniplayer
+
+## Función
+
+Definir el propósito, el público objetivo, los principios de diseño y el alcance de Suniplayer; servir de punto de entrada para todas las especificaciones del sistema.
+
+## Entrada
+
+- Documento raíz del proyecto ← [[INDEX]]
+
+## Proceso
+
+La visión general establece qué es Suniplayer, para quién está pensado, en qué se diferencia de un reproductor común, sobre qué plataformas corre y qué principios guían cada decisión de diseño. Cualquier especificación de componente o vista que requiera justificar una decisión de producto lo hace citando esta visión.
+
+## Salida
+
+- Marco de referencia del sistema → [[01-modelo-audio]]
+- Marco de referencia del sistema → [[02-modelo-colecciones]]
+- Marco de referencia del sistema → [[03-modelo-sesion]]
+- Marco de referencia del sistema → [[04-almacenamiento]]
+- Marco de referencia del sistema → [[05-telemetria]]
+- Marco de referencia del sistema → [[06-modelo-backup-sync]]
+- Marco de referencia del sistema → [[08-modelo-jam-session]]
+
+## Errores
+
+- **Lógico:** la visión se contradice con una especificación concreta (ej.: un principio declara "sin cloud obligatorio" pero una spec lo hace obligatorio) — indica que una de las dos debe actualizarse.
+- **Semántico:** la visión se interpreta de forma ambigua produciendo decisiones de diseño incompatibles entre especificaciones (ej.: "músicos" incluye o no DJs según el lector) — requiere precisar el alcance en la propia sección afectada.
+
+Catálogo global: [[07-modelo-errores]]
+
+---
 
 ## ¿Qué es?
 
@@ -28,6 +66,11 @@ Un reproductor común (Spotify, VLC, Windows Media Player) reproduce archivos y 
 | Modo show en vivo | No | Sí |
 | Cámara superpuesta (mirror) | No | Sí |
 | Colecciones inteligentes por ánimo | No | Sí |
+| Ecualizador | No | Sí (3-5 bandas) |
+
+## Jam Session — Fase 2
+
+> **FASE 2 — borrador.** Reproducción sincronizada multi-dispositivo por WiFi local: varios músicos reproducen el mismo audio en sincronía, con roles de anfitrión e invitados y una cola compartida. No bloquea el MVP. Ver [[08-modelo-jam-session]].
 
 ## ¿Dónde funciona?
 
