@@ -165,7 +165,7 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-theme-toggle-group**
 - display: flex; gap: 0; border-radius: 10px; overflow: hidden

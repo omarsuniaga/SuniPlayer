@@ -209,7 +209,7 @@ Si el dispositivo es grande (tablet, desktop), se puede ver:
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-sheet-container**
 - width: 100%; height: 100%; position: relative; overflow: hidden

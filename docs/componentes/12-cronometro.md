@@ -176,7 +176,7 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-timer-session**
 - font-size: 11px; font-variant-numeric: tabular-nums

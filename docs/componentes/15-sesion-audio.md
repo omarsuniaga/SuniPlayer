@@ -144,7 +144,7 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-audio-session-badge**
 - display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 10px; font-size: 11px

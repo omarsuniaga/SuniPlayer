@@ -223,7 +223,7 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-mirror-container**
 - position: fixed; z-index: 1000; border-radius: 12px; overflow: hidden

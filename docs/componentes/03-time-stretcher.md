@@ -269,7 +269,7 @@ WSOLA para tiempo real (respuesta inmediata con slider). Phase Vocoder para proc
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-stretch-slider--bypass**
 - accent-color: #888; opacity: 0.5

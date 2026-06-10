@@ -260,7 +260,7 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-transport-btn**
 - width: 44px; height: 44px; border-radius: 50%; border: none

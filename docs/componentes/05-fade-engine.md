@@ -142,7 +142,7 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-fade-segmented-control**
 - display: flex; gap: 0; border-radius: 8px; overflow: hidden

@@ -177,7 +177,7 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-filler-btn**
 - padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600

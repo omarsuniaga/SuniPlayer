@@ -256,7 +256,7 @@ Representación de la amplitud del audio:
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-waveform-container**
 - width: 100%; height: 120px; position: relative; overflow: hidden

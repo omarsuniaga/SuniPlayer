@@ -156,7 +156,7 @@ LWW para MVP (1 dispositivo por cuenta). CRDT diferido para Fase 2, cuando [[17-
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-sync-status-bar**
 - display: flex; align-items: center; justify-content: space-between; padding: 8px 16px

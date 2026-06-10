@@ -246,7 +246,7 @@ Phase Vocoder como default por su generalidad. PSOLA como optimización futura s
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-pitch-slider--bypass**
 - accent-color: #888; opacity: 0.5

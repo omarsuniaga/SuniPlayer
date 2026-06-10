@@ -278,7 +278,7 @@ Autocorrelación para archivos <10 min (caso típico de canciones individuales).
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-bpm-badge**
 - display: inline-flex; align-items: center; gap: 4px

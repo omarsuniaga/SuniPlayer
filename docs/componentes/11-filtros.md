@@ -174,7 +174,7 @@ Muestra colecciones cuyo rango de BPM cae dentro de una categoría de energía.
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-filter-panel**
 - display: flex; flex-direction: column; gap: 12px; padding: 16px

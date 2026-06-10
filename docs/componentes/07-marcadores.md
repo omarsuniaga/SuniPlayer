@@ -255,7 +255,7 @@ Para crear un marcador sin abrir el panel:
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 **.ui-marker-pin**
 - position: absolute; width: 10px; height: 10px; border-radius: 50%

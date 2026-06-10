@@ -110,7 +110,7 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Estilos CSS
+## Guía de Estilos CSS
 
 ```css
 /* Panel de EQ — contenedor */
