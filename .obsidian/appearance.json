@@ -1,0 +1,10 @@
+{
+  "baseTheme": "obsidian",
+  "accentColor": "",
+  "cssTheme": "",
+  "enabledCssSnippets": [
+    "suniplayer-dashboard"
+  ],
+  "showViewHeader": false,
+  "nativeMenus": false
+}
