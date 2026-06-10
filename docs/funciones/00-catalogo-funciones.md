@@ -16,11 +16,11 @@ Este documento cataloga las operaciones e invocaciones lógicas principales del 
 | Operación | Qué hace (Responsabilidad) | Componente Dueño | Invocador Principal |
 |---|---|---|---|
 | `play(track)` | Inicializa y decodifica la reproducción de un audio específico. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]] |
-| `play()` | Reanuda la reproducción desde la posición de pausa activa. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]] |
-| `pause()` | Detiene temporalmente la reproducción salvando el estado del buffer. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]], [[15-sesion-audio]] |
+| `play()` | Reanuda la reproducción desde la posición de pausa activa. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]], [[19-minireproductor]] |
+| `pause()` | Detiene temporalmente la reproducción salvando el estado del buffer. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]], [[15-sesion-audio]], [[19-minireproductor]] |
 | `stop()` | Cancela el audio, detiene el cronómetro y vuelve al inicio personalizado. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]] |
 | `seek(time)` | Salta el cabezal de lectura al segundo especificado. | [[01-audio-engine]] | [[02-vista-reproductor]], [[06-grafica-ondas]] |
-| `next()` | Avanza al siguiente track resolviendo la cola QuouList y el Set. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]] |
+| `next()` | Avanza al siguiente track resolviendo la cola QuouList y el Set. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]], [[19-minireproductor]] |
 | `prev()` | Retrocede a la canción previa o reinicia el track según posición. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]] |
 | `setVolume(v)` | Ajusta el nivel de ganancia de salida (0 a 100). | [[01-audio-engine]] | [[02-vista-reproductor]] |
 | `mute()` | Silencio de pánico instantáneo (volumen a 0%) guardando volumen previo. | [[01-audio-engine]] | [[02-vista-reproductor]], [[04-vista-show]] |
@@ -36,7 +36,7 @@ Este documento cataloga las operaciones e invocaciones lógicas principales del 
 | `eliminarColec`| Da de baja permanente una playlist o set del almacenamiento. | [[02-modelo-colecciones]] | [[01-vista-inicio]] |
 | `importarAudio` | Copia audios externos y los inserta en IndexedDB. | [[03-vista-libreria]] | [[03-vista-libreria]] |
 | `iniciarShow()` | Bloquea la UI, pasa a tema oscuro y activa el cronómetro en vivo. | [[03-modelo-sesion]] | [[05-vista-edit]] |
-| `agregarACola()` | Inserta un track al final de la cola temporal dinámica. | [[02-modelo-colecciones]] | [[02-vista-reproductor]], [[04-vista-show]], [[03-vista-libreria]] |
+| `agregarACola()` | Inserta un track al final de la cola temporal dinámica. | [[02-modelo-colecciones]] | [[02-vista-reproductor]], [[04-vista-show]] (el panel QuouList abre un selector de la librería, pero la invocación pertenece al reproductor y al show) |
 | `activarMirror` | Enciende la cámara frontal en modo mini o medio para control. | [[08-mirror]] | [[04-vista-show]] |
 | `abrirPartitura` | Abre el PDF/imagen de partitura en pantalla o pantalla partida. | [[09-partituras]] | [[02-vista-reproductor]], [[04-vista-show]] |
 | `pasarPagina()` | Salta a la página siguiente de la partitura (táctil o pedal BT). | [[09-partituras]] | [[09-partituras]], [[15-sesion-audio]] |

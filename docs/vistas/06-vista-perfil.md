@@ -18,6 +18,7 @@ Proveer la pantalla de configuración global del usuario; mostrar estadísticas 
 - Estado actual de la sincronización y backup externo ← [[14-sync-engine]]
 - Parámetros y opciones del modelo de backup ← [[06-modelo-backup-sync]]
 - Preferencia y selector de tema visual activo ← [[13-tema]]
+- Footer persistente de reproducción ← [[19-minireproductor]]
 
 ## Proceso
 
@@ -39,6 +40,7 @@ Proveer la pantalla de configuración global del usuario; mostrar estadísticas 
 - Órdenes de inicio, autenticación y subida de datos del backup → [[14-sync-engine]]
 - Persistencia de preferencias de usuario → [[04-almacenamiento]]
 - Mapeo de botones físicos/pedales Bluetooth configurados → [[15-sesion-audio]]
+- Evento de navegación entre vistas → [[19-minireproductor]]
 
 ## Errores
 
@@ -142,4 +144,25 @@ segmented-control (tema: dark/light/system) + slider (volumen global) + dropdown
 ### Temas
 - `.theme-dark` — overrides para modo oscuro
 - `.theme-light` — overrides para modo claro
-```
+
+---
+
+## Modal Spec
+
+### Modal: Limpiar caché de audio
+
+- **Trigger:** tap en botón "🧹 Limpiar cache" en la sección ALMACENAMIENTO
+- **Título:** "Limpiar caché de audio"
+- **Cuerpo:**
+  - Texto descriptivo: "Se eliminarán los archivos de audio descargados para uso offline. Los tracks en tu librería no se borrarán."
+  - Indicador de tamaño actual: "Espacio ocupado por caché: **234 MB** (12 archivos cacheados)"
+  - Nota: el tamaño se lee en tiempo real desde [[04-almacenamiento]] al abrir el modal.
+- **Botones:**
+  - `Cancelar` — cierra el modal sin realizar cambios; foco vuelve al botón de apertura.
+  - `Limpiar` — color rojo destructivo (`.btn-destructive`); requiere un solo tap para confirmar.
+- **Al confirmar (tap en "Limpiar"):**
+  1. Llama a [[04-almacenamiento]] para vaciar el caché de audio offline.
+  2. Muestra un spinner de carga mientras la operación se completa.
+  3. Al terminar, cierra el modal y actualiza el indicador de almacenamiento en la vista: "Espacio usado: 0 MB | Cacheadas: 0 de 47".
+  4. Muestra un toast de confirmación: "Caché de audio eliminado correctamente."
+- **Valores recolectados:** ninguno (acción destructiva sin parámetros adicionales)

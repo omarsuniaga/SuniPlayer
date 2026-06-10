@@ -242,6 +242,29 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
+## Interacción
+
+**Tipo:** panel lateral / modal con indicador de estado + botón de acción + lista de dispositivos conectados
+
+### Estados visuales del panel Jam
+
+| Estado UI | Qué ve el usuario | Condición de entrada | Transición siguiente |
+|-----------|-------------------|----------------------|----------------------|
+| **DESCONECTADO** | Icono de red inactivo (gris). Botón "Iniciar sesión Jam" (Anfitrión) o "Unirse" (Invitado). Sin lista de dispositivos. | Estado inicial o tras cierre de sesión. | Tap en "Iniciar" / "Unirse" → CONECTANDO |
+| **CONECTANDO** | Spinner animado. Texto "Conectando con dispositivos...". Canales WebRTC en negociación. Botón "Cancelar". | El usuario inicia o acepta sesión; se abren canales WebRTC. | NTP exitoso (RTT < 150ms) → SINCRONIZADO / Timeout o RTT alto → ERROR |
+| **SINCRONIZADO** | Icono de red activo (verde). Lista de dispositivos con latencia RTT de cada uno (ej. "Tablet B · 12ms"). Botón "Reproducir en sincronía" habilitado. Indicador de buffer: "Precargando..." → "Listo". | Todos los dispositivos superaron el intercambio NTP con RTT < 150ms y el buffer de audio está completo. | Tap en "Reproducir" → la UI informa T de arranque; al ejecutar `playAt()` mantiene SINCRONIZADO con estado de reproducción activo. Cierre de sesión → DESCONECTADO |
+| **ERROR** | Banner rojo en la parte superior del panel. Descripción del error: "Latencia excesiva (> 150ms)", "Timeout de conexión" o "Buffer incompleto". Dispositivo afectado resaltado en rojo en la lista. Botón "Reintentar" (para ERROR_BUFFER) o "Reconectar" (para ERROR_LAG / ERROR_TIMEOUT). | RTT supera 150ms, timeout > 5s sin mensaje, o buffer de precarga no disponible en el invitado. | Tap en "Reintentar" / "Reconectar" → CONECTANDO. Si el error es irrecuperable → DESCONECTADO |
+
+### Coherencia con la máquina de estados interna
+
+Los estados visuales son un mapeo simplificado de la máquina técnica:
+- `DESCONECTADO` (técnico) → panel en estado **DESCONECTADO**
+- `CONECTADO` (canales WebRTC abiertos, NTP en curso) → panel en estado **CONECTANDO**
+- `SINCRONIZADO` + `LISTO` + `REPRODUCIENDO` + `ESPERA` → panel en estado **SINCRONIZADO** (con sub-indicadores de buffer y reproducción activa)
+- Cualquier transición de error (`ERROR_LAG`, `ERROR_TIMEOUT`, `ERROR_BUFFER`) → panel en estado **ERROR**
+
+---
+
 ## Dependencias técnicas
 - WebRTC API (RTCPeerConnection, RTCDataChannel)
 - AudioContext.currentTime como reloj de alta resolución (precisión de ms)

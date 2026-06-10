@@ -17,6 +17,7 @@ Proveer el punto de entrada principal a la aplicación; mostrar tarjetas de acce
 - Tarjetas de colecciones calculadas por el algoritmo ← [[10-algoritmo-mood]]
 - Resultados de filtros de colecciones aplicados ← [[11-filtros]]
 - Estilos y variables CSS del tema activo ← [[13-tema]]
+- Footer persistente de reproducción ← [[19-minireproductor]]
 
 ## Proceso
 
@@ -36,6 +37,7 @@ Proveer el punto de entrada principal a la aplicación; mostrar tarjetas de acce
 - Carga de colección y apertura de la reproducción → [[02-vista-reproductor]]
 - Navegación al explorador de archivos → [[03-vista-libreria]]
 - Criterios de búsqueda y filtrado de colecciones → [[11-filtros]]
+- Evento de navegación entre vistas → [[19-minireproductor]]
 
 ## Errores
 

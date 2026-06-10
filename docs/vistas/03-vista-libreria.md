@@ -17,6 +17,7 @@ Proveer la interfaz del explorador de archivos para la biblioteca local; permiti
 - Solicitudes de navegación e importación ← [[01-vista-inicio]]
 - Colecciones y resultados de filtros estructurales ← [[11-filtros]]
 - Estilos y variables CSS del tema activo ← [[13-tema]]
+- Footer persistente de reproducción ← [[19-minireproductor]]
 
 ## Proceso
 
@@ -36,6 +37,7 @@ Proveer la interfaz del explorador de archivos para la biblioteca local; permiti
 - Disparo de cálculo de BPM y energía al importar → [[04-bpm-analyzer]]
 - Asignación de tracks a Playlists o Sets → [[02-modelo-colecciones]]
 - Parámetros y términos de filtrado → [[11-filtros]]
+- Evento de navegación entre vistas → [[19-minireproductor]]
 
 ## Errores
 

@@ -122,4 +122,14 @@ INDEX.md
        │
        ├─► 05-telemetria ──► 06-vista-perfil ◀── 15-sesion-audio (SO / Pedalera)
        └─► 13-tema
+
+19-minireproductor ◀──── 01-audio-engine
+       │          ◀──── 02-modelo-colecciones
+       │          ◀──── 03-modelo-sesion
+       │
+       ├──► 01-vista-inicio
+       ├──► 03-vista-libreria
+       ├──► 04-vista-show   (estado MINI_LOCKED)
+       ├──► 05-vista-edit
+       └──► 06-vista-perfil
 ```

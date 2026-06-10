@@ -15,6 +15,7 @@ Proveer la interfaz táctil de alta visibilidad para presentaciones en vivo (Mod
 
 - Lanzamiento del show desde el editor de sets ← [[05-vista-edit]]
 - Políticas y reglas restrictivas del modo de sesión ← [[03-modelo-sesion]]
+- Indicador de modo Show en footer (estado MINI_LOCKED) ← [[19-minireproductor]]
 - Cronómetros en tiempo real, cuenta regresiva y alertas visuales de hito ← [[12-cronometro]]
 - Feed de cámara local superpuesta ← [[08-mirror]]
 - Renderizado de páginas de partitura en vivo ← [[09-partituras]]
@@ -45,6 +46,7 @@ Proveer la interfaz táctil de alta visibilidad para presentaciones en vivo (Mod
 - Encendido y apagado de la cámara flotante → [[08-mirror]]
 - Solicitud de combinación de tracks para rellenar tiempo restante → [[18-completador-set]]
 - Visualización e interacción de partitura en vivo → [[09-partituras]]
+- Evento de navegación entre vistas → [[19-minireproductor]]
 
 ## Errores
 

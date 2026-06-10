@@ -16,6 +16,7 @@ Proveer la interfaz de preparación y configuración de Sets (Modo Edit); permit
 - Modelos de Set y listas de canciones ← [[02-modelo-colecciones]]
 - Políticas y reglas de transición del modo de sesión ← [[03-modelo-sesion]]
 - Estilos y variables CSS del tema activo ← [[13-tema]]
+- Footer persistente de reproducción ← [[19-minireproductor]]
 
 ## Proceso
 
@@ -36,6 +37,7 @@ Proveer la interfaz de preparación y configuración de Sets (Modo Edit); permit
 
 - Lanzamiento e inicialización de la pantalla en vivo → [[04-vista-show]]
 - Parámetros de fundido y gap entre canciones de la lista → [[05-fade-engine]]
+- Evento de navegación entre vistas → [[19-minireproductor]]
 
 ## Errores
 
