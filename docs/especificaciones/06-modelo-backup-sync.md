@@ -43,3 +43,67 @@ Definir la política de sincronización remota y respaldo en la nube de la base 
 - **Semántico:** se detectan marcas de tiempo locales del sistema en el futuro (desfase de reloj del cliente) — el motor ignora las marcas del cliente y utiliza el tiempo del servidor para ordenar los cambios.
 
 Catálogo global: [[07-modelo-errores]]
+
+---
+
+## Diagrama Entidad-Relación (Sync)
+
+El modelo de sincronización extiende el modelo de [[04-almacenamiento]] agregando metadatos de sincronización a las tablas existentes y una tabla de cola de operaciones.
+
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│              DIAGRAMA ER — RESPALDO Y SINCRONIZACIÓN             │
+│              Capa optativa sobre la base local                   │
+└──────────────────────────────────────────────────────────────────┘
+
+  ┌──────────────────────────────────────────────┐
+  │        TABLAS LOCALES (desde 04-almacenamiento)│
+  │                                              │
+  │  Cada tabla local tiene:                     │
+  │  • id (PK)                                   │
+  │  • updated_at (timestamp UTC)                │
+  │  • deleted (boolean, soft-delete)            │
+  │                                              │
+  │  Se sincronizan: canciones, marcadores,      │
+  │  playlists, playlist_canciones,              │
+  │  historial_shows, configuracion              │
+  └─────────────────────┬────────────────────────┘
+                        │
+                        │ cada mutación local
+                        ▼
+  ┌──────────────────────────────────────────────┐
+  │        COLA DE SINCRONIZACIÓN                 │
+  │  ───────────────────────────────────────────  │
+  │  id (PK): string                              │
+  │  tabla_afectada: string                       │
+  │  registro_id: string                          │
+  │  operacion: "insert" | "update" | "delete"    │
+  │  payload: JSON (snapshot del registro)        │
+  │  creado_en: timestamp (local)                 │
+  │  estado: "pendiente"|"enviado"|"confirmado"   │
+  └─────────────────────┬────────────────────────┘
+                        │
+                        │ al recuperar red / sync manual
+                        ▼
+  ┌──────────────────────────────────────────────┐
+  │        CONFLICTOS (resolución LWW)            │
+  │  ───────────────────────────────────────────  │
+  │                                              │
+  │  1. Comparar updated_at local vs remoto      │
+  │  2. Si local > remoto: ganan datos locales   │
+  │  3. Si remoto > local: ganan datos remotos   │
+  │  4. Si igual: gana servidor (autoridad)      │
+  │  5. Soft-delete siempre gana sobre modificar │
+  │                                              │
+  └──────────────────────────────────────────────┘
+```
+
+**Nuevos campos en tablas locales (sync-ready):**
+- `updated_at` — timestamp ISO8601 en UTC, se actualiza en cada escritura
+- `deleted` — booleano, soft-delete para detectar borrados en sync
+
+**Tabla nueva: `cola_sincronizacion`**
+- Registra cada mutación local cuando el dispositivo está offline
+- Al recuperar conexión, [[14-sync-engine]] drena la cola en orden
+- Una vez confirmado por el servidor, el registro pasa a `estado: confirmado`
+- Periódicamente se limpian los registros confirmados >30 días

@@ -183,6 +183,77 @@ valor                 → El valor correspondiente
 
 ---
 
+## Diagrama Entidad-Relación
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                        DIAGRAMA ENTIDAD-RELACIÓN                │
+│                       Fuente de verdad del sistema              │
+└─────────────────────────────────────────────────────────────────┘
+
+                  ┌──────────────────────────┐
+                  │        CONFIGURACIÓN      │
+                  │  ───────────────────────  │
+                  │  clave (PK): string       │
+                  │  valor: string            │
+                  │                           │
+                  │  (key-value, sin FK)      │
+                  └──────────────────────────┘
+
+
+  ┌──────────────────────┐          ┌──────────────────────────┐
+  │       CANCIONES       │          │       MARCADORES         │
+  │  ───────────────────  │          │  ──────────────────────  │
+  │  id (PK): string     │1        N│  id (PK): string         │
+  │  ruta_archivo         │──────────│  cancion_id (FK): string │
+  │  nombre               │          │  timestamp: decimal      │
+  │  duracion: decimal    │          │  texto: string           │
+  │  bpm: integer         │          │  color: string           │
+  │  tono_ajuste: integer │          └──────────────────────────┘
+  │  tempo_ajuste: integer│
+  │  inicio_personalizado │
+  │  fin_personalizado    │
+  │  volumen: integer     │
+  │  ... (19 campos)      │
+  └──────────┬───────────┘
+             │
+             │ 1
+             │
+             ▼
+  ┌──────────────────────┐          ┌──────────────────────────┐
+  │   PLAYLIST_CANCIONES  │          │        PLAYLISTS          │
+  │  ───────────────────  │          │  ──────────────────────  │
+  │  id (PK): string     │N        1│  id (PK): string         │
+  │  playlist_id (FK)    │◄─────────│  nombre: string           │
+  │  cancion_id (FK)     │          │  tipo: string             │
+  │  orden: integer      │          │  tipo_curva: string|null  │
+  │  transicion: string  │          │  duracion_total: decimal  │
+  └──────────────────────┘          │  cantidad_canciones: int  │
+                                    └──────────────────────────┘
+
+  ┌────────────────────────────────────────────┐
+  │           HISTORIAL_SHOWS                   │
+  │  ─────────────────────────────────────────  │
+  │  id (PK): string                            │
+  │  fecha: timestamp                           │
+  │  nombre_set: string                         │
+  │  duracion: decimal                          │
+  │  cantidad_canciones: integer                │
+  │  canciones_cola_extra: integer              │
+  │                                             │
+  │  (standalone: no FK - registro histórico)   │
+  └────────────────────────────────────────────┘
+```
+
+**Notas del modelo:**
+- `canciones` es la tabla central. Casi todo depende de ella.
+- `playlist_canciones` es una tabla puente N:M con orden explícito.
+- `marcadores` dependen de `canciones` (ON DELETE CASCADE).
+- `historial_shows` es independiente (solo lectura histórica).
+- `configuracion` es clave-valor, sin relaciones.
+
+---
+
 ## Flujo de importación de una canción
 
 ```text
