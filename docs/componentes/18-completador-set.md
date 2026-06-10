@@ -145,8 +145,10 @@ Calcular combinaciones de canciones de la librería que sumen una duración acum
 
 - **Lógico (Sin combinación posible):** Ninguna combinación de canciones de la librería puede sumar la duración restante del show dentro del rango de tolerancia.
   - *Resolución:* El componente devuelve la combinación que más se aproxime al tiempo objetivo e informa a la vista la desviación estimada (ej: "Faltan 2 minutos para cubrir todo el set").
-- **Semántico:** la librería de canciones del usuario está vacía o el tiempo restante es menor que la duración efectiva de la canción más corta.
-  - *Resolución:* Cancela la operación e informa a la vista.
+- **Semántico:** la librería está vacía, todas las candidatas ya fueron reproducidas en el show, o el tiempo restante es cero.
+  - *Resolución:* Cancela la operación e informa a la vista (no hay nada que proponer).
+- **Semántico (tiempo restante menor que la canción más corta):** existe al menos una candidata, pero cualquiera excede el tiempo restante.
+  - *Resolución:* NO cancela — propone la combinación más cercana (típicamente una sola canción) indicando el exceso, y el músico decide si la acepta.
 
 Catálogo global: [[07-modelo-errores]]
 
