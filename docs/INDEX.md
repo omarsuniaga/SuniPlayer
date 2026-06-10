@@ -68,7 +68,7 @@ modified: 2026-06-10
 ---
 
 ## 📖 Glosario canónico
-Para conocer los términos oficiales de Suniplayer (QuouList, Set, Tempo vs. BPM, etc.) y evitar ambigüedades, consultá directamente el **[[diccionario/00-diccionario-dominio\|Diccionario de Dominio]]**.
+Para conocer los términos oficiales de Suniplayer (QuouList, Set, Tempo vs. BPM, etc.) y evitar ambigüedades, consultá directamente el **[[diccionario/00-diccionario-dominio|Diccionario de Dominio]]**.
 
 ---
 

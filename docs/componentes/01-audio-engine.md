@@ -20,6 +20,10 @@ Cargar, decodificar y reproducir archivos de audio; mantener la cola de reproduc
 - Pausa o reanudación por interrupción del sistema o desconexión de salida ← [[15-sesion-audio]]
 - Puntos de salto para Loop A-B ← [[07-marcadores]]
 - Arranque programado en instante T para sincronía ← [[17-jam-session]]
+- Buffer de audio transpuesto ← [[02-pitch-shifter]]
+- Buffer de audio estirado ← [[03-time-stretcher]]
+- Transición aplicada ← [[05-fade-engine]]
+- Buffer de audio ecualizado ← [[16-ecualizador]]
 
 ## Proceso
 
@@ -119,12 +123,15 @@ Cargar, decodificar y reproducir archivos de audio; mantener la cola de reproduc
 - Datos de onda y posición del cabezal → [[06-grafica-ondas]]
 - Estado de reproducción (modo, posición, canción activa) → [[02-vista-reproductor]]
 - Estado de reproducción para sincronía multi-dispositivo → [[17-jam-session]]
+- Posición de reproducción para tooltips/Loop A-B → [[07-marcadores]]
 - Señal de audio procesada → parlantes o auriculares (físico)
 
 ## Errores
 
-- **Lógico:** se ordena `play()` sin que haya una canción cargada o sin fuente activa — el motor no tiene contexto de qué reproducir; la operación se ignora y se reporta estado `IDLE`.
-- **Semántico:** se activa Loop A-B mientras la canción está en pausa total (no hay cabezal en movimiento) — el loop requiere reproducción activa para tener sentido; la operación se rechaza con aviso al usuario.
+- **Lógico:** se ordena `play()` sin que haya una canción cargada o sin fuente activa
+  - *Resolución:* el motor no tiene contexto de qué reproducir; la operación se ignora y se reporta estado `IDLE`.
+- **Semántico:** se activa Loop A-B mientras la canción está en pausa total (no hay cabezal en movimiento)
+  - *Resolución:* el loop requiere reproducción activa para tener sentido; la operación se rechaza con aviso al usuario.
 
 Catálogo global: [[07-modelo-errores]]
 
@@ -221,7 +228,84 @@ Catálogo global: [[07-modelo-errores]]
        │            │                            │
        └────────────┘                            │
                                                  │
-            ┌─────────┐                          │
-            │  ERROR  │──────────────────────────┘
-            └─────────┘    stop()
+             ┌─────────┐                          │
+             │  ERROR  │──────────────────────────┘
+             └─────────┘    stop()
 ```
+
+---
+
+## Interacción
+
+**Tipo:** toggle (play/pause) + button (stop, next, prev) + slider (seek, volumen)
+
+**Estados y transiciones:**
+- IDLE → [play(canción)] → LOADING
+- LOADING → [carga ok] → READY → PLAYING
+- LOADING → [error] → ERROR
+- PLAYING → [pause] → PAUSED
+- PAUSED → [play] → PLAYING
+- PLAYING/PAUSED → [stop] → STOPPED → IDLE
+- PLAYING → [end of song] → STOPPED → IDLE → next()
+- PLAYING/PAUSED → [seek(posición)] → actualiza cabezal
+- Cualquiera → [setVolume] → ajusta ganancia
+
+**Comportamiento por estado:**
+- **IDLE:** Botón play gris. Tooltip: «Seleccioná una canción». Seek/volume deshabilitados.
+- **LOADING:** Spinner en botón play. Seek deshabilitado. Texto «Cargando…».
+- **PLAYING:** Botón play cambia a pausa ⏸. Cabezal animado. Seek y volumen activos.
+- **PAUSED:** Botón pausa cambia a play ▶. Cabezal estático. Seek activo.
+- **ERROR:** Botón play muestra ⚠️. Tooltip con error. Seek deshabilitado.
+- **DISABLED (sin canción):** Todos los controles opacos, sin respuesta al tacto.
+
+---
+
+## Estilos CSS
+
+**.ui-transport-btn**
+- width: 44px; height: 44px; border-radius: 50%; border: none
+- cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center
+- transition: background 0.2s, transform 0.15s
+- .theme-dark: background: rgba(255,255,255,0.08); color: #fff
+- .theme-light: background: rgba(0,0,0,0.04); color: #333
+- &:hover: transform: scale(1.05)
+- &:active: transform: scale(0.92)
+- &:disabled: opacity: 0.3; cursor: not-allowed; transform: none
+
+**.ui-transport-btn--play**
+- .theme-dark: background: #4CAF50; color: #fff
+- .theme-light: background: #388E3C; color: #fff
+- &:hover: box-shadow: 0 0 12px rgba(76,175,80,0.4)
+
+**.ui-transport-btn--pause**
+- .theme-dark: background: #FF9800; color: #fff
+- .theme-light: background: #F57C00; color: #fff
+
+**.ui-transport-btn--stop**
+- .theme-dark: background: rgba(244,67,54,0.2); color: #F44336
+- .theme-light: background: rgba(244,67,54,0.1); color: #D32F2F
+
+**.ui-transport-btn--error**
+- .theme-dark: background: rgba(244,67,54,0.15); color: #F44336; animation: pulse 1.5s infinite
+- .theme-light: background: rgba(244,67,54,0.1); color: #D32F2F
+
+**.ui-seek-slider**
+- width: 100%; height: 6px; border-radius: 3px; cursor: pointer
+- .theme-dark: accent-color: #FF9800; background: rgba(255,255,255,0.1)
+- .theme-light: accent-color: #E65100; background: rgba(0,0,0,0.08)
+
+**.ui-seek-slider--disabled**
+- opacity: 0.3; pointer-events: none
+
+**.ui-volume-slider**
+- width: 100px; height: 4px; accent-color: #4CAF50
+- .theme-dark: accent-color: #66BB6A
+- .theme-light: accent-color: #388E3C
+
+**.ui-volume-slider--muted**
+- accent-color: #F44336
+
+**.show-mode .ui-transport-btn--seek**
+- pointer-events: none; opacity: 0.5 (seek bloqueado en show)
+- .show-mode .ui-transport-btn--prev, .show-mode .ui-transport-btn--next
+- display: none (en show solo play/pause + mute pánico)

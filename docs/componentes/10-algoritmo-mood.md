@@ -28,6 +28,85 @@ Clasificar y agrupar canciones de forma automatizada según su BPM y niveles de 
    - Si no se cumplen estos requisitos, la colección no se expone a la UI.
 4. **Regeneración:** El algoritmo se vuelve a disparar ante importación de tracks, reanálisis de BPM, gestos de pull-to-refresh en la UI o borrado de tracks.
 
+### Diagrama de flujo
+
+```text
+  ┌──────────────────┐
+  │  EVENTO          │
+  │  (importación,   │
+  │  reanálisis,     │
+  │  pull-to-refresh,│
+  │  borrado)        │
+  └────────┬─────────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  LEER ALL    │
+    │  TRACKS      │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  DESCARTAR   │
+    │  BPM < 50%   │
+    │  confianza   │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  ¿QUÉDAN ≥4  │
+    │  CANCIONES?  │
+    └──────┬───────┘
+           │
+     ┌─────┴─────┐
+     │           │
+  [SÍ]▼           ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ GENERAR│ │ ABORTAR      │
+ │ COLECC.│ │ estado       │
+ │ según  │ │ SIN_DATOS    │
+ │ tipo   │ └──────────────┘
+ └───┬────┘
+     │
+     ▼
+  ┌──────────────────┐
+  │  GENERAR LINEAL  │
+  │  (BPM ±5)        │
+  │  SIEMPRE         │
+  └────────┬─────────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  ¿HAY DATOS  │
+    │  PARA CURVA? │
+    └──────┬───────┘
+           │
+     ┌─────┴─────┐
+     │           │
+  [SÍ]▼           ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ GENERAR│ │ SOLO LINEALES│
+ │ CURVA  │ │ reportar     │
+ │ +      │ │ SÓLO_LINEALES│
+ │ ESCAL. │ └──────────────┘
+ └───┬────┘
+     │
+     ▼
+    ┌──────────────┐
+    │  VALIDAR     │
+    │  DURACIÓN ≥  │
+    │  10 min      │
+    └──────┬───────┘
+           │
+     ┌─────┴─────┐
+     │           │
+  [SÍ]▼           ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ EXPONER│ │ NO EXPONER   │
+ │ EN UI  │ │ EN UI        │
+ └────────┘ └──────────────┘
+```
+
 ## Salida
 
 - Estructura y tracks de las Colecciones Inteligentes generadas → [[02-modelo-colecciones]]
@@ -35,8 +114,10 @@ Clasificar y agrupar canciones de forma automatizada según su BPM y niveles de 
 
 ## Errores
 
-- **Lógico:** el número de canciones analizadas en la librería es inferior a 4 — el algoritmo aborta la ejecución de forma limpia y reporta estado `SIN_DATOS`.
-- **Semántico:** todas las canciones de la librería tienen el mismo BPM exacto — el algoritmo no puede calcular curvas de progresión (Campana o Escalada); únicamente genera colecciones de tipo Lineal y reporta estado `SÓLO_LINEALES`.
+- **Lógico:** el número de canciones analizadas en la librería es inferior a 4
+  - *Resolución:* el algoritmo aborta la ejecución de forma limpia y reporta estado `SIN_DATOS`.
+- **Semántico:** todas las canciones de la librería tienen el mismo BPM exacto
+  - *Resolución:* el algoritmo no puede calcular curvas de progresión (Campana o Escalada); únicamente genera colecciones de tipo Lineal y reporta estado `SÓLO_LINEALES`.
 
 Catálogo global: [[07-modelo-errores]]
 

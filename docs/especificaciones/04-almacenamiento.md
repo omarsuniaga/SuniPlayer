@@ -31,6 +31,7 @@ El almacenamiento se organiza en tres capas según el ciclo de vida del dato: la
 
 - Datos estructurados para respaldar en la nube → [[14-sync-engine]]
 - Datos locales de uso para estadísticas → [[05-telemetria]]
+- Datos locales a respaldar → [[06-modelo-backup-sync]]
 
 ## Errores
 

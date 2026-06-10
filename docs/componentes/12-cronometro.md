@@ -36,6 +36,85 @@ Registrar de forma precisa la duración de la sesión actual; gestionar el cron�
 3. **Cronómetro de Set (Edit):**
    - Suma estática de la duración efectiva de todos los tracks asignados al Set para validación del músico.
 
+### Diagrama de flujo
+
+```text
+           ┌──────────────────┐
+           │  INICIO APP      │
+           └────────┬─────────┘
+                    │
+                    ▼
+           ┌──────────────────┐
+           │  INICIAR         │
+           │  CRONÓMETRO      │
+           │  SESIÓN          │
+           │  (background)    │
+           └────────┬─────────┘
+                    │
+                    ▼
+            ┌──────────────┐
+            │  ¿MODO SHOW  │
+            │  ACTIVO?     │
+            └──────┬───────┘
+                   │
+             ┌─────┴─────┐
+             │           │
+          [SÍ]▼           ▼[NO]
+         ┌────────┐ ┌──────────────┐
+         │ INICIAR│ │ SEGUIR SOLO  │
+         │ CRONO  │ │ CRONO SESIÓN │
+         │ SHOW   │ └──────────────┘
+         └───┬────┘
+             │
+             ▼
+      ┌──────────────┐
+      │  ¿COUNTDOWN  │
+      │  O ASCEND.   │
+      └──────┬───────┘
+             │
+        ┌────┴────┐
+        │         │
+     [SÍ]▼         ▼[NO]
+   ┌────────┐ ┌──────────┐
+   │ACTIVAR │ │ CONTADOR │
+   │COUNTDWN│ │ ASCENDENT│
+   │CON DURA│ │ (tiempo  │
+   │OBJETIVO│ │ transcur.)│
+   └───┬────┘ └────┬─────┘
+       │           │
+       ▼           │
+  ┌──────────┐     │
+  │ MONITOREAR│     │
+  │ HITOS    │     │
+  └────┬─────┘     │
+       │           │
+  ┌────┴─────┐     │
+  │          │     │
+  ▼          ▼     │
+ ┌────┐ ┌────────┐ │
+ │10m │ │5m rest │ │
+ │rest│ │→ danger│ │
+ │→ wa│ └────────┘ │
+ │rning│    │      │
+ └─────┘    ▼      │
+       ┌────────┐  │
+       │TIEMPO  │  │
+       │CUMPLIDO│  │
+       │(flash) │  │
+       └────────┘  │
+           │       │
+           └───┬───┘
+               │
+               ▼
+    ┌─────────────────────────┐
+    │  FIN SHOW               │
+    │  REPORTAR               │
+    │  DURACIÓN →             │
+    │  [[04-almacenamiento]]  │
+    │  + telemetría           │
+    └─────────────────────────┘
+```
+
 ## Salida
 
 - Tiempos de ejecución y alertas visuales de hitos → [[04-vista-show]]
@@ -48,7 +127,8 @@ Registrar de forma precisa la duración de la sesión actual; gestionar el cron�
 
 - **Lógico:** el temporizador intenta ejecutarse mientras la sesión del dispositivo está suspendida (ej. pantalla apagada o cambio de app en segundo plano).
   - *Resolución:* El componente calcula la diferencia de tiempo real utilizando marcas de tiempo de Unix del sistema (`Date.now()`) al reactivarse, en lugar de confiar únicamente en loops de JS (`setInterval`), evitando pérdidas de sincronía.
-- **Semántico:** la duración del set es de 0 y el músico inicia la cuenta regresiva en el show — la operación se bloquea y se reporta error.
+- **Semántico:** la duración del set es de 0 y el músico inicia la cuenta regresiva en el show
+  - *Resolución:* la operación se bloquea y se reporta error.
 
 Catálogo global: [[07-modelo-errores]]
 
@@ -68,3 +148,92 @@ Catálogo global: [[07-modelo-errores]]
 ### 3. Cronómetro de Set (en Edit)
 - Muestra la duración total de las canciones del set de forma estática.
 - Ayuda al músico a saber si su set entra en el tiempo asignado.
+
+---
+
+## Interacción
+
+**Tipo:** display (cronómetros de solo lectura) + toggle (countdown/ascendente) + progress-bar (visualización de tiempo restante) + alert (notificación visual de hitos)
+
+**Estados y transiciones:**
+- Sesión activa → [abrir app] → Crono sesión corriendo
+- Show inactivo → [entrar a modo show] → Crono show iniciado
+- Show activo → [togle countdown ON] → Countdown con duración objetivo
+- Show activo → [toggle countdown OFF] → Ascendente (tiempo transcurrido)
+- Countdown → [quedan 10 min] → Alerta warning (amarillo)
+- Countdown → [quedan 5 min] → Alerta danger (rojo)
+- Countdown → [tiempo = 0] → Alerta overrun (parpadeo)
+- Show activo → [salir de modo show] → Crono show detenido + reporte
+
+**Comportamiento por estado:**
+- **Sesión corriendo:** Display pequeño en barra de estado. Formato «HH:MM:SS». Solo lectura.
+- **Show: ascendente:** Display grande en centro de vista show. Muestra tiempo transcurrido + tiempo de cola + estimado total.
+- **Show: countdown:** Display grande con tiempo restante. Barra de progreso circular o lineal.
+- **Alerta warning (10 min):** Texto en amarillo. Barra de progreso al 75%+.
+- **Alerta danger (5 min):** Texto en rojo. Barra de progreso al 90%+. Sin sonidos (regla de seguridad).
+- **Alerta overrun:** Texto en rojo con parpadeo CSS. Muestra «+XX:XX» de excedente.
+- **Set (Edit):** Display estático. Solo suma de duraciones de tracks.
+
+---
+
+## Estilos CSS
+
+**.ui-timer-session**
+- font-size: 11px; font-variant-numeric: tabular-nums
+- .theme-dark: color: rgba(255,255,255,0.4)
+- .theme-light: color: rgba(0,0,0,0.4)
+
+**.ui-timer-show**
+- font-size: 48px; font-weight: bold; font-variant-numeric: tabular-nums; text-align: center
+- .theme-dark: color: #fff
+- .theme-light: color: #1a1a1a
+
+**.ui-timer-show--ascending**
+- font-size: 56px; letter-spacing: 2px
+
+**.ui-timer-show--countdown**
+- font-size: 64px; letter-spacing: 4px
+
+**.ui-timer-label**
+- font-size: 12px; text-align: center
+- .theme-dark: color: rgba(255,255,255,0.5)
+- .theme-light: color: rgba(0,0,0,0.5)
+
+**.ui-timer-progress-bar**
+- width: 100%; height: 6px; border-radius: 3px; overflow: hidden
+- .theme-dark: background: rgba(255,255,255,0.1)
+- .theme-light: background: rgba(0,0,0,0.08)
+- &::-webkit-progress-value: border-radius: 3px; transition: width 0.5s
+
+**.ui-timer-progress-bar--normal**
+- &::-webkit-progress-value: background: #4CAF50
+
+**.ui-timer-progress-bar--warning**
+- &::-webkit-progress-value: background: #FF9800
+
+**.ui-timer-progress-bar--danger**
+- &::-webkit-progress-value: background: #F44336
+
+**.ui-timer-progress-bar--overrun**
+- &::-webkit-progress-value: background: #F44336; animation: pulse 1s infinite
+
+**.ui-timer-alert--warning**
+- color: #FF9800 !important
+
+**.ui-timer-alert--danger**
+- color: #F44336 !important
+
+**.ui-timer-alert--overrun**
+- color: #F44336 !important; animation: flash 1s infinite
+- @keyframes flash { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+**.ui-timer-toggle**
+- display: flex; gap: 8px; align-items: center; justify-content: center
+- font-size: 13px
+- .theme-dark: color: rgba(255,255,255,0.6)
+- .theme-light: color: rgba(0,0,0,0.6)
+
+**.ui-timer-set**
+- font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums
+- .theme-dark: color: rgba(255,255,255,0.7)
+- .theme-light: color: rgba(0,0,0,0.7)

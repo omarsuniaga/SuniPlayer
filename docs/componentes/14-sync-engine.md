@@ -30,6 +30,69 @@ Ejecutar las tareas de respaldo, descarga y mezcla de datos estructurados entre 
    - Actualiza la base de datos local en [[04-almacenamiento]] y limpia la cola de transacciones locales.
 4. **Estado de Sincronización:** Reporta el progreso (Sincronizando, Sincronizado, Error de red) a la vista de perfil.
 
+### Diagrama de flujo
+
+```text
+        ┌──────────────────┐
+        │  EVENTO RED      │
+        │  online/offline  │
+        └────────┬─────────┘
+                 │
+                 ▼
+          ┌──────────────┐
+          │  ¿ESTADO     │
+          │  ONLINE?     │
+          └──────┬───────┘
+                 │
+           ┌─────┴─────┐
+           │           │
+        [SÍ]▼           ▼[NO]
+       ┌────────┐ ┌──────────────┐
+       │ ¿COLA  │ │ ENCOLAR      │
+       │ LOCAL  │ │ MUTACIONES   │
+       │ VACÍA? │ │ LOCALES      │
+       └───┬────┘ └──────────────┘
+           │
+      ┌────┴────┐
+      │         │
+   [SÍ]▼         ▼[NO]
+  ┌────────┐ ┌──────────────┐
+  │ SINCR. │ │ AUTENTICAR   │
+  │ AL DÍA │ │ + ENVIAR     │
+  │ (idle) │ │ MUTACIONES   │
+  └────────┘ └──────┬───────┘
+                    │
+                    ▼
+             ┌──────────────┐
+             │ DESCARGAR    │
+             │ MUTACIONES   │
+             │ REMOTAS      │
+             └──────┬───────┘
+                    │
+                    ▼
+             ┌──────────────┐
+             │ ¿HAY        │
+             │ CONFLICTOS? │
+             └──────┬───────┘
+                    │
+              ┌─────┴─────┐
+              │           │
+           [SÍ]▼           ▼[NO]
+          ┌────────┐ ┌──────────────┐
+          │ APLICAR│ │ ACTUALIZAR   │
+          │ LWW    │ │ DB LOCAL     │
+          │ c/conf.│ │ LIMPIAR COLA │
+          └───┬────┘ └──────┬───────┘
+              │             │
+              └──────┬──────┘
+                     ▼
+          ┌──────────────────────┐
+          │ REPORTAR             │
+          │ ESTADO A             │
+          │ [[06-vista-perfil]]  │
+          └──────────────────────┘
+```
+
 ## Salida
 
 - Escribe y lee registros estructurados → base de datos externa (físico)
@@ -44,3 +107,90 @@ Ejecutar las tareas de respaldo, descarga y mezcla de datos estructurados entre 
   - *Resolución:* Rechaza la mezcla remota, conserva los datos locales intactos y registra la excepción en el log local.
 
 Catálogo global: [[07-modelo-errores]]
+
+---
+
+## Interacción
+
+**Tipo:** toggle (sync automático ON/OFF) + button (sync manual: «Sincronizar ahora») + badge (estado de conexión) + progress-bar (progreso de sync)
+
+**Estados y transiciones:**
+- ONLINE → [red ok] → Conectado
+- OFFLINE → [red perdida] → Desconectado
+- Conectado + auto-sync ON → [mutación local] → Sincronizando
+- Sincronizando → [ok] → Sincronizado
+- Sincronizando → [error de red] → Error de red
+- Sincronizando → [sesión expirada] → Error de autenticación
+- Sincronizado → [sin cambios] → Al día (idle)
+- Cualquiera → [tap «Sincronizar ahora»] → Sincronizando (forzado)
+- Error → [recuperar red] → Sincronizando (automático)
+- Error → [toggle OFF/ON] → reintento
+
+**Comportamiento por estado:**
+- **Conectado:** Indicador verde «🟢 En línea». Sync automático activo.
+- **Desconectado:** Indicador gris «⚫ Sin conexión». Los cambios se encolan localmente.
+- **Sincronizando:** Barra de progreso indeterminada + texto «Sincronizando…».
+- **Sincronizado:** Badge verde «✅ Sincronizado» + timestamp última sync.
+- **Al día:** Badge «💤 Al día» sin necesidad de sync.
+- **Error de red:** Badge rojo «🔴 Error de red». Botón «Reintentar».
+- **Error de autenticación:** Badge naranja «🟠 Sesión expirada». Botón «Iniciar sesión».
+
+---
+
+## Estilos CSS
+
+**.ui-sync-status-bar**
+- display: flex; align-items: center; justify-content: space-between; padding: 8px 16px
+- border-radius: 8px; font-size: 13px
+- .theme-dark: background: rgba(255,255,255,0.03)
+- .theme-light: background: rgba(0,0,0,0.02)
+
+**.ui-sync-badge**
+- display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 10px; font-size: 12px
+
+**.ui-sync-badge--online**
+- .theme-dark: background: rgba(76,175,80,0.15); color: #4CAF50
+- .theme-light: background: rgba(76,175,80,0.1); color: #2E7D32
+
+**.ui-sync-badge--offline**
+- .theme-dark: background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4)
+- .theme-light: background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.4)
+
+**.ui-sync-badge--syncing**
+- .theme-dark: background: rgba(33,150,243,0.15); color: #2196F3
+- .theme-light: background: rgba(33,150,243,0.1); color: #1565C0
+
+**.ui-sync-badge--synced**
+- .theme-dark: background: rgba(76,175,80,0.15); color: #4CAF50
+- .theme-light: background: rgba(76,175,80,0.1); color: #2E7D32
+
+**.ui-sync-badge--error**
+- .theme-dark: background: rgba(244,67,54,0.15); color: #F44336
+- .theme-light: background: rgba(244,67,54,0.1); color: #C62828
+
+**.ui-sync-badge--auth-error**
+- .theme-dark: background: rgba(255,152,0,0.15); color: #FF9800
+- .theme-light: background: rgba(255,152,0,0.1); color: #E65100
+
+**.ui-sync-timestamp**
+- font-size: 11px
+- .theme-dark: color: rgba(255,255,255,0.3)
+- .theme-light: color: rgba(0,0,0,0.3)
+
+**.ui-sync-btn**
+- padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; border: none
+- .theme-dark: background: rgba(255,255,255,0.08); color: #fff
+- .theme-light: background: rgba(0,0,0,0.04); color: #333
+- &:hover: background: #FF9800; color: #fff
+- &:active: transform: scale(0.97)
+- &:disabled: opacity: 0.4; cursor: not-allowed
+
+**.ui-sync-toggle**
+- appearance: switch; cursor: pointer; font-size: 12px
+- .theme-dark: accent-color: #4CAF50; .theme-light: accent-color: #388E3C
+
+**.ui-sync-progress**
+- width: 100%; height: 3px; border-radius: 2px
+- .theme-dark: background: rgba(255,255,255,0.08)
+- .theme-light: background: rgba(0,0,0,0.05)
+- &::-webkit-progress-value: background: #2196F3; border-radius: 2px

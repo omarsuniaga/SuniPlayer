@@ -31,13 +31,87 @@ Coordinar el transporte de datos y sincronización de red entre múltiples dispo
    - Aplica una compensación por la latencia de salida de hardware estimada de cada dispositivo (~10-20ms).
 4. **Tránsito de Audio (Precarga):** Transmite bloques binarios cifrados del track actual hacia la memoria volátil del Invitado antes de que deban sonar en la QuouList.
 
+### Diagrama de flujo
+
+```text
+  ┌──────────────────┐
+  │  ANFITRIÓN       │
+  │  INICIA SESIÓN   │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  ABRIR CANALES   │
+  │  WebRTC a cada   │
+  │  INVITADO        │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  INTERCAMBIO NTP │
+  │  ping/pong para  │
+  │  medir RTT       │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  ¿RTT < 150ms?   │
+  └──────┬───────────┘
+         │
+    ┌────┴────┐
+    │         │
+ [SÍ]▼         ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ CALCULAR│ │ REPORTAR     │
+ │ DESFASE│ │ ERROR LAG    │
+ │ RELOJ  │ │ EXCESIVO     │
+ │ lógico │ │ INTERRUMPIR  │
+ └───┬────┘ │ EN INVITADO  │
+     │      └──────────────┘
+     ▼
+ ┌──────────────┐
+ │ PRECARGAR    │
+ │ BUFFER DE    │
+ │ AUDIO A      │
+ │ INVITADOS    │
+ └──────┬───────┘
+        │
+        ▼
+ ┌──────────────┐
+ │ ¿BUFFER      │
+ │ COMPLETO?    │
+ └──────┬───────┘
+        │
+   ┌────┴────┐
+   │         │
+ [SÍ]▼         ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ ENVIAR │ │ ESPERAR      │
+ │ playAt │ │ CARGA        │
+ │ (T     │ │ SUSPENDER    │
+ │ unix)  │ │ DISPARO      │
+ │ + comp.│ └──────────────┘
+ │ latencia│
+ └───┬────┘
+     │
+     ▼
+ ┌──────────────┐
+ │ CADA         │
+ │ DISPOSITIVO  │
+ │ REPRODUCE EN │
+ │ INSTANTE T   │
+ └──────────────┘
+```
+
 ## Salida
 
 - Comandos programados de arranque en instante T (`playAt()`) → [[01-audio-engine]]
 
 ## Errores
 
-- **Lógico (Lag Excesivo):** el RTT de la red local supera los 150ms — el componente reporta error de sincronía e interrumpe la reproducción en el Invitado afectado para evitar cacofonía.
-- **Semántico:** un cliente Invitado intenta iniciar reproducción sin haber recibido el buffer de audio completo de precarga — se suspende el disparo y se reporta error de carga.
+- **Lógico (Lag Excesivo):** el RTT de la red local supera los 150ms
+  - *Resolución:* el componente reporta error de sincronía e interrumpe la reproducción en el Invitado afectado para evitar cacofonía.
+- **Semántico:** un cliente Invitado intenta iniciar reproducción sin haber recibido el buffer de audio completo de precarga
+  - *Resolución:* se suspende el disparo y se reporta error de carga.
 
 Catálogo global: [[07-modelo-errores]]

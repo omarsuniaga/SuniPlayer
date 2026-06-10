@@ -18,6 +18,8 @@ Mostrar la interfaz de control de reproducción de alto rendimiento en tiempo re
 - Marcadores y comentarios de la línea de tiempo ← [[07-marcadores]]
 - Configuración de tema visual (Dark/Light/System) ← [[13-tema]]
 - Entrada de comandos mapeados de pedalera física ← [[15-sesion-audio]]
+- Gráfica de ondas interactiva y gestos de seek ← [[06-grafica-ondas]]
+- Visualización de partituras asociadas ← [[09-partituras]]
 
 ## Proceso
 

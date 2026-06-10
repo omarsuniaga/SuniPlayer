@@ -44,6 +44,7 @@ Proveer la interfaz táctil de alta visibilidad para presentaciones en vivo (Mod
 - Comandos de reproducción simplificados y Mute de Pánico → [[01-audio-engine]]
 - Encendido y apagado de la cámara flotante → [[08-mirror]]
 - Solicitud de combinación de tracks para rellenar tiempo restante → [[18-completador-set]]
+- Visualización e interacción de partitura en vivo → [[09-partituras]]
 
 ## Errores
 
