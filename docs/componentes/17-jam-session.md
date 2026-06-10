@@ -115,3 +115,137 @@ Coordinar el transporte de datos y sincronización de red entre múltiples dispo
   - *Resolución:* se suspende el disparo y se reporta error de carga.
 
 Catálogo global: [[07-modelo-errores]]
+
+---
+
+## Roles
+
+### Anfitrión (Host)
+- Inicia la sesión de Jam
+- Abre canales WebRTC con cada Invitado
+- Ejecuta el algoritmo NTP con cada Invitado
+- Envía el comando `playAt(timestamp_unix)` a todos los Invitados
+- Es la fuente de verdad del estado de reproducción
+
+### Invitado (Guest)
+- Se une a una sesión existente
+- Participa en el intercambio NTP
+- Recibe buffer de audio de precarga
+- Ejecuta `playAt()` en el instante T exacto
+- Reporta su estado (buffer listo, reproducido, error)
+
+---
+
+## Formato de mensajes (protocolo interno)
+
+### Ping/Pong NTP
+```json
+{
+  "tipo": "ntp_ping" | "ntp_pong",
+  "originante": "host" | "guest",
+  "t1": 1718042400000,
+  "t2": 1718042400010,
+  "t3": 1718042400015
+}
+```
+- `t1`: timestamp de envío del ping (Host)
+- `t2`: timestamp de recepción del ping (Guest)
+- `t3`: timestamp de envío del pong (Guest)
+- El Host calcula RTT = (ahora - t1) y desfase = (t2 + (RTT/2)) - t1
+
+### Comando playAt
+```json
+{
+  "tipo": "comando_playat",
+  "instante_absoluto": 1718042405300,
+  "cancion_id": "uuid-de-la-cancion",
+  "compensacion_hardware_ms": 15,
+  "timestamp_envio": 1718042405285
+}
+```
+- `instante_absoluto`: timestamp Unix en ms para disparar reproducción
+- `compensacion_hardware_ms`: latencia estimada de salida de audio del dispositivo
+
+### Estado
+```json
+{
+  "tipo": "reporte_estado",
+  "dispositivo_id": "uuid-unico",
+  "estado": "buffer_listo" | "reproduciendo" | "error",
+  "timestamp_local": 1718042405310
+}
+```
+
+---
+
+## Máquina de estados de conexión
+
+```text
+┌──────────┐
+│ DESCONEC.│
+└────┬─────┘
+     │ iniciar/unirse sesión
+     ▼
+┌──────────┐
+│ CONECT.  │
+│ (canales │
+│ WebRTC   │
+│ abiertos)│
+└────┬─────┘
+     │ NTP ping/pong exitoso (RTT < 150ms)
+     ▼
+┌──────────┐
+│ SINCRON. │
+│ (reloj   │
+│ lógico   │
+│ corregido)│
+└────┬─────┘
+     │ buffer de audio precargado
+     ▼
+┌──────────┐
+│ LISTO    │
+│ (espera  │
+│ playAt)  │
+└────┬─────┘
+     │ recibe playAt(T)
+     ▼
+┌──────────┐
+│ REPROD.  │
+│ (audio   │
+│ sincrono)│
+└────┬─────┘
+     │ canción termina
+     ▼
+┌──────────┐
+│ ESPERA   │
+│ (siguiente│
+│ comando  │
+│ o fin    │
+│ sesión)  │
+└──────────┘
+```
+
+### Transiciones de error
+- Cualquier estado → [RTT > 150ms] → ERROR_LAG → DESCONECTADO
+- Cualquier estado → [timeout > 5s sin mensaje] → ERROR_TIMEOUT → DESCONECTADO
+- Cualquier estado → [buffer no disponible en precarga] → ERROR_BUFFER
+- ERROR_BUFFER → [reintento] → SINCRONIZADO (reintenta precarga)
+- DESCONECTADO → [reconexión manual] → CONECTADO
+
+---
+
+## Configuración WebRTC
+- ICE servers: STUN público (google, cloudflare) + TURN opcional si hay NAT restrictivo
+- Canales de datos: RTCDataChannel con protocolo UDP (ordenado, no fiable para baja latencia)
+- Negociación: Offer/Answer con el Host como peers
+- Codificación de datos: JSON para señalización, ArrayBuffer para chunks de audio binario
+
+---
+
+## Dependencias técnicas
+- WebRTC API (RTCPeerConnection, RTCDataChannel)
+- AudioContext.currentTime como reloj de alta resolución (precisión de ms)
+- Chunks de audio: 4096 samples @ 44100 Hz (~93ms por chunk)
+- Buffer de precarga: mínimo 2 chunks (186ms) antes de playAt
+- Tamaño máximo de chunk de audio: 64KB
+- Desfase máximo tolerable entre dispositivos: ±20ms para que sea imperceptible

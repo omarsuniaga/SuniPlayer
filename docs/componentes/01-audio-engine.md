@@ -16,6 +16,7 @@ Cargar, decodificar y reproducir archivos de audio; mantener la cola de reproduc
 - Canción con todas sus propiedades ← [[01-modelo-audio]]
 - Fuente de reproducción (playlist, set, colección) ← [[02-modelo-colecciones]]
 - Órdenes de reproducción (play/pause/stop/next/prev/seek/volumen/mute/shuffle) ← [[02-vista-reproductor]]
+- Órdenes de reproducción simplificadas (play/pause/next) desde footer persistente ← [[19-minireproductor]]
 - Órdenes limitadas en modo Show (siguiente, mute de pánico) ← [[04-vista-show]]
 - Pausa o reanudación por interrupción del sistema o desconexión de salida ← [[15-sesion-audio]]
 - Puntos de salto para Loop A-B ← [[07-marcadores]]
@@ -122,6 +123,7 @@ Cargar, decodificar y reproducir archivos de audio; mantener la cola de reproduc
 - Evento de transición al motor de fades → [[05-fade-engine]]
 - Datos de onda y posición del cabezal → [[06-grafica-ondas]]
 - Estado de reproducción (modo, posición, canción activa) → [[02-vista-reproductor]]
+- Estado de reproducción y track activo para footer persistente → [[19-minireproductor]]
 - Estado de reproducción para sincronía multi-dispositivo → [[17-jam-session]]
 - Posición de reproducción para tooltips/Loop A-B → [[07-marcadores]]
 - Señal de audio procesada → parlantes o auriculares (físico)

@@ -56,6 +56,7 @@ modified: 2026-06-10
 | [[componentes/16-ecualizador]] | Ajuste de ganancia de 3-5 bandas frecuencias | Estable |
 | [[componentes/17-jam-session]] | Servidor/Cliente WebRTC LAN para sincronía de red | Borrador (Fase 2) |
 | [[componentes/18-completador-set]] | Sugerencia de relleno por duración efectiva | Estable |
+| [[componentes/19-minireproductor]] | Footer persistente con controles mínimos de reproducción entre vistas | Estable |
 
 ## 📚 Diccionarios e Índices Transversales
 
@@ -76,7 +77,7 @@ Para conocer los términos oficiales de Suniplayer (QuouList, Set, Tempo vs. BPM
 
 - ✅ **Especificaciones**: 9/9 completas (8 estables, 1 borrador de Fase 2)
 - ✅ **Vistas**: 6/6 completas
-- ✅ **Componentes**: 18/18 completos (17 estables, 1 borrador de Fase 2)
+- ✅ **Componentes**: 19/19 completos (18 estables, 1 borrador de Fase 2)
 - ✅ **Diccionarios e Índices**: 3/3 completos
 - ⏳ **Código**: Pendiente (próxima fase)
 

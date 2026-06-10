@@ -18,6 +18,7 @@ Definir los cuatro tipos de agrupación de canciones que existen en Suniplayer (
 - Colecciones de curva calculadas ← [[10-algoritmo-mood]]
 - Asignación de canciones a colecciones desde la UI ← [[03-vista-libreria]]
 - Items confirmados por el músico hacia la QuouList ← [[18-completador-set]]
+- Consulta de próximo track en la QuouList desde footer ← [[19-minireproductor]]
 
 ## Proceso
 
@@ -32,6 +33,7 @@ El modelo distingue colecciones creadas por el usuario (Playlist, Set, QuouList)
 - Base de la cola compartida en sesión multi-dispositivo → [[08-modelo-jam-session]]
 - Duración objetivo del Set para la cuenta regresiva → [[12-cronometro]]
 - Canciones candidatas con su duración efectiva → [[18-completador-set]]
+- Siguiente track en cola para preview en footer → [[19-minireproductor]]
 
 ## Errores
 

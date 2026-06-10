@@ -31,6 +31,7 @@ El comportamiento ante interrupciones externas (llamadas, alarmas, desconexión 
 - Señal de inicio/fin de modos para los cronómetros → [[12-cronometro]]
 - Qué datos de sesión persistir → [[04-almacenamiento]]
 - Política de interrupciones por modo → [[15-sesion-audio]]
+- Estado de modo activo (Escucha/Edit/Show) para UI persistente → [[19-minireproductor]]
 
 ## Errores
 

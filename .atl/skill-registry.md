@@ -84,6 +84,26 @@ Subagents still read their assigned executor/phase skill. During normal runtime,
   - Match thread language: Write in the thread/user language. If writing in Spanish, use Rioplatense Spanish/voseo: `podés`, `tenés`, `fijate`, `dale`.
   - No em dashes: Use commas, periods, or parentheses instead.
 
+### component-creator
+- Path: C:\Users\omare\.config\opencode\skills\component-creator\SKILL.md
+- Trigger: Trigger: nuevo componente, crear componente, new component, define feature, crear vista, nueva vista, new view, wireframe. Define and document new components, views, or specifications in the Suniplayer documental grafo format — pure logic, process flow, contract, interaction pattern, modal spec, CSS, wireframe, and aristas.
+- Rules:
+  - `origen` es obligatorio (salvo INDEX.md). Usa `[[nombre-sin-extension]]`.
+  - El formato `[[...]]` es lo que Obsidian interpreta como arista en su grafo.
+  - Usar SIEMPRE `[[ruta/relativa/sin-extension]]` (ej: `[[especificaciones/00-vision-general]]`).
+  - NO usar `[[docs/especificaciones/00-vision-general.md]]`.
+  - En Entrada/Salida: `← [[source]]` / `→ [[target]]`.
+  - En `origen`: `origen: "[[wikilink]]"` (entre comillas dobles).
+  - **Type**: toggle | button | modal-trigger | hold-to-confirm | slider | dropdown | gesture | icon-button | segmented-control | list-item | card | etc.
+  - **States and transitions**: each possible state and how it transitions between them
+  - CSS class names for each visual state
+  - Dark/light variant overrides
+  - Hover/active/focus/disabled states
+  - Sizing and positioning hints
+  - Need: Action
+  - User says "componente": `tipo: componente`, generate wireframe + interaction pattern if visual
+  - User says "vista" / "pantalla": `tipo: vista`, ALWAYS wireframe + interaction pattern + modal spec for each modal
+
 ### find-skills
 - Path: C:\Users\omare\.agents\skills\find-skills\SKILL.md
 - Rules:
@@ -232,29 +252,6 @@ Subagents still read their assigned executor/phase skill. During normal runtime,
 - Trigger: Use when debugging the SuniPlayer native Expo/React Native app — crashes, audio problems, Zustand state errors, navigation failures, Android/iOS build issues, or any unexpected behavior in apps/native
 - Rules:
   - No compact rules declared; delegators should load the full skill file before direct work, or pass an explicit fallback path only when Project Standards cannot be injected.
-
-### component-creator
-- Path: C:\Users\omare\.config\opencode\skills\component-creator\SKILL.md
-- Trigger: Trigger: nuevo componente, crear componente, new component, define feature, crear vista, nueva vista, new view, wireframe. Define and document new components, views, or specifications in the Suniplayer documental grafo format — pure logic, process flow, contract, interaction pattern, modal spec, CSS, wireframe, and aristas.
-- Rules:
-  - **Contract format MANDATORY**: `## Función` → `## Entrada` → `## Proceso` → `## Salida` → `## Errores` with wikilinks.
-  - **Frontmatter**: `ruta`, `tipo`, `origen: "[[wikilink]]"`, `estado`.
-  - **Obsidian wikilinks**: `[[ruta/sin-extension]]`. No `.md`, no `docs/` prefix.
-  - **Interaction pattern required**: Define type (toggle/button/modal-trigger/etc.), states, transitions.
-  - **Modal spec** (if applicable): Fields, validation, values collected, submit/cancel.
-  - **CSS style guide**: Classes per state, dark/light overrides, hover/active/disabled.
-  - **Process diagram**: ASCII flow diagram for decision logic (if/then/else forks, error paths).
-  - **Wireframe ASCII**: Views and UI components get wireframes with `.theme-dark` / `.theme-light`.
-  - **Errors**: 1 lógico + 1 semántico, each with `*Resolución:*`. End with `[[07-modelo-errores]]`.
-  - **Reciprocity**: Every `← entrada` needs `→ salida` in source (except indices/dictionaries).
-  - **Zero code**: Pure logic, no stack.
-  - Condition: Action
-  - "componente": `tipo: componente`, wireframe + interaction if visual
-  - "vista" / "pantalla": `tipo: vista`, ALWAYS wireframe + interaction + modal spec
-  - "especificacion" / "modelo": `tipo: especificacion`, NO wireframe, NO interaction
-  - has modal: Generate modal spec with fields and validation
-  - is toggle/switch: Define ON/OFF states, CSS per state
-  - Fase 2: `estado: borrador` + FASE 2 banner
 
 ### work-unit-commits
 - Path: C:\Users\omare\.config\agents\skills\work-unit-commits\SKILL.md

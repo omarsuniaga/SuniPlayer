@@ -14,6 +14,7 @@ Mostrar la interfaz de control de reproducción de alto rendimiento en tiempo re
 ## Entrada
 
 - Navegación al reproducir un track ← [[01-vista-inicio]]
+- Navegación desde tap en minireproductor ← [[19-minireproductor]]
 - Estado de reproducción, posición y streams de audio ← [[01-audio-engine]]
 - Marcadores y comentarios de la línea de tiempo ← [[07-marcadores]]
 - Configuración de tema visual (Dark/Light/System) ← [[13-tema]]

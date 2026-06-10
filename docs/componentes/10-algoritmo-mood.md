@@ -196,3 +196,56 @@ Para cada tipo de colección, seleccionar las N canciones que mejor se ajusten a
 - Se descartan tracks con confianza < 50%
 - Mínimo 4 tracks por colección
 - Duración total mínima: 10 minutos
+
+---
+
+## Pseudocódigo
+
+### Generación de Colección Lineal
+```
+function generarLineal(tracks):
+    agrupados = agruparPorBPM(tracks, tolerancia=5)
+    for grupo in agrupados:
+        if len(grupo) >= 4 and duracionTotal(grupo) >= 600:
+            ordenarPorDuracionAsc(grupo)
+            crearColeccion("LINEAL", grupo, BPM_promedio=promedio(grupo.bpm))
+```
+
+### Generación de Colección Curva (Campana)
+```
+function generarCurva(tracks):
+    ordenados = ordenarPorBPMAsc(tracks)
+    if len(ordenados) < 4: return
+    pico = len(ordenados) - 1  // índice del BPM máximo
+    subida = ordenados[0:pico+1]
+    bajada = reversed(ordenados[0:pico])
+    curva = concatenar(subida, bajada)
+    if len(curva) >= 4 and duracionTotal(curva) >= 600:
+        crearColeccion("CURVA", curva)
+```
+
+### Generación de Colección Exponencial (Escalada)
+```
+function generarEscalada(tracks):
+    ordenados = ordenarPorBPMAsc(tracks)
+    escalada = []
+    for track in ordenados:
+        if escalada is empty:
+            escalada.append(track)
+        else:
+            diff = track.bpm - escalada[-1].bpm
+            if diff >= 3:
+                escalada.append(track)
+    if len(escalada) >= 4 and duracionTotal(escalada) >= 600:
+        crearColeccion("EXPONENCIAL", escalada)
+```
+
+### Generación de Colección "Más Reproducidas"
+```
+function generarMasReproducidas(tracks):
+    con_contador = [t for t in tracks if t.contador > 0]
+    ordenados = ordenarPorContadorDesc(con_contador)
+    top = ordenados[:limite_sugerido=20]
+    if len(top) >= 4:
+        crearColeccion("MAS_REPRODUCIDAS", top, criterio="contador")
+```
