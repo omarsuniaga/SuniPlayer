@@ -1,8 +1,50 @@
+---
+ruta: docs/vistas/03-vista-libreria.md
+tipo: vista
+origen: "[[01-vista-inicio]]"
+estado: estable
+---
+
 # Vista Librería
 
-## ¿Qué es?
+## Función
 
-El explorador de archivos de Suniplayer. Desde acá el usuario navega el sistema de archivos de su dispositivo, selecciona audios para importar, y administra su biblioteca musical.
+Proveer la interfaz del explorador de archivos para la biblioteca local; permitir la importación masiva de audios desde el filesystem del dispositivo; y administrar las operaciones lógicas de biblioteca (búsqueda, filtros por energía, reanálisis de BPM, caché local offline y vinculación de partituras).
+
+## Entrada
+
+- filesystem del dispositivo (físico)
+- Solicitudes de navegación e importación ← [[01-vista-inicio]]
+- Colecciones y resultados de filtros estructurales ← [[11-filtros]]
+- Estilos y variables CSS del tema activo ← [[13-tema]]
+
+## Proceso
+
+1. **Carga e Importación:** Abre un explorador nativo del dispositivo (`<input type="file" multiple>`).
+   - Copia los audios seleccionados (.mp3, .wav, .flac, .ogg, .m4a) al almacenamiento local seguro gestionado por [[04-almacenamiento]].
+   - Dispara automáticamente el análisis en segundo plano de [[04-bpm-analyzer]].
+2. **Visualización de la Lista (Foco en Alto Contraste):**
+   - Muestra filas compactas con: título visible del track, duración, BPM, clase CSS de nivel de energía y estado de caché local (estrella de favorito).
+   - *No se reservan espacios para portadas de discos en las listas.*
+3. **Menú Contextual (Tap y Mantener):**
+   - Abre un menú de acciones rápidas sobre un track: agregar a QuouList, cambiar volumen, o asociar un PDF/imagen como partitura (enlazada al componente [[09-partituras]]).
+4. **Búsqueda y Filtros:** Lee las búsquedas del usuario e interactúa con [[11-filtros]] para reducir la lista en tiempo real.
+
+## Salida
+
+- Instanciación y registro de pistas en el modelo de dominio → [[01-modelo-audio]]
+- Disparo de cálculo de BPM y energía al importar → [[04-bpm-analyzer]]
+- Asignación de tracks a Playlists o Sets → [[02-modelo-colecciones]]
+- Parámetros y términos de filtrado → [[11-filtros]]
+
+## Errores
+
+- **Lógico:** el archivo seleccionado por el usuario no tiene formato de audio compatible o está dañado.
+  - *Resolución:* La UI muestra la pista en gris (clase `.track-error`), añade el icono de advertencia `⚠️` e impide su reproducción con el aviso: "Formato no soportado o archivo corrupto".
+- **Semántico:** la búsqueda activa no tiene resultados.
+  - *Resolución:* Muestra el texto "No se encontraron canciones" con un botón de reset.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
@@ -10,9 +52,8 @@ El explorador de archivos de Suniplayer. Desde acá el usuario navega el sistema
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│  ████████████████████████████████████████████████████████████ │
-│  █  ← Volver            📂  LIBRERÍA                    █ │
-│  ████████████████████████████████████████████████████████████ │
+│  ← Volver            📂  LIBRERÍA                            │
+├──────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌─ Buscar ─────────────────────────────────────────────────┐ │
 │  │  🔍  Buscar en tu librería...                            │ │
@@ -29,12 +70,6 @@ El explorador de archivos de Suniplayer. Desde acá el usuario navega el sistema
 │  ╔══  ♫  Bachata Rosa.flac      ══  03:34  🔶118      ══╗ │ │
 │  ║   Nombre: Bachata Rosa                   Agregado: 08/06  ║ │
 │  ╚══════════════════════════════════════════════════════════╝ │
-│  ╔══  ♫  Rock Pesado.ogg        ══  03:21  🔶145   ⭐  ══╗ │
-│  ║   Nombre: Rock Pesado                    Agregado: 07/06  ║ │
-│  ╚══════════════════════════════════════════════════════════╝ │
-│  ╔══  ♫  Jazz Suave.mp3         ══  05:10  🔶85       ══╗ │ │
-│  ║   Nombre: Jazz Suave                     Agregado: 06/06  ║ │
-│  ╚══════════════════════════════════════════════════════════╝ │
 │                                                              │
 │  ─── 47 canciones  |  Pág 1 de 5  ──  [◀] [1] [2] [3] ▶  ─ │
 │                                                              │
@@ -49,153 +84,14 @@ El explorador de archivos de Suniplayer. Desde acá el usuario navega el sistema
 
 ---
 
-## Modos de la Librería
-
-### Modo 1: Librería importada (vista principal)
-
-Muestra todas las canciones que ya fueron importadas a Suniplayer.
-
-```text
-╔══  ♫  Salsa Brava.mp3        ══  03:45  🔶128   ⭐  ══╗
-║   Nombre: Salsa Brava                  Agregado: 10/06  ║
-╚══════════════════════════════════════════════════════════╝
-```
-
-**Cada fila muestra:**
-- ♫  → ícono de canción.
-- Nombre del archivo original.
-- Duración.
-- Indicador de energía por color + BPM:
-  - 🟢 Suave (60–85 BPM)
-  - 🟡 Media (86–115 BPM)
-  - 🔶 Alta (116–140 BPM)
-  - 🔴 Muy Alta (141–200 BPM)
-- ⭐ → si está guardada en cache local.
-
-**Se puede ordenar por:** nombre, fecha de importación, BPM, duración, más reproducidas.
-
-**Se puede filtrar por:** formato (mp3/wav/flac/ogg), rango de BPM, energía.
-
-**Al tocar una canción →** va al reproductor con esa canción cargada.
-
-**Acciones desde el menú contextual (tocar y mantener):**
+## Acciones desde el menú contextual (tocar y mantener)
 
 | Acción | Qué hace |
 |--------|----------|
-| Reproducir | Abre el reproductor con esta canción |
-| Agregar a playlist | Muestra lista de playlists para elegir |
-| Agregar a cola | Pone la canción en la QuouList |
-| Editar info | Abre un modal para cambiar el nombre visible y la imagen asociada. El nombre visible es el que aparece en la UI de Suniplayer y puede ser diferente al nombre del archivo original. El archivo físico en el filesystem no se toca ni se renombra — solo cambia cómo se muestra en la app. |
-| Ajustar tono/tempo | Abre los paneles de ajuste (atajo directo) |
-| Guardar en app | Cachea el archivo localmente para acceso offline |
-| Eliminar de librería | Quita la canción de la biblioteca (no borra el archivo original) |
-
-**Si no hay canciones importadas:**
-
-```text
-┌──────────────────────────────────────────────────────────┐
-│                                                          │
-│              ╔══════════════════════════╗                │
-│              ║    Tu librería está      ║                │
-│              ║         vacía            ║                │
-│              ║                          ║                │
-│              ║  Importá canciones       ║                │
-│              ║  desde tu dispositivo    ║                │
-│              ║                          ║                │
-│              ║   [📂 Importar archivos] ║                │
-│              ╚══════════════════════════╝                │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-```
-
-### Modo 2: Explorador de archivos (importación)
-
-Se activa al tocar "Importar archivos". Permite navegar el filesystem del dispositivo.
-
-```text
-┌─────── EXPLORADOR DE ARCHIVOS ───────────────────────────┐
-│                                                          │
-│  📁  /Music/                                             │
-│                                                          │
-│  📂  📁 Sets/                        12/06  24 files     │
-│  📂  📁 Ensayos/                     10/06  8 files      │
-│  📂  📁 Grabaciones/                 05/06  3 files      │
-│  📂  📁 Backing Tracks/              01/06  15 files     │
-│                                                          │
-│  Archivos seleccionados: 0                              │
-│                                                          │
-│  [Cancelar]                    [Importar seleccionados]  │
-└──────────────────────────────────────────────────────────┘
-```
-
-**Comportamiento:**
-- Muestra la estructura de carpetas del dispositivo.
-- Solo muestra archivos de formatos soportados (mp3, wav, flac, ogg, m4a).
-- El usuario puede seleccionar uno o varios archivos.
-- Al confirmar, los archivos se importan a la librería.
-
-**Flujo completo de importación:**
-```text
-1. Usuario toca "Importar archivos"
-2. Se abre el explorador nativo o el navegador de carpetas
-3. Usuario selecciona archivo(s)
-4. Suniplayer lee los metadatos y analiza BPM
-5. Aparece una barra de progreso:
-
-   ┌─────────────────────────────────────────────────────────┐
-   │  Importando 3 canciones...                              │
-   │  ████████████████░░░░░░░░░░░░░  65%                     │
-   │  ✔  Salsa Brava.mp3  —  BPM: 128                      │
-   │  ⟳  Merengón.wav     —  Analizando...                  │
-   │  ⏳  Bachata Rosa.flac —  Pendiente                    │
-   └─────────────────────────────────────────────────────────┘
-
-6. Las canciones aparecen en la librería
-```
-
----
-
-## Organización de la librería
-
-### Vistas de ordenamiento
-
-| Vista | Descripción |
-|-------|-------------|
-| **Lista** | Vista por defecto: nombre, duración, BPM, ⭐ |
-| **Por BPM** | Ordenado de mayor a menor BPM 🔶 |
-| **Por fecha** | Más recientes primero 📅 |
-| **Por duración** | De más larga a más corta ⏱ |
-| **Más reproducidas** | Las que tienen mayor contador 🔥 |
-
-### Vistas de filtro
-
-| Filtro | Comportamiento |
-|--------|---------------|
-| Por formato | Solo mp3, solo wav, etc. |
-| Por energía | Suave (🟢 60–85), Media (🟡 86–115), Alta (🔶 116–140), Muy Alta (🔴 141–200) |
-| Por rango de BPM | Slider con mínimo y máximo |
-| Guardadas en app | Solo ⭐ cacheadas localmente |
-| Sin analizar | Canciones sin BPM |
-
----
-
-## Estados de la librería
-
-| Estado | Qué se ve |
-|--------|-----------|
-| **Vacía (sin importaciones)** | Banner de bienvenida + botón de importación grande |
-| **Con canciones** | Lista normal con filtros y búsqueda |
-| **Importando** | Overlay con barra de progreso por cada canción |
-| **Analizando BPM** | Spinner ⟳ junto a la canción siendo analizada |
-| **Error de importación** | Canción en gris con ⚠️ "Formato no soportado" |
-| **Buscar sin resultados** | "No se encontraron canciones" |
-| **Filtro sin resultados** | "Ninguna canción cumple con este filtro. Probá con otro." |
-
----
-
-## Lo que NO está en esta vista
-
-- No están los controles de reproducción (están en el reproductor).
-- No está la creación de playlists (está en Inicio y en Edit).
-- No está el modo Show.
-- No se pueden editar marcadores acá (hay que ir al reproductor).
+| Reproducir | Abre [[02-vista-reproductor]] con esta canción cargada. |
+| Agregar a playlist | Abre selección para agregar el track a una playlist en [[02-modelo-colecciones]]. |
+| Agregar a cola | Inserta el track en la QuouList de reproducción dinámica. |
+| Vincular Partitura | Abre el navegador de archivos para seleccionar un archivo PDF/imagen de partitura y asociarlo al track (salida a [[09-partituras]]). |
+| Ajustar tono/tempo | Abre el reproductor cargando el track en Modo Edit para manipulación de tono/tempo. |
+| Guardar en app | Copia el archivo al caché persistente offline de [[04-almacenamiento]]. |
+| Eliminar de librería | Quita la canción de la base de datos de [[04-almacenamiento]] sin borrar el archivo del disco. |

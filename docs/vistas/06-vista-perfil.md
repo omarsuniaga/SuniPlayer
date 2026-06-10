@@ -1,8 +1,53 @@
+---
+ruta: docs/vistas/06-vista-perfil.md
+tipo: vista
+origen: "[[01-vista-inicio]]"
+estado: estable
+---
+
 # Vista Perfil
 
-## ¿Qué es?
+## Función
 
-El centro de configuración y estadísticas personales de Suniplayer.
+Proveer la pantalla de configuración global del usuario; mostrar estadísticas de uso local y telemetría de presentaciones; configurar las preferencias de tema y sonido; configurar el mapeo de pedales físicos Bluetooth; e inicializar el backup/sync opcional en la nube.
+
+## Entrada
+
+- Estadísticas locales agregadas y registros de uso ← [[05-telemetria]]
+- Datos acumulados e historial de shows completados ← [[12-cronometro]]
+- Estado actual de la sincronización y backup externo ← [[14-sync-engine]]
+- Parámetros y opciones del modelo de backup ← [[06-modelo-backup-sync]]
+- Preferencia y selector de tema visual activo ← [[13-tema]]
+
+## Proceso
+
+1. **Configuración de Apariencia (Tema):** Permite cambiar entre temas Claro, Oscuro y Seguir sistema delegando la acción en [[13-tema]].
+2. **Configuración de Audio y Show:** Ajusta el volumen por defecto y las políticas de brillo/Wake Lock del Modo Show.
+3. **Mapeo de Pedalera Bluetooth (Físico):**
+   - Provee una interfaz para emparejar y vincular pedales físicos BT.
+   - Permite asociar comandos lógicos de una lista por cada pedal físico detectado (típicamente Pedal 1 y Pedal 2):
+     - Comandos disponibles: `Siguiente canción`, `Canción anterior`, `Play/Pausa`, `Mute de Pánico`, `Pasar página partitura`, `Retroceder página partitura`, `Crear Marcador Rápido`.
+   - Envía esta matriz de mapeo a [[15-sesion-audio]] para su ejecución en segundo plano.
+4. **Almacenamiento y Backup/Sync:**
+   - Muestra el tamaño de cache de audio de [[04-almacenamiento]] y permite limpiarlo.
+   - Provee el panel para activar el backup/sync opcional en la nube, detallando la cuenta del usuario, estado de red y el gatillo de sincronización manual de [[14-sync-engine]].
+5. **Estadísticas (Telemetría Local):** Renderiza en formato de tarjetas de alto contraste las horas totales escuchadas, shows realizados, feature más usado y canciones más sonadas, sin revelar nombres de archivos en exportaciones externas.
+
+## Salida
+
+- Actualización de variables de tema visual → [[13-tema]]
+- Órdenes de inicio, autenticación y subida de datos del backup → [[14-sync-engine]]
+- Persistencia de preferencias de usuario → [[04-almacenamiento]]
+- Mapeo de botones físicos/pedales Bluetooth configurados → [[15-sesion-audio]]
+
+## Errores
+
+- **Lógico:** el motor de base de datos no está disponible al intentar guardar una preferencia.
+  - *Resolución:* Muestra una alerta temporal de error y mantiene las preferencias en memoria volátil de sesión.
+- **Semántico:** asignar el mismo comando físico a dos pedales distintos.
+  - *Resolución:* La UI valida la colisión, muestra una advertencia en color naranja e impide guardar la configuración hasta que se resuelva la asignación duplicada.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
@@ -10,144 +55,34 @@ El centro de configuración y estadísticas personales de Suniplayer.
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│  ████████████████████████████████████████████████████████████ │
-│  █  ← Volver                  ⚙️  CONFIGURACIÓN          █ │
-│  ████████████████████████████████████████████████████████████ │
+│  ← Volver                  ⚙️  CONFIGURACIÓN                 │
+├──────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ─── TEMA ─────────────────────────────────────────────────── │
-│                                                              │
 │  [🌙 Oscuro]  [☀️ Claro]  [🔄 Seguir sistema]               │
 │                                                              │
 │  ─── SONIDO ───────────────────────────────────────────────── │
+│  Volumen global: [0%] ────────●════════════════════ [100%] 75% │
 │                                                              │
-│  Volumen global:                                             │
-│  [0%] ────────●════════════════════ [100%]  75%             │
+│  ─── PEDALERA BLUETOOTH (Mapeo) ───────────────────────────── │
+│  [🔄 Sincronizar nueva pedalera BT]                          │
+│  · Pedal A ➔ [ Pasar página partitura  ▼ ]                   │
+│  · Pedal B ➔ [ Mute de Pánico          ▼ ]                   │
 │                                                              │
-│  ─── REPRODUCCIÓN ─────────────────────────────────────────── │
-│                                                              │
-│  [✓] Reanudar al abrir la app                               │
-│  [ ] Reproducción automática                                │
-│  [✓] Preservar tono al cambiar velocidad                    │
-│                                                              │
-│  ─── MODO SHOW ────────────────────────────────────────────── │
-│                                                              │
-│  Brillo de pantalla:     [───●──]  100%                     │
-│  [✓] Bloquear notificaciones                                │
-│  [✓] Mantener pantalla encendida                            │
+│  ─── RESPALDO Y SYNC (Opcional) ───────────────────────────── │
+│  [✓] Activar backup en la nube                               │
+│  Estado: Sincronizado (10/06 12:00) | [🔄 Sincronizar Ahora] │
 │                                                              │
 │  ─── ALMACENAMIENTO ───────────────────────────────────────── │
-│                                                              │
-│  ╔══════════════════════════════════════════════════════════╗ │
-│  ║  💾  Espacio usado:          234 MB                     ║ │
-│  ║  📦  Canciones cacheadas:    12 de 47                  ║ │
-│  ║                                                          ║ │
-│  ║  [🧹 Limpiar cache]                                     ║ │
-│  ╚══════════════════════════════════════════════════════════╝ │
+│  💾  Espacio usado: 234 MB | 📦  Cacheadas: 12 de 47          │
+│  [🧹 Limpiar cache]                                          │
 │                                                              │
 │  ─── ESTADÍSTICAS ─────────────────────────────────────────── │
-│                                                              │
-│  ╔══════════════════════════════════════════════════════════╗ │
-│  ║  ⏱  Tiempo total escuchado:     124h 32m               ║ │
-│  ║  🎤  Shows realizados:          8                       ║ │
-│  ║  🕐  Tiempo en shows:           18h 45m                ║ │
-│  ║  🔥  Feature más usado:         Cambio de tono (34x)   ║ │
-│  ║  ♫  Canciones más reproducida:  Salsa Brava (47x)      ║ │
-│  ║  📊  BPM promedio:              118 BPM                 ║ │
-│  ║                                                          ║ │
-│  ║  [📤 Exportar estadísticas anónimas]                     ║ │
-│  ╚══════════════════════════════════════════════════════════╝ │
-│                                                              │
-│  ─── ACERCA DE ────────────────────────────────────────────── │
-│                                                              │
-│  Suniplayer v1.0.0                                          │
-│  [📜 Licencias]  [🔒 Privacidad]                            │
+│  ⏱  Escuchado: 124h 32m      | 🎤  Shows realizados: 8       │
+│  🕐  Tiempo en shows: 18h 45m | 🔥  Más usado: Tono (34x)     │
+│  [📤 Exportar estadísticas anónimas]                         │
 │                                                              │
 │  ─────────────────────────────────────────────────────────── │
 │  [🏠 Inicio]  [▶ Reproductor]  [📂 Librería]  [✏️  Edit]    │
 └──────────────────────────────────────────────────────────────┘
 ```
-
----
-
-## Secciones
-
-### 1. Tema
-```text
-[🌙 Oscuro]  [☀️ Claro]  [🔄 Seguir sistema]
-```
-Cambio instantáneo. Persiste entre sesiones.
-
-### 2. Sonido
-```text
-Volumen global:
-[0%] ────────●════════════════════ [100%]  75%
-```
-Define el volumen por defecto al abrir la app.
-
-### 3. Reproducción
-| Opción | Default |
-|--------|---------|
-| Reanudar al abrir la app | ✅ Sí |
-| Reproducción automática | ❌ No |
-| Preservar tono al cambiar velocidad | ✅ Sí |
-
-### 4. Modo Show
-| Opción | Default |
-|--------|---------|
-| Brillo de pantalla | 100% |
-| Bloquear notificaciones | ✅ Sí |
-| Mantener pantalla encendida | ✅ Sí |
-
-### 5. Almacenamiento
-```text
-╔══════════════════════════════════════════════════════════╗
-║  💾  Espacio usado:          234 MB                     ║
-║  📦  Canciones cacheadas:    12 de 47                  ║
-║                                                          ║
-║  [🧹 Limpiar cache]                                     ║
-╚══════════════════════════════════════════════════════════╝
-```
-**Limpiar cache:**
-```text
-Modal:
-┌─────────────────────────────────────────────────────────┐
-│  ¿Eliminar las copias cacheadas?                        │
-│  Las canciones seguirán en tu librería,                 │
-│  pero necesitarán el archivo original.                  │
-│                                                         │
-│       [Cancelar]        [Eliminar cache]                │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 6. Estadísticas
-```text
-╔══════════════════════════════════════════════════════════╗
-║  ⏱  Tiempo total escuchado:     124h 32m               ║
-║  🎤  Shows realizados:          8                       ║
-║  🕐  Tiempo en shows:           18h 45m                ║
-║  🔥  Feature más usado:         Cambio de tono (34x)   ║
-║  ♫  Canciones más reproducida:  Salsa Brava (47x)      ║
-║  📊  BPM promedio:              118 BPM                 ║
-║                                                          ║
-║  [📤 Exportar estadísticas anónimas]                     ║
-╚══════════════════════════════════════════════════════════╝
-```
-
-**Exportar anónimas:**
-Genera un JSON sin nombres de canciones ni rutas de archivos.
-
-### 7. Acerca de
-```text
-Suniplayer v1.0.0
-[📜 Licencias]  [🔒 Privacidad]
-```
-
----
-
-## Lo que NO está en esta vista
-
-- No están los controles de reproducción (están en Vista Reproductor).
-- No está la preparación de sets ni la configuración de transiciones (está en Edit).
-- No está el modo show en vivo (está en Vista Show).
-- No se pueden importar ni gestionar canciones desde acá (está en Librería).
-- No están las Colecciones Inteligentes ni el acceso al catálogo (están en Inicio).
