@@ -226,6 +226,25 @@ Calidad del time-stretch:
 
 ---
 
+## Estrategia
+
+### Algoritmo propuesto
+WSOLA (Waveform Similarity Overlap-Add). Es el estándar para tiempo real con buena calidad. Alternativa: Phase Vocoder con corrección de fase.
+
+### Fork técnico / Alternativas
+- **Opción A (WSOLA):** Opera en el dominio temporal buscando la máxima similitud entre segmentos solapados. Mejor para percusión y transientes nítidos. Menor latencia.
+- **Opción B (Phase Vocoder con corrección de fase):** Opera en el dominio frecuencial. Mejor para tonos sostenidos y texturas armónicas, pero introduce mayor latencia y puede generar artefactos de "reverberación" en transientes.
+
+### Decisión
+WSOLA para tiempo real (respuesta inmediata con slider). Phase Vocoder para procesamiento offline si hace falta en el futuro (ej. exportar pista estirada).
+
+### Dependencias técnicas
+- Solapamiento: 50-75% (según calidad vs rendimiento)
+- Ventana: 30-50ms (tamaño de segmento)
+- Tolerancia de sincronía: ±5ms (ventana de búsqueda de similitud)
+
+---
+
 ## Interacción
 
 **Tipo:** slider (porcentaje de velocidad) + toggle (preservar tono) + button (restablecer)

@@ -174,3 +174,25 @@ BPM: 72 → 85 → 100 → 118 → 128 → 135 → 145
 | Coherencia de BPM | ¿Los BPM son consistentes? | Lineal: ±5 BPM; Curva: progresión suave |
 | Duración mínima | ¿La colección tiene sentido? | Mínimo 10 minutos de música |
 | Sin solapamiento | ¿Una canción ya está en otra colección similar? | Una canción puede estar en múltiples colecciones |
+
+---
+
+## Estrategia
+
+### Algoritmo propuesto para Curva (Campana)
+Algoritmo de "mountain sorting": ordenar canciones por BPM, subir desde el mínimo hasta el máximo (pendiente positiva), luego bajar desde el máximo hasta el mínimo original (pendiente negativa). Esto produce una forma de campana perfecta.
+
+### Algoritmo propuesto para Exponencial (Escalada)
+Ordenar canciones por BPM ascendente con una restricción: diferencia mínima de ≥3 BPM entre adyacentes para evitar saltos imperceptibles.
+
+### Algoritmo para Lineal
+Agrupar por BPM ±5, ordenar las canciones internamente por duración (más corta a más larga) para calentamiento progresivo.
+
+### Selección óptima
+Para cada tipo de colección, seleccionar las N canciones que mejor se ajusten al perfil. Si hay ≥4 tracks disponibles, generar todas las colecciones posibles. Si una canción califica para múltiples colecciones, priorizar siempre Lineal > Curva > Exponencial (de más útil a menos útil).
+
+### Dependencias técnicas
+- Los tracks deben tener BPM y confianza calculados por [[04-bpm-analyzer]]
+- Se descartan tracks con confianza < 50%
+- Mínimo 4 tracks por colección
+- Duración total mínima: 10 minutos

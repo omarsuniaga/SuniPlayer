@@ -206,6 +206,26 @@ Y además la quiero un toque más lenta para practicar."
 
 ---
 
+## Estrategia
+
+### Algoritmo propuesto
+Phase Vocoder con FFT. Es el estándar de la industria para tiempo real, funciona bien en Web Audio API con `AnalyserNode` + `ScriptProcessorNode` o `AudioWorklet`.
+
+### Fork técnico / Alternativas
+- **Opción A (Phase Vocoder):** transformación frecuencial vía FFT. General, funciona para voz e instrumentos. Mayor calidad en el rango completo de ±12 semitonos.
+- **Opción B (PSOLA):** Pitch Synchronous Overlap and Add. Mejor calidad para voz, peor para instrumentos polifónicos. Más eficiente computacionalmente.
+
+### Decisión
+Phase Vocoder como default por su generalidad. PSOLA como optimización futura si la app se enfoca exclusivamente en voz (ej. karaoke).
+
+### Dependencias técnicas
+- FFT size: 1024 o 2048 (según latencia tolerada)
+- Hop size: 256 samples
+- Ventana: Hanning (balance entre lóbulo principal y supresión de lóbulos laterales)
+- Rango operativo: ±12 semitonos
+
+---
+
 ## Interacción
 
 **Tipo:** slider (desplazamiento en semitonos) + button (restablecer)

@@ -235,6 +235,27 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
+## Estrategia
+
+### Algoritmo propuesto
+Autocorrelación (función ACF en dominio temporal). Simple, eficiente, bien documentado. Alternativa: Onset Detection + histograma de intervalos (mejor para música con mucha variación rítmica).
+
+### Fork técnico / Alternativas
+- **Opción A (Autocorrelación directa):** O(n²) en el dominio temporal. Precisa y determinista. Ideal para archivos <10 min.
+- **Opción B (FFT + detección espectral):** O(n log n). Más rápida para archivos largos. Puede confundir armónicos con el pulso fundamental.
+
+### Decisión
+Autocorrelación para archivos <10 min (caso típico de canciones individuales). FFT para archivos largos (mezclas, sesiones en vivo). Frame rate: ~100 fps para tiempo real, batch para importación.
+
+### Dependencias técnicas
+- Frecuencia de muestreo: 44100 Hz
+- Frame size: 2048 samples
+- Hop size: 512 samples
+- Rango BPM detectable: 60-200
+- Umbral de confianza: ≥80% automático, 50-79% estimado, <50% descartado
+
+---
+
 ## Interacción
 
 **Tipo:** badge (display de BPM automático) + icon-button (re-análisis manual) + progress-bar (durante análisis)

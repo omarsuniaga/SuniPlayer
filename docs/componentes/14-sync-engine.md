@@ -110,6 +110,25 @@ Catálogo global: [[07-modelo-errores]]
 
 ---
 
+## Estrategia
+
+### Algoritmo propuesto
+LWW (Last-Write-Wins) con timestamp del servidor como autoridad. Cada documento tiene `updated_at` (servidor) y si hay conflicto, gana el servidor. Para colecciones (playlists): merge de arrays por ID único, no reemplazo completo.
+
+### Fork técnico / Alternativas
+- **Opción A (LWW):** Simple, suficiente para MVP. Resolución por timestamp. Riesgo de pérdida de cambios simultáneos, aceptable para uso individual.
+- **Opción B (CRDT):** Conflict-Free Replicated Data Type. Complejo, requiere estructura de datos específica (ej. RGA para listas). Necesario para jam session multi-dispositivo donde varios usuarios modifican el mismo estado concurrentemente.
+
+### Decisión
+LWW para MVP (1 dispositivo por cuenta). CRDT diferido para Fase 2, cuando [[17-jam-session]] requiera edición colaborativa en tiempo real.
+
+### Dependencias técnicas
+- Cada registro necesita: `id` (UUID), `updated_at` (ISO8601, timezone UTC), `deleted` (boolean, soft delete)
+- Colecciones: merge por `id` con last-write-wins por campo individual
+- Cola de mutaciones locales: tabla `cola_sincronizacion` con operación, payload, timestamp
+
+---
+
 ## Interacción
 
 **Tipo:** toggle (sync automático ON/OFF) + button (sync manual: «Sincronizar ahora») + badge (estado de conexión) + progress-bar (progreso de sync)
