@@ -1,10 +1,35 @@
+---
+ruta: docs/componentes/04-bpm-analyzer.md
+tipo: componente
+origen: "[[01-modelo-audio]]"
+estado: estable
+---
+
 # Analizador de BPM
 
-## ¿Qué es?
+## Función
 
-Un componente que **escucha** el archivo de audio, detecta su ritmo, y calcula los **Beats Per Minute** (BPM). También clasifica la canción según su energía.
+Analizar el audio de una canción recién importada para calcular su BPM y clasificar su nivel de energía, y publicar ese resultado en el modelo de audio y en el algoritmo de mood.
 
-Sin este componente, las Colecciones Inteligentes no existirían.
+## Entrada
+
+- Audio de la canción al momento de importación ← [[03-vista-libreria]]
+
+## Proceso
+
+El analizador recibe el archivo de audio al importarse a la librería. Divide la señal en segmentos (ventaneo), detecta los picos rítmicos (golpes) y calcula la distancia temporal entre ellos para estimar el BPM. Luego clasifica la energía según el rango de BPM resultante. Si la confianza del cálculo supera el 80%, el BPM se usa automáticamente; entre 50% y 79% se marca como estimado; por debajo de 50%, la canción no entra en colecciones inteligentes.
+
+## Salida
+
+- BPM y nivel de energía de la canción → [[01-modelo-audio]]
+- BPM y energía para agrupación de colecciones → [[10-algoritmo-mood]]
+
+## Errores
+
+- **Lógico:** se solicita analizar una canción que ya fue borrada del filesystem antes de que el análisis pudiera iniciar — el archivo no existe; se registra el error en el modelo de audio y se notifica al usuario.
+- **Semántico:** una canción de música ambient con largos silencios y sin pulso definido es enviada al análisis — el analizador no puede detectar picos rítmicos con confianza suficiente; el BPM queda en "—" y la canción no participa en colecciones inteligentes, lo cual es correcto por diseño.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 

@@ -1,94 +1,75 @@
-# Motor de Reproducción (Audio Engine)
-
-## ¿Qué es?
-
-El corazón de Suniplayer. Es el componente encargado de **cargar, decodificar y reproducir** archivos de audio. También maneja la cola de reproducción y los saltos entre canciones.
-
-**No es una UI.** Este componente funciona por detrás. El reproductor (vista) le dice "reproducí X canción" y el motor hace que suene.
-
+---
+ruta: docs/componentes/01-audio-engine.md
+tipo: componente
+origen: "[[02-vista-reproductor]]"
+estado: estable
 ---
 
-## Flujo de reproducción
+# Motor de Reproducción (Audio Engine)
+
+## Función
+
+Cargar, decodificar y reproducir archivos de audio; mantener la cola de reproducción; gestionar la cadena de procesamiento (pitch → stretch → EQ → fades); responder a órdenes del sistema operativo mediadas por la sesión de audio.
+
+## Entrada
+
+- Canción con todas sus propiedades ← [[01-modelo-audio]]
+- Fuente de reproducción (playlist, set, colección) ← [[02-modelo-colecciones]]
+- Órdenes de reproducción (play/pause/stop/next/prev/seek/volumen/mute/shuffle) ← [[02-vista-reproductor]]
+- Órdenes limitadas en modo Show (siguiente, mute de pánico) ← [[04-vista-show]]
+- Pausa o reanudación por interrupción del sistema o desconexión de salida ← [[15-sesion-audio]]
+- Puntos de salto para Loop A-B ← [[07-marcadores]]
+- Arranque programado en instante T para sincronía ← [[17-jam-session]]
+
+## Proceso
+
+1. Se recibe una solicitud de reproducción (usuario o sistema).
+2. El motor busca el archivo: en caché local primero, luego en la ruta original del filesystem.
+3. El archivo se decodifica a un buffer de audio en memoria.
+4. Si la canción tiene ajuste de tono, el buffer pasa por [[02-pitch-shifter]] (semitonos).
+5. Si la canción tiene ajuste de tempo, el buffer pasa por [[03-time-stretcher]] (porcentaje).
+6. El buffer procesado pasa por [[16-ecualizador]] (ajuste de bandas en tiempo real).
+7. Al inicio o final de una canción, se aplica [[05-fade-engine]] (FadeIn, FadeOut o FadeMix).
+8. El buffer resultante se envía a la salida de audio del dispositivo (parlantes o auriculares).
+9. Durante la reproducción, el motor reporta posición, estado y fin de canción a [[06-grafica-ondas]] y [[02-vista-reproductor]].
+10. Si [[15-sesion-audio]] señala una interrupción transitoria (llamada, alarma), se pausa según la política definida en [[03-modelo-sesion]]; al cesar la interrupción, se reanuda o queda pausado según el modo activo.
+11. Si [[15-sesion-audio]] señala desconexión de salida (cable o Bluetooth), se pausa inmediatamente en cualquier modo.
+12. Si hay un Loop A-B activo (puntos marcados por [[07-marcadores]]), al llegar al punto B el motor salta de regreso al punto A y repite el tramo indefinidamente hasta que se cancele.
+
+### Diagrama de flujo
 
 ```text
 ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
 │          │     │          │     │          │     │          │
-│  SOLICITUD │──▶│  CARGA   │──▶│DECODIFIC.│──▶│TRANSFOR. │
-│  (usuario │   │  (archivo│   │  (buffer) │   │ (tono/   │
-│   o sist.)│   │   o cache)│   │          │   │  tempo)  │
-│          │     │          │     │          │     │          │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘
-                                                       │
-                                                       ▼
+│ SOLICITUD│──▶ │  CARGA   │──▶ │DECODIFIC.│──▶ │TRANSFOR. │
+│ (usuario │    │ (archivo │    │  (buffer) │    │ (tono/   │
+│  o sist.)│    │  o cache)│    │           │    │  tempo)  │
+│          │     │          │     │           │    │          │
+└──────────┘     └──────────┘     └──────────┘     └────┬─────┘
+                                                        │
+                                                        ▼
+                                               ┌──────────────┐
+                                               │  ECUALIZADOR │
+                                               │  (bandas)    │
+                                               └──────┬───────┘
+                                                      │
+                                                      ▼
                     ┌──────────┐     ┌──────────┐
                     │          │     │          │
-                    │  SALIDA  │◀────│REPRODUC. │
-                    │ (altavoz)│     │ (en vivo)│
-                    │          │     │          │
+                    │  SALIDA  │◀────│  FADES   │
+                    │(parlantes│     │(FadeIn/  │
+                    │/auricular│     │ FadeOut/ │
+                    │  físico) │     │ FadeMix) │
                     └──────────┘     └──────────┘
                                            │
                                            ▼
-                    ┌──────────────────────────────────┐
-                    │  MONITOREO (reporta posición,    │
-                    │  estado, fin de canción)         │
-                    └──────────────────────────────────┘
+                    ┌────────────────────────────────────┐
+                    │  MONITOREO (reporta posición,      │
+                    │  estado, fin de canción)           │
+                    └────────────────────────────────────┘
 ```
 
-### Paso a paso
-
-```text
-1. SOLICITUD: Algo (usuario o sistema) pide reproducir una canción
-       │
-       ▼
-2. CARGA: El motor busca el archivo:
-   a. ¿Está en cache local? → lo carga desde ahí
-   b. ¿No? → lo carga desde la ruta original del filesystem
-       │
-       ▼
-3. DECODIFICACIÓN: El archivo se decodifica a un buffer de audio
-       │
-       ▼
-4. TRANSFORMACIONES: Si la canción tiene ajustes de tono/tempo,
-   se aplican al buffer ANTES de empezar a reproducir
-       │
-       ▼
-5. REPRODUCCIÓN: El buffer transformado empieza a sonar
-       │
-       ▼
-6. MONITOREO: El motor reporta periódicamente:
-   - Posición actual (timestamp)
-   - Estado (reproduciendo / pausado / detenido)
-   - Si llegó al final de la canción
-```
-
----
-
-## Transiciones entre canciones
-
-```text
-Canción A                   Gap     Canción B
-════════════════════════════ ═══════ ════════════════════════
-                     ── ── ── ── ── ── ── ── ──
-                    ↘           ↗
-                  FadeOut      FadeIn
-                    3s         2s
-
-Sin fades:
-Canción A                  Canción B
-═══════════════════════════║════════════════════════════
-                           ║
-                       Corte abrupto
-
-Con FadeMix:
-Canción A ───────────────────╗
-                              ║
-Canción B ═══════════════════╝════════════════════════
-                              ║
-                         FadeMix
-                           4s
-```
-
-### Flujo de transición:
+### Flujo de transición (resolución de next())
 
 ```text
 1. El motor detecta que la canción actual está por terminar
@@ -128,6 +109,24 @@ Canción B ═══════════════════╝═══
        ▼
 6. Empieza la reproducción de la siguiente canción
 ```
+
+## Salida
+
+- Buffer al procesador de tono → [[02-pitch-shifter]]
+- Buffer al procesador de velocidad → [[03-time-stretcher]]
+- Buffer al ecualizador para ajuste de bandas → [[16-ecualizador]]
+- Evento de transición al motor de fades → [[05-fade-engine]]
+- Datos de onda y posición del cabezal → [[06-grafica-ondas]]
+- Estado de reproducción (modo, posición, canción activa) → [[02-vista-reproductor]]
+- Estado de reproducción para sincronía multi-dispositivo → [[17-jam-session]]
+- Señal de audio procesada → parlantes o auriculares (físico)
+
+## Errores
+
+- **Lógico:** se ordena `play()` sin que haya una canción cargada o sin fuente activa — el motor no tiene contexto de qué reproducir; la operación se ignora y se reporta estado `IDLE`.
+- **Semántico:** se activa Loop A-B mientras la canción está en pausa total (no hay cabezal en movimiento) — el loop requiere reproducción activa para tener sentido; la operación se rechaza con aviso al usuario.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 

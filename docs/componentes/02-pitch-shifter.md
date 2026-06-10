@@ -1,8 +1,34 @@
+---
+ruta: docs/componentes/02-pitch-shifter.md
+tipo: componente
+origen: "[[01-audio-engine]]"
+estado: estable
+---
+
 # Pitch Shifter (Cambio de Tono)
 
-## ¿Qué es?
+## Función
 
-Un procesador de audio que cambia el **tono** de una canción sin afectar su **velocidad**. Es decir, podés subir o bajar la tonalidad y la canción sigue durando lo mismo y sonando al mismo tempo.
+Desplazar la tonalidad de un buffer de audio en semitonos, sin afectar su velocidad ni duración, y devolver el buffer procesado al motor de reproducción.
+
+## Entrada
+
+- Buffer de audio y cantidad de semitonos a desplazar ← [[01-audio-engine]]
+
+## Proceso
+
+El procesador recibe un buffer de audio crudo con el valor de desplazamiento en semitonos (rango -12 a +12). Aplica la transformación frecuencial en tiempo real: estira o comprime la forma de onda en el eje frecuencial sin alterar el eje temporal. Si el ajuste es 0, el buffer pasa sin modificación (modo bypass). El cambio se escucha de inmediato mientras el usuario mueve el slider. El ajuste resultante se guarda automáticamente con la canción.
+
+## Salida
+
+- Buffer de audio con la tonalidad transpuesta → [[01-audio-engine]]
+
+## Errores
+
+- **Lógico:** se recibe un valor de semitonos fuera del rango permitido (-12 a +12) — el slider impide llegar ahí, pero si el valor llega por otro canal, se rechaza y se usa el límite más cercano con aviso.
+- **Semántico:** la canción ya tiene `tono_ajuste = +12` guardado y el músico intenta agregar +3 adicionales desde el panel — el tono resultante excedería el rango soportado; la operación se rechaza con aviso "Límite alcanzado: no se puede superar +12 semitonos".
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
