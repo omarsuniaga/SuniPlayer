@@ -58,7 +58,7 @@ El objetivo no es espiar al usuario — es **entender cómo se usa Suniplayer** 
 | Cantidad de canciones importadas | Entender el tamaño típico de librería |
 | Tipos de archivo más usados (mp3 vs wav vs flac) | Priorizar soporte de formatos |
 | Features más usados (pitch shift, tempo, fade, etc.) | Saber qué mejorar y qué mantener |
-| Tiempo en Modo Escucha vs Modo Edit vs Modo Show | Entender cómo se usa realmente la app (dato del tiempo total acumulado, persistido en DB; no confundir con el Cronómetro de Sesión que es volátil) |
+| Tiempo en Modo Escucha vs Modo Edit vs Modo Show | Entender cómo se usa realmente la app (dato del tiempo total acumulado, persistido en DB; no confundir con el Cronómetro de Sesión que es volátil — los origina [[12-cronometro]]; ver la distinción sesión volátil vs acumulado ahí) |
 | Tema más usado (dark vs light) | Decidir defaults en futuras versiones |
 | Cantidad de marcadores por canción | Evaluar si el feature de marcadores se usa |
 | Tamaño de playlists y sets creados | Guiar decisiones de UI |

@@ -129,7 +129,7 @@ Las Colecciones Inteligentes se dividen en DOS familias de criterios:
 
 #### Familia A: por curva de ánimo/BPM
 
-Estas colecciones agrupan canciones según su progresión de BPM. El algoritmo que las genera se describe en `[[componentes/10-algoritmo-mood]]`.
+Estas colecciones agrupan canciones según su progresión de BPM. El algoritmo que las genera se describe en [[10-algoritmo-mood]].
 
 | Curva | Comportamiento | Ejemplo de uso |
 |-------|---------------|----------------|
@@ -183,7 +183,7 @@ Agrupa automáticamente las N canciones con mayor contador de reproducciones en 
 
 ### Crear una Playlist o Colección manualmente
 
-El usuario puede crear una Playlist de forma manual seleccionando canciones desde la librería. El flujo de UI se describe en `[[vistas/01-vista-inicio]]` (sección "Crear Colección Inteligente o Playlist manualmente"). El modal tiene: cabecera (conteo + duración total), cuerpo (lista con acciones Agregar/Quitar), y pie (paginador + Guardar/Cerrar).
+El usuario puede crear una Playlist de forma manual seleccionando canciones desde la librería. El flujo de UI se describe en [[01-vista-inicio]] (sección "Crear Colección Inteligente o Playlist manualmente"). El modal tiene: cabecera (conteo + duración total), cuerpo (lista con acciones Agregar/Quitar), y pie (paginador + Guardar/Cerrar).
 
 ### Eliminar colecciones
 

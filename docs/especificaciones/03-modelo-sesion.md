@@ -22,17 +22,7 @@ El modelo de sesión determina qué puede hacer el músico en cada momento. El m
 
 ### Política de interrupciones por modo
 
-El comportamiento ante una interrupción del sistema (llamada entrante, alarma, notificación de audio) depende del modo activo en ese momento:
-
-| Modo | Interrupción transitoria (llamada corta, alarma) | Desconexión de salida de audio (cable / Bluetooth) |
-|------|--------------------------------------------------|-----------------------------------------------------|
-| Escucha | Pausa y **reanuda automáticamente** al terminar la interrupción | Pausa inmediata |
-| Edit | Pausa y **reanuda automáticamente** al terminar la interrupción | Pausa inmediata |
-| Show | Pausa y **queda pausado** esperando orden manual del músico (sin sorpresas en vivo) | Pausa inmediata |
-
-> **Razón del comportamiento Show:** en un escenario, una reanudación automática inesperada puede ser catastrófica. El músico recupera el control y decide cuándo reanudar.
-
-La gestión de bajo nivel de estas interrupciones (detección de eventos del sistema operativo, pausa/reanudación del motor) la ejecuta [[15-sesion-audio]], que devuelve la política al modelo de sesión para que éste la aplique según el modo.
+El comportamiento ante interrupciones externas (llamadas, alarmas, desconexión de audio) varía según el modo activo. En Escucha y Edit la app reanuda automáticamente; en Show el sistema queda pausado y espera orden manual del músico para evitar sorpresas en escenario. La gestión de bajo nivel la ejecuta [[15-sesion-audio]] (ver tabla de política de interrupciones más abajo).
 
 ## Salida
 
@@ -89,7 +79,7 @@ El modo por defecto. Es el reproductor "normal".
 - Se pueden configurar transiciones (fade) entre canciones.
 - Se pueden ensayar canciones sueltas con los ajustes aplicados.
 - Se pueden cargar partituras y ajustar marcadores.
-- La cronómetro del set muestra la duración total planificada.
+- El cronómetro del set muestra la duración total planificada.
 - NO hay restricciones de botones — todo está disponible.
 
 **¿Cuándo se usa?**
@@ -152,6 +142,22 @@ El modo por defecto. Es el reproductor "normal".
 - Desde Edit se puede lanzar Show (el set está listo).
 - Desde Show se vuelve a Escucha (show terminó).
 - **No se puede ir de Show a Edit directamente.** Hay que cerrar el show primero.
+
+---
+
+## Política de interrupciones por modo
+
+El comportamiento ante una interrupción del sistema (llamada entrante, alarma, notificación de audio) depende del modo activo en ese momento:
+
+| Modo | Interrupción transitoria (llamada corta, alarma) | Desconexión de salida de audio (cable / Bluetooth) |
+|------|--------------------------------------------------|-----------------------------------------------------|
+| Escucha | Pausa y **reanuda automáticamente** al terminar la interrupción | Pausa inmediata |
+| Edit | Pausa y **reanuda automáticamente** al terminar la interrupción | Pausa inmediata |
+| Show | Pausa y **queda pausado** esperando orden manual del músico (sin sorpresas en vivo) | Pausa inmediata |
+
+> **Razón del comportamiento Show:** en un escenario, una reanudación automática inesperada puede ser catastrófica. El músico recupera el control y decide cuándo reanudar.
+
+La gestión de bajo nivel de estas interrupciones (detección de eventos del sistema operativo, pausa/reanudación del motor) la ejecuta [[15-sesion-audio]], que devuelve la política al modelo de sesión para que éste la aplique según el modo.
 
 ---
 

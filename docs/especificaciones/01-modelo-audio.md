@@ -71,6 +71,8 @@ Suniplayer procesa el audio al importarlo y calcula:
 | Silencios | Pausas detectadas en el audio | Lista de timestamps |
 | Energía general | Clasificación gruesa según BPM | Suave, Media, Alta |
 
+Estas propiedades no las ingresa el usuario: las calcula el componente [[04-bpm-analyzer]] al importar la canción y quedan guardadas como parte del modelo.
+
 > **Nota terminológica:** En Suniplayer, "Tempo" refiere a la velocidad de reproducción expresada como porcentaje (50%–200%); el BPM es una propiedad analizada del archivo de audio que indica el pulso rítmico original de la canción. Son cosas distintas: el BPM describe la canción tal como es; el Tempo es el ajuste que el músico aplica para reproducirla más rápido o más lento.
 
 ## Propiedades ajustables por el usuario

@@ -21,13 +21,13 @@ La visión general establece qué es Suniplayer, para quién está pensado, en q
 
 ## Salida
 
-- Marco de referencia del sistema → [[01-modelo-audio]]
-- Marco de referencia del sistema → [[02-modelo-colecciones]]
-- Marco de referencia del sistema → [[03-modelo-sesion]]
-- Marco de referencia del sistema → [[04-almacenamiento]]
-- Marco de referencia del sistema → [[05-telemetria]]
-- Marco de referencia del sistema → [[06-modelo-backup-sync]]
-- Marco de referencia del sistema → [[08-modelo-jam-session]]
+- Define qué es una canción para Suniplayer y qué control exige el músico → [[01-modelo-audio]]
+- Principios de organización para práctica y shows en vivo → [[02-modelo-colecciones]]
+- La dualidad preparar (Edit) vs ejecutar (Show) que gobierna los modos → [[03-modelo-sesion]]
+- El principio de persistencia local y funcionamiento offline → [[04-almacenamiento]]
+- El principio de privacidad: datos locales, sin servidores obligatorios → [[05-telemetria]]
+- La excepción opt-in al principio offline: respaldo en la nube → [[06-modelo-backup-sync]]
+- La visión de compartir música entre músicos sin transferencia permanente → [[08-modelo-jam-session]]
 
 ## Errores
 

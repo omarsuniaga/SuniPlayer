@@ -97,7 +97,7 @@ Para datos que no necesitan sobrevivir al cierre de la app.
 ## Estructura de la base de datos
 
 ### Tabla: canciones
-Una fila por cada canción importada.
+Una fila por cada canción importada. El significado de cada propiedad está definido en [[01-modelo-audio]].
 
 ```text
 id (único)
