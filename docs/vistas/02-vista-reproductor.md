@@ -186,3 +186,84 @@ Reemplaza cualquier elemento de portada o diseño de álbum por un bloque de tex
   - *Resolución:* La vista recibe el evento de desconexión de [[15-sesion-audio]]. Muestra un icono de alerta pequeño en amarillo al lado de la partitura (clase `.alert-pedal-lost`) pero NO detiene el audio ni altera el visor de partituras. Los comandos del pedal se ignoran limpiamente para evitar lecturas fantasma.
 
 Catálogo global: [[07-modelo-errores]]
+
+---
+
+## Interacción
+
+### Tipo
+toggle (play/pause) + button (stop, next, prev) + toggle (mute) + slider (tono, tempo) + modal-trigger (EQ) + gesture (seek on waveform)
+
+### Estados del componente
+- `.btn-play-pause` — botón base de play/pausa
+- `.btn-play-pause.playing` — reproduciendo activamente (icono ⏸)
+- `.btn-play-pause.paused` — pausado (icono ▶)
+- `.btn-mute` — botón base de mute
+- `.btn-mute.muted` — silenciado, parpadea en rojo
+- `.mode-show-pill` — indicador de modo show
+- `.mode-edit-pill` — indicador de modo edit
+- `.nav-locked` — barra de navegación bloqueada en modo show
+- `.btn-disabled` — control deshabilitado visualmente
+- `.view-empty` — sin track activo
+- `.alert-pedal-lost` — alerta de pedalera desconectada
+
+### Transiciones
+- De idle a activo: el usuario presiona play en un track cargado
+- De activo a idle: el usuario presiona stop o la canción termina
+
+---
+
+## Guía de Estilos CSS
+
+### Contenedor principal
+- `.vista-reproductor` — layout base del reproductor
+
+### Botón Play/Pausa
+- `.btn-play-pause` — estado base (44×44, circular)
+- `.btn-play-pause.playing` — verde brillante, icono ⏸
+- `.btn-play-pause.paused` — gris/blanco, icono ▶
+
+### Botón Stop
+- `.btn-stop` — estado base, color rojo
+
+### Botón Siguiente / Anterior
+- `.btn-next` — botón de siguiente track
+- `.btn-prev` — botón de anterior track
+
+### Botón Mute / Pánico
+- `.btn-mute` — estado base
+- `.btn-mute.muted` — rojo parpadeante, campana tachada
+
+### Sliders
+- `.slider-tono` — control deslizante de transposición (±12 semitonos)
+- `.slider-tempo` — control deslizante de velocidad (50%-200%)
+
+### Indicadores de modo
+- `.mode-show-pill` — píldora "🔴 MODO SHOW" con parpadeo
+- `.mode-edit-pill` — píldora "✏️ MODO EDIT"
+- `.nav-locked` — navegación inferior bloqueada
+- `.btn-disabled` — control deshabilitado (opaco, sin pointer-events)
+
+### Estados de contenido
+- `.view-empty` — sin track cargado, muestra banner amarillo
+
+### Alertas
+- `.alert-pedal-lost` — icono de alerta pequeño, pedalera BT desconectada
+
+### Temas
+- `.theme-dark` — overrides para modo oscuro
+- `.theme-light` — overrides para modo claro
+
+---
+
+### Modal: Panel EQ
+- **Trigger:** tap en botón "EQ" en herramientas del músico
+- **Campos:**
+  - `banda_1` (slider) — frecuencia baja, rango -12dB a +12dB
+  - `banda_2` (slider) — frecuencia media-baja, rango -12dB a +12dB
+  - `banda_3` (slider) — frecuencia media, rango -12dB a +12dB
+  - `banda_4` (slider) — frecuencia media-alta, rango -12dB a +12dB
+  - `banda_5` (slider) — frecuencia alta, rango -12dB a +12dB
+  - `preset` (dropdown) — selección de preset de ecualización
+- **Acciones:** aplicar / resetear / cancelar
+- **Valores recolectados:** `{ bandas: [n1,n2,n3,n4,n5], preset: string }`

@@ -95,3 +95,64 @@ Catálogo global: [[07-modelo-errores]]
 | Ajustar tono/tempo | Abre el reproductor cargando el track en Modo Edit para manipulación de tono/tempo. |
 | Guardar en app | Copia el archivo al caché persistente offline de [[04-almacenamiento]]. |
 | Eliminar de librería | Quita la canción de la base de datos de [[04-almacenamiento]] sin borrar el archivo del disco. |
+
+---
+
+## Interacción
+
+### Tipo
+search-bar (text input) + file-trigger (import button) + list-item (tap on track row) + context-menu (long-press/hold) + button-group (pagination)
+
+### Estados del componente
+- `.track-row` — fila de track en la lista
+- `.track-error` — track con formato no soportado o archivo dañado
+- `.context-menu` — menú contextual flotante
+
+### Transiciones
+- De idle a activo: el usuario toca una fila de track o abre el menú contextual
+- De activo a idle: se cierra el menú contextual o se navega a otra vista
+
+---
+
+## Guía de Estilos CSS
+
+### Contenedor principal
+- `.vista-libreria` — layout base de la librería
+
+### Barra de búsqueda
+- `.search-bar` — input de texto con icono de lupa
+- `.search-bar:focus` — borde resaltado al enfocar
+
+### Filas de track
+- `.track-row` — fila base de canción en la lista
+- `.track-row:active` — feedback visual al presionar
+- `.track-error` — fila con formato no soportado (gris, icono ⚠️)
+
+### Menú contextual
+- `.context-menu` — menú flotante al hacer long-press
+- `.context-menu-item` — ítem individual del menú
+- `.context-menu-item:active` — feedback al presionar ítem
+
+### Paginación
+- `.pagination` — contenedor de controles de página
+- `.pagination .active` — página actual seleccionada
+
+### Botón de importación
+- `.btn-import` — botón de importar archivos
+
+### Estados de contenido
+- `.view-empty` — sin resultados de búsqueda
+- `.view-loading` — cargando lista de tracks
+
+### Temas
+- `.theme-dark` — overrides para modo oscuro
+- `.theme-light` — overrides para modo claro
+
+---
+
+### Modal: Vincular Partitura
+- **Trigger:** seleccionar "Vincular Partitura" en menú contextual del track
+- **Campos:**
+  - `archivo` (file-picker) — selector de archivo PDF o imagen
+- **Acciones:** confirmar / cancelar
+- **Valores recolectados:** `{ trackId, fileUri }`

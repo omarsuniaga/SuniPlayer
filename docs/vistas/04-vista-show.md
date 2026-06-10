@@ -100,3 +100,77 @@ Catálogo global: [[07-modelo-errores]]
 - **Tono/Tempo:** Completamente bloqueados para edición. Solo se visualiza el valor estático heredado.
 - **Barra de Navegación:** Totalmente bloqueada bajo la clase `.nav-locked`.
 - **Brillo de Pantalla:** Fijado al máximo a través de APIs de PWA (Wake Lock API) para evitar suspensión del dispositivo.
+
+---
+
+## Interacción
+
+### Tipo
+toggle (play/pause) + button (stop con confirmación) + button (next/prev con hold 0.5s) + toggle (mute) + split-view (sheet viewer) + button (completador trigger)
+
+### Estados del componente
+- `.btn-play-pause.playing` — reproduciendo en vivo
+- `.btn-play-pause.paused` — pausado en vivo
+- `.btn-next.hold-delay` — botón siguiente con retardo de 0.5s
+- `.btn-prev.hold-delay` — botón anterior con retardo de 0.5s
+- `.btn-mute.muted` — mute de pánico activo
+- `.nav-locked` — navegación inferior bloqueada
+- `.theme-dark-forced` — tema oscuro forzado al máximo brillo
+- `.waveform-disabled-seek` — seek táctil deshabilitado en waveform
+- `.alert-time-warning` — alerta de tiempo restante (10 min, amarillo)
+- `.alert-time-danger` — alerta de tiempo restante (5 min, rojo)
+
+### Transiciones
+- De idle a activo: el usuario inicia el show desde el editor de sets
+- De activo a idle: el usuario detiene el show con confirmación doble tap
+
+---
+
+## Guía de Estilos CSS
+
+### Contenedor principal
+- `.vista-show` — layout base de la vista show
+
+### Botón Play/Pausa
+- `.btn-play-pause` — estado base
+- `.btn-play-pause.playing` — verde brillante, icono ⏸
+- `.btn-play-pause.paused` — gris, icono ▶
+
+### Botón Stop
+- `.btn-stop` — estado base, requiere confirmación doble tap
+
+### Botón Siguiente / Anterior
+- `.btn-next` — botón de siguiente track
+- `.btn-next.hold-delay` — requiere 0.5s de presión continua
+- `.btn-prev` — botón de anterior track
+- `.btn-prev.hold-delay` — requiere 0.5s de presión continua
+
+### Botón Mute / Pánico
+- `.btn-mute` — estado base
+- `.btn-mute.muted` — rojo parpadeante
+
+### Indicadores de modo
+- `.nav-locked` — navegación inferior bloqueada
+- `.theme-dark-forced` — tema oscuro forzado, brillo máximo
+- `.waveform-disabled-seek` — seek táctil deshabilitado
+
+### Alertas de cronómetro
+- `.alert-time-warning` — faltan 10 min, color amarillo
+- `.alert-time-danger` — faltan 5 min, color rojo
+
+### Estados de contenido
+- `.view-empty` — sin show activo
+
+### Temas
+- `.theme-dark` — overrides para modo oscuro
+- `.theme-light` — overrides para modo claro
+
+---
+
+### Modal: Completador de Set
+- **Trigger:** tap en botón "⏱ Completar Set"
+- **Campos:**
+  - `propuesta` (list) — lista de tracks sugeridos para cubrir el tiempo restante
+  - `tiempo_restante` (display) — tiempo faltante del countdown
+- **Acciones:** confirmar (agregar a QuouList) / descartar
+- **Valores recolectados:** `{ tracksAgregados: string[] }`

@@ -85,4 +85,61 @@ Catálogo global: [[07-modelo-errores]]
 │  ─────────────────────────────────────────────────────────── │
 │  [🏠 Inicio]  [▶ Reproductor]  [📂 Librería]  [✏️  Edit]    │
 └──────────────────────────────────────────────────────────────┘
+
+---
+
+## Interacción
+
+### Tipo
+segmented-control (tema: dark/light/system) + slider (volumen global) + dropdown (pedal mapping) + toggle (backup) + button (sync, clear cache, export stats)
+
+### Estados del componente
+- `.theme-selector` — selector de tema visual
+- `.segmented-control` — control segmentado de 3 opciones
+- `.slider-volumen` — slider de volumen global
+- `.pedal-mapping-row` — fila de mapeo de pedal Bluetooth
+- `.dropdown-comando` — dropdown de selección de comando para pedal
+- `.toggle-switch` — interruptor de activación/desactivación
+
+### Transiciones
+- De idle a activo: el usuario modifica cualquier configuración
+- De activo a idle: la configuración se persiste automáticamente
+
+---
+
+## Guía de Estilos CSS
+
+### Contenedor principal
+- `.vista-perfil` — layout base de configuración
+
+### Selector de tema
+- `.theme-selector` — contenedor del selector de tema
+- `.segmented-control` — control segmentado (🌙 Oscuro / ☀️ Claro / 🔄 Sistema)
+- `.segmented-control .active` — opción seleccionada
+
+### Slider de volumen
+- `.slider-volumen` — control deslizante de volumen global
+- `.slider-volumen:focus` — foco resaltado
+
+### Mapeo de pedalera
+- `.pedal-mapping-row` — fila de asignación de pedal
+- `.dropdown-comando` — dropdown de selección de comando
+- `.dropdown-comando:focus` — foco resaltado
+
+### Interruptor toggle
+- `.toggle-switch` — interruptor de backup/activación
+- `.toggle-switch.active` — activado
+
+### Botones de acción
+- `.btn-sync` — botón de sincronización manual
+- `.btn-clear-cache` — botón de limpieza de caché
+- `.btn-export` — botón de exportar estadísticas
+
+### Estados de contenido
+- `.view-empty` — sin datos de estadísticas
+- `.view-loading` — cargando configuración
+
+### Temas
+- `.theme-dark` — overrides para modo oscuro
+- `.theme-light` — overrides para modo claro
 ```

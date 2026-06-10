@@ -107,3 +107,75 @@ Catálogo global: [[07-modelo-errores]]
 | Corte seco | 0s | 0s | 0s | Cambio abrupto |
 | Desvanecer | 3s | 1s | 2s | Transición suave |
 | Fundido encadenado | 3s | 0s | 3s | Transición de radio |
+
+---
+
+## Interacción
+
+### Tipo
+drag-and-drop (reorder tracks) + slider (tono, tempo) + text-input (inicio/fin) + dropdown (tipo transición) + button-group (fade type) + button (iniciar show, guardar)
+
+### Estados del componente
+- `.track-row.dragging` — fila siendo arrastrada
+- `.slider-tono` — slider de transposición
+- `.slider-tempo` — slider de velocidad
+- `.input-error` — campo con valor inválido
+- `.dropdown-transition` — selector de tipo de transición
+- `.btn-show-disabled` — botón de iniciar show deshabilitado
+- `.time-ok` — duración del set dentro del objetivo (verde)
+- `.time-warning` — duración al 90% del objetivo (amarillo)
+- `.time-danger` — duración excede el objetivo (rojo)
+
+### Transiciones
+- De idle a activo: el usuario selecciona un set para editar
+- De activo a idle: el usuario guarda o inicia el show
+
+---
+
+## Guía de Estilos CSS
+
+### Contenedor principal
+- `.vista-edit` — layout base del editor de sets
+
+### Filas de track (reordenables)
+- `.track-row` — fila base de canción en el set
+- `.track-row.dragging` — fila siendo arrastrada (sombra, opacidad reducida)
+- `.track-row:active` — feedback al presionar
+
+### Sliders
+- `.slider-tono` — control de transposición (±12 semitonos)
+- `.slider-tempo` — control de velocidad (50%-200%)
+
+### Campos de texto
+- `.input-time` — campo de marca de tiempo (inicio/fin)
+- `.input-error` — campo con valor inválido (parpadeo rojo)
+
+### Dropdown de transición
+- `.dropdown-transition` — selector desplegable de tipo de transición
+
+### Botones de fade type
+- `.btn-fade` — botón base de tipo de fade
+- `.btn-fade.active` — tipo de fade seleccionado
+
+### Botones de acción
+- `.btn-show` — botón de iniciar show
+- `.btn-show-disabled` — botón deshabilitado (tooltip: "Agrega al menos una canción")
+
+### Indicadores de duración
+- `.time-ok` — duración dentro del objetivo (verde)
+- `.time-warning` — duración al 90% (amarillo)
+- `.time-danger` — duración excedida (rojo)
+
+### Temas
+- `.theme-dark` — overrides para modo oscuro
+- `.theme-light` — overrides para modo claro
+
+---
+
+### Modal: Agregar Canciones desde Librería
+- **Trigger:** tap en botón "+ Agregar canciones desde librería"
+- **Campos:**
+  - `busqueda` (text) — búsqueda de tracks en la librería
+  - `seleccion` (checkbox-list) — lista de tracks con checkboxes
+- **Acciones:** confirmar (agregar al set) / cancelar
+- **Valores recolectados:** `{ trackIds: string[] }`

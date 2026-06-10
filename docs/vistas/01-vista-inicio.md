@@ -113,3 +113,59 @@ Catálogo global: [[07-modelo-errores]]
   - **Cuerpo:** Lista paginada de canciones en biblioteca con botones de agregar/quitar.
   - **Pie:** Confirmar guardado o descartar cambios.
 - **Eliminación:** Permite la selección múltiple de playlists/sets para darlas de baja de la base de datos de [[04-almacenamiento]] mediante confirmación.
+
+---
+
+## Interacción
+
+### Tipo
+search-bar (text input + submit) + card-grid (tap para navegar) + button-group (nav tabs) + modal-trigger (crear playlist)
+
+### Estados del componente
+- `.view-onboarding` — estado vacío inicial, sin colecciones ni playlists
+- `.btn-reset-filters` — botón para limpiar filtros activos
+
+### Transiciones
+- De idle a activo: el usuario escribe en la barra de búsqueda o selecciona una tarjeta de colección/playlist
+- De activo a idle: se limpia la búsqueda o se deseleccionan filtros
+
+---
+
+## Guía de Estilos CSS
+
+### Contenedor principal
+- `.vista-inicio` — layout base de la pantalla de inicio
+
+### Barra de búsqueda
+- `.search-bar` — input de texto con icono de lupa
+- `.search-bar:focus` — borde resaltado al enfocar
+
+### Tarjetas de colección
+- `.collection-card` — tarjeta de colección inteligente o playlist
+- `.collection-card:active` — escala reducida al presionar
+
+### Tarjetas de playlist
+- `.playlist-card` — tarjeta de playlist del usuario
+- `.playlist-card--new` — tarjeta con icono "+" para crear nueva
+
+### Navegación por pestañas
+- `.nav-tabs` — contenedor de pestañas inferiores
+- `.nav-tabs .active` — pestaña seleccionada
+
+### Estados de contenido
+- `.view-onboarding` — sin datos, muestra bienvenida e importar
+- `.view-empty` — sin resultados de búsqueda/filtros
+
+### Temas
+- `.theme-dark` — overrides para modo oscuro
+- `.theme-light` — overrides para modo claro
+
+---
+
+### Modal: Crear Playlist
+- **Trigger:** tap en tarjeta "+ Nueva"
+- **Campos:**
+  - `nombre` (text) — nombre de la playlist, requerido, máximo 64 caracteres
+  - `descripcion` (text, opcional) — descripción libre
+- **Acciones:** confirmar / descartar
+- **Valores recolectados:** `{ nombre, descripcion }`
