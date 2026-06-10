@@ -17,6 +17,7 @@ Definir los cuatro tipos de agrupación de canciones que existen en Suniplayer (
 - Canciones con sus propiedades ← [[01-modelo-audio]]
 - Colecciones de curva calculadas ← [[10-algoritmo-mood]]
 - Asignación de canciones a colecciones desde la UI ← [[03-vista-libreria]]
+- Items confirmados por el músico hacia la QuouList ← [[18-completador-set]]
 
 ## Proceso
 
@@ -29,6 +30,8 @@ El modelo distingue colecciones creadas por el usuario (Playlist, Set, QuouList)
 - Sets para configurar en modo Edit → [[05-vista-edit]]
 - Qué datos de colecciones persistir → [[04-almacenamiento]]
 - Base de la cola compartida en sesión multi-dispositivo → [[08-modelo-jam-session]]
+- Duración objetivo del Set para la cuenta regresiva → [[12-cronometro]]
+- Canciones candidatas con su duración efectiva → [[18-completador-set]]
 
 ## Errores
 
@@ -96,6 +99,7 @@ Es una playlist especial que el músico prepara **antes** de un show. Es el puen
 | Canciones | Lista ordenada |
 | Orden definitivo | No se puede aleatorizar — el orden lo decide el músico |
 | Duración total | Suma calculada automáticamente |
+| Duración objetivo | Cuánto debe durar el show (típico: 45 o 90 min) — alimenta la cuenta regresiva de [[12-cronometro]] y el [[18-completador-set]] |
 | Canción de arranque | Por dónde empieza el show |
 
 **Comportamiento en modo Edit:**
