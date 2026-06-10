@@ -1,8 +1,47 @@
-# Marcadores y Comentarios
+---
+ruta: docs/componentes/07-marcadores.md
+tipo: componente
+origen: "[[02-vista-reproductor]]"
+estado: estable
+---
 
-## ¿Qué es?
+# Marcadores y Comentarios (Loop A-B)
 
-Un sistema que permite al músico **dejar notas** en puntos específicos de una canción. Se ven como pins de colores en la gráfica de ondas.
+## Función
+
+Administrar los comentarios asociados a marcas de tiempo (pins) de una canción; monitorear el cabezal de reproducción para gatillar avisos visuales en pantalla (tooltips); y gestionar la lógica de repetición de tramos (Loop A-B) para práctica instrumental.
+
+## Entrada
+
+- Comandos de alta, modificación, borrado e interacción de marcadores ← [[02-vista-reproductor]]
+- Posición en tiempo real (milisegundos) del cabezal de audio ← [[01-audio-engine]]
+
+## Proceso
+
+1. **Gestión de Datos:** Los marcadores se agregan especificando un timestamp (segundos con centésimas), texto del comentario, color visual (verde, rojo, amarillo, azul) y un campo extendido opcional.
+2. **Monitoreo de Tiempo Real:** El componente evalúa constantemente la diferencia entre la posición actual de reproducción y el timestamp de los marcadores.
+   - Si la diferencia es menor o igual a 3.00 segundos previos al marcador, se gatilla un evento de visualización en la UI.
+   - Cuando la posición supera el timestamp del marcador, el tooltip desaparece.
+3. **Lógica de Loop A-B (Práctica):**
+   - El músico puede seleccionar un marcador existente como Punto A (inicio de bucle) y otro como Punto B (fin de bucle). También puede ingresar marcas libres en caliente.
+   - Mientras el loop esté activo, al alcanzar la posición del Punto B, el componente envía inmediatamente un comando `seek(PuntoA)` a [[01-audio-engine]], repitiendo la sección de forma cíclica e indefinida.
+   - Es combinable con el componente [[03-time-stretcher]] para ensayar tramos rápidos a velocidad reducida.
+4. **Modo Show:** Durante el show en vivo, se bloquean todas las funciones de escritura (agregar, borrar o mover marcadores), permitiendo únicamente la lectura y renderizado.
+
+## Salida
+
+- Coordenadas y colores de los pins a renderizar en la línea de tiempo → [[06-grafica-ondas]]
+- Órdenes de persistencia (guardar/borrar registros) → [[04-almacenamiento]]
+- Comandos de salto para Loop A-B (`seek()`) → [[01-audio-engine]]
+
+## Errores
+
+- **Lógico:** el usuario intenta activar un Loop A-B pero la canción no tiene duración o está vacía — la operación se ignora.
+- **Semántico:**
+  - El Punto B de un loop se define en una marca de tiempo anterior o igual al Punto A (ej: A = `01:30`, B = `01:10`) — la operación se rechaza con aviso: "El punto de fin (B) debe ser posterior al punto de inicio (A)".
+  - El Punto A o B caen fuera de los límites recortados de la canción (inicio/fin personalizado) — se fuerza el ajuste a los límites correspondientes y se notifica en pantalla.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
@@ -69,12 +108,10 @@ Cada marcador es un **pin de color** en la línea de tiempo. Al acercarse el cab
 
 ### Colores disponibles
 
-```text
-  🟢 Verde    →  "Entrada, inicio, algo positivo"
-  🔴 Rojo     →  "Peligro, sección difícil, atención"
-  🟡 Amarillo →  "Transición, cambio, neutral"
-  🔵 Azul     →  "Información, referencia, nota"
-```
+- **🟢 Verde:** "Entrada, inicio, algo positivo".
+- **🔴 Rojo:** "Peligro, sección difícil, atención".
+- **🟡 Amarillo:** "Transición, cambio, neutral".
+- **🔵 Azul:** "Información, referencia, nota".
 
 ---
 
@@ -93,44 +130,17 @@ Cada marcador es un **pin de color** en la línea de tiempo. Al acercarse el cab
          │                  cuando pasa,
          │              el tooltip
          │              desaparece
-
-  El músico ve la información JUSTO cuando la necesita:
-  a 3 segundos de distancia, el texto aparece solo.
 ```
+
+El músico ve la información JUSTO cuando la necesita: a 3 segundos de distancia, el texto aparece solo.
 
 ---
 
 ## Atajo rápido
 
-```text
 Para crear un marcador sin abrir el panel:
-
-  → Tocar DOS VECES sobre la gráfica de ondas
-  → Se crea un marcador rápido en esa posición
-  → Color: 🟡 Amarillo (default)
-  → Texto: "Marcador en MM:SS"
-  → Se puede editar después desde el panel
-```
-
----
-
-## Estados
-
-```text
-┌─────────────────┬────────────────────────────────────────────┐
-│  Estado         │  Comportamiento                            │
-├─────────────────┼────────────────────────────────────────────┤
-│  Sin            │  Panel: "No hay marcadores.                │
-│  marcadores     │  Tocá + para agregar uno."                 │
-├─────────────────┼────────────────────────────────────────────┤
-│  Con            │  Lista visible + pins en la gráfica.       │
-│  marcadores     │                                            │
-├─────────────────┼────────────────────────────────────────────┤
-│  Cabezal cerca  │  Tooltip aparece automáticamente.          │
-│  de marcador    │  El pin brilla suavemente.                 │
-├─────────────────┼────────────────────────────────────────────┤
-│  Editando       │  Overlay de edición con campos.            │
-├─────────────────┼────────────────────────────────────────────┤
-│  Modo Show      │  Marcadores visibles pero NO editables.    │
-└─────────────────┴────────────────────────────────────────────┘
-```
+- Tocar DOS VECES sobre la gráfica de ondas (en Modo Edit).
+- Se crea un marcador rápido en esa posición.
+- Color: 🟡 Amarillo (default).
+- Texto: "Marcador en MM:SS".
+- Se puede editar después desde el panel.

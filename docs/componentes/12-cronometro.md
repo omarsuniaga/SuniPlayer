@@ -1,139 +1,70 @@
-# Cronómetros
+---
+ruta: docs/componentes/12-cronometro.md
+tipo: componente
+origen: "[[03-modelo-sesion]]"
+estado: estable
+---
 
-## ¿Qué es?
+# Cronómetros de Sesión y Show
 
-Un sistema de **medición de tiempo** que funciona en tres niveles distintos según el contexto.
+## Función
+
+Registrar de forma precisa la duración de la sesión actual; gestionar el cronómetro ascendente y la cuenta regresiva del show en vivo; disparar alertas visuales de hito de tiempo; y reportar las duraciones acumuladas al cerrarse.
+
+## Entrada
+
+- Señales de cambio de modo de sesión (inicio/fin de Modo Show/Edit) ← [[03-modelo-sesion]]
+- Duración objetivo del Set activo ← [[02-modelo-colecciones]]
+
+## Proceso
+
+1. **Cronómetro de Sesión (Volátil):**
+   - Inicia de forma automática al abrir la aplicación.
+   - Incrementa un contador en milisegundos en segundo plano.
+   - Al cerrar la app, reporta la duración a [[05-telemetria]] para sumarse al total histórico, y se destruye en memoria.
+2. **Cronómetro de Show (Vivo):**
+   - Se activa únicamente al entrar a Modo Show.
+   - **Modo Ascendente:** Registra el tiempo transcurrido desde el inicio de la presentación en vivo.
+   - **Modo Cuenta Regresiva (Countdown):**
+     - Toma la `duración objetivo` del Set (ej: 45 minutos) o la ingresada al arrancar el show.
+     - Decrementa el tiempo restante de forma precisa.
+     - **Alertas Visuales de Hitos:** Cuando el tiempo restante cruza marcas críticas, el componente envía eventos visuales a [[04-vista-show]]:
+       - Faltan 10 minutos (clase CSS `.alert-time-warning`, texto en amarillo).
+       - Faltan 5 minutos (clase CSS `.alert-time-danger`, texto en rojo).
+       - Tiempo cumplido (clase CSS `.alert-time-overrun`, parpadeo de seguridad).
+       - *REGLA DE SEGURIDAD:* Las alertas son 100% visuales. Está estrictamente prohibido emitir pitidos o sonidos de sistema durante el Modo Show.
+3. **Cronómetro de Set (Edit):**
+   - Suma estática de la duración efectiva de todos los tracks asignados al Set para validación del músico.
+
+## Salida
+
+- Tiempos de ejecución y alertas visuales de hitos → [[04-vista-show]]
+- Tiempo restante del show para cálculos → [[18-completador-set]]
+- Duración de show completado para persistir en `historial_shows` → [[04-almacenamiento]]
+- Duraciones acumuladas para telemetría → [[05-telemetria]]
+- Estadísticas temporales para visualizar → [[06-vista-perfil]]
+
+## Errores
+
+- **Lógico:** el temporizador intenta ejecutarse mientras la sesión del dispositivo está suspendida (ej. pantalla apagada o cambio de app en segundo plano).
+  - *Resolución:* El componente calcula la diferencia de tiempo real utilizando marcas de tiempo de Unix del sistema (`Date.now()`) al reactivarse, en lugar de confiar únicamente en loops de JS (`setInterval`), evitando pérdidas de sincronía.
+- **Semántico:** la duración del set es de 0 y el músico inicia la cuenta regresiva en el show — la operación se bloquea y se reporta error.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Los tres cronómetros
+## Tipos de cronómetro
 
 ### 1. Cronómetro de Sesión
+- Cuenta el tiempo total que el usuario lleva usando la app desde que la abrió.
+- Es volátil: se reinicia al cerrar la app.
 
-Existen DOS métricas relacionadas con el tiempo de uso de la app. Son cosas distintas y no deben confundirse:
+### 2. Cronómetro de Show
+- Arranca cuando se inicia el modo Show.
+- Se muestra SIEMPRE en grande durante el show en vivo.
+- Muestra: `[tiempo transcurrido] + [tiempo de cola] = [tiempo total estimado]`.
 
-**(a) Cronómetro de Sesión — volátil:**
-```text
-  ¿Cuándo arranca?    →  Al abrir la app
-  ¿Cuándo se detiene? →  Al cerrar la app
-  ¿Se persiste?       →  NO — se reinicia en cada apertura
-  ¿Dónde se ve?       →  Perfil → Estadísticas (sesión actual)
-  ¿Para qué sirve?    →  Ver cuánto lleva activa la sesión actual
-```
-
-**(b) Tiempo total acumulado — persistido:**
-```text
-  ¿Cuándo se actualiza? →  Al cerrar la app (se suma la sesión actual al total)
-  ¿Se persiste?         →  SÍ — guardado en la DB local
-  ¿Dónde se ve?         →  Perfil → Estadísticas (el número grande)
-  ¿Para qué sirve?      →  Historial de uso total del usuario
-
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │     ⏱  Tiempo total de uso:  124h 32m    ← persistido  │
-  │     📊  Promedio diario:      2h 15m                    │
-  │                                                          │
-  └──────────────────────────────────────────────────────────┘
-```
-
-El valor "124h 32m" que aparece en el Perfil es el **tiempo total acumulado** (persistido). El Cronómetro de Sesión solo mide la apertura actual.
-
-### 2. Cronómetro de Show (Presentación en vivo)
-
-```text
-  ¿Cuándo arranca?    →  Al iniciar el modo Show
-  ¿Cuándo se detiene? →  Al terminar el modo Show
-  ¿Se pausa?          →  NO — ni aunque la música esté en pausa
-  ¿Se reinicia?       →  Manualmente desde Perfil
-  ¿Dónde se ve?       →  En la vista Show, SIEMPRE visible
-
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │              ╔══════════════════════════╗                │
-  │              ║      ⏱  43:21           ║                │
-  │              ║      ─────────           ║                │
-  │              ║      + Cola: 10:47       ║                │
-  │              ║      ─────────           ║                │
-  │              ║      = Total: 54:08      ║                │
-  │              ╚══════════════════════════╝                │
-  │                                                          │
-  └──────────────────────────────────────────────────────────┘
-
-  ⏱  El "+ Cola" es la función estrella:
-      "Llevo 32 min. Agregué 3 canciones = 12 min más.
-       Estimo terminar en 44 min total."
-```
-
-### 3. Cronómetro de Set (Preparación)
-
-```text
-  ¿Cuándo se calcula? →  Cada vez que se modifica el set
-  ¿Cómo funciona?     →  Suma la duración de todas las canciones
-  ¿Se pausa?          →  No aplica (es una suma, no un contador)
-  ¿Dónde se ve?       →  En la vista Edit, cabecera del set
-
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │   Set: Show Sábado 15                                    │
-  │                                                          │
-  │   12 canciones  |  Duración: 34:21                      │
-  │                                                          │
-  │   🟢  Entra en 40 min  (sobran 5:39)                    │
-  │                                                          │
-  │   [🎯 Iniciar Show]                                     │
-  │                                                          │
-  └──────────────────────────────────────────────────────────┘
-
-  Colores de advertencia:
-    🟢  El set entra en el tiempo disponible
-    🟡  El set está al 90%+
-    🔴  El set EXCEDE el tiempo disponible
-```
-
----
-
-## Historial de shows
-
-Cada vez que se completa un show, se guarda:
-
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                                                              │
-│   📊  HISTORIAL DE SHOWS  (últimos 30 días)                  │
-│                                                              │
-│   ┌──────┬────────────┬──────────┬──────────┬────────────┐  │
-│   │ Fecha│  Set       │  Duración│ Canciones│ Cola extra │  │
-│   ├──────┼────────────┼──────────┼──────────┼────────────┤  │
-│   │10/06 │ Sábado 15  │  43:21  │   12    │     3      │  │
-│   │ 8/06 │ Show Viern.│  38:10  │   10    │     1      │  │
-│   │ 1/06 │ Ensayo Gral│  52:00  │   15    │     0      │  │
-│   └──────┴────────────┴──────────┴──────────┴────────────┘  │
-│                                                              │
-│   Promedio: 44:43  |  Total shows: 8  |  18h 45m            │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Estados
-
-```text
-┌─────────────────┬────────────────────────────────────────────┐
-│  Cronómetro     │  Estados                                   │
-├─────────────────┼────────────────────────────────────────────┤
-│  SESIÓN         │  ● Detenido (app cerrada)                  │
-│                 │  ● Corriendo (app abierta)                 │
-├─────────────────┼────────────────────────────────────────────┤
-│  SHOW           │  ● Detenido (show no iniciado)             │
-│                 │  ● Corriendo (show activo)                 │
-│                 │  ● Finalizado (show terminó, datos         │
-│                 │      guardados en historial)                │
-├─────────────────┼────────────────────────────────────────────┤
-│  SET            │  ● No calculado (0 canciones)              │
-│                 │  ● Calculado (duración conocida)           │
-│                 │  ● 🟢 En tiempo                            │
-│                 │  ● 🟡 Cerca del límite                     │
-│                 │  ● 🔴 Excede tiempo                        │
-└─────────────────┴────────────────────────────────────────────┘
-```
+### 3. Cronómetro de Set (en Edit)
+- Muestra la duración total de las canciones del set de forma estática.
+- Ayuda al músico a saber si su set entra en el tiempo asignado.

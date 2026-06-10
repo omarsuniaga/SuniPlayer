@@ -1,10 +1,44 @@
+---
+ruta: docs/componentes/11-filtros.md
+tipo: componente
+origen: "[[01-vista-inicio]]"
+estado: estable
+---
+
 # Sistema de Filtros
 
-## ¿Qué es?
+## Función
 
-Un mecanismo para **filtrar y ordenar** colecciones (playlists, sets, colecciones inteligentes) según criterios definidos por el usuario. Aparece principalmente en la vista Inicio y en la vista Librería.
+Filtrar y ordenar colecciones de canciones y listas de la librería según criterios estructurales (BPM, duración, tipo de curva, formato, cache local); y entregar los conjuntos filtrados resultantes a las vistas correspondientes.
 
-No es un buscador de texto (eso es el Buscador). Es un sistema de **filtros estructurales**.
+## Entrada
+
+- Propiedades físicas y de análisis del modelo de audio ← [[01-modelo-audio]]
+- Criterios de filtrado seleccionados por el usuario desde la pantalla principal ← [[01-vista-inicio]]
+- Criterios de filtrado de canciones seleccionados desde la biblioteca ← [[03-vista-libreria]]
+
+## Proceso
+
+1. **Recopilación:** Recibe el conjunto completo de datos (canciones o colecciones) a procesar.
+2. **Evaluación de Reglas:** Aplica las reglas lógicas seleccionadas mediante evaluación condicional (AND lógico):
+   - **Duración:** Rango min/max en minutos.
+   - **Curva de Energía:** Filtra por lineal, campana o exponencial (sólo para Colecciones Inteligentes).
+   - **BPM/Energía:** Rangos de BPM clasificados (Suave `60-85`, Media `86-115`, Alta `116-140`, Muy Alta `141-200`).
+   - **Formatos y Persistencia:** Filtra canciones según formato de archivo (.mp3, .wav, etc.) o estado de cache local (IndexedDB/física).
+3. **Ordenamiento:** Aplica el criterio de ordenamiento secundario (por fecha, reproducciones, BPM o alfabético).
+4. **Retorno:** Si el conjunto resultante está vacío, notifica un estado sin resultados para renderizar un aviso de limpieza de filtros.
+
+## Salida
+
+- Colecciones filtradas y ordenadas para renderizar → [[01-vista-inicio]]
+- Lista de canciones filtradas para la biblioteca → [[03-vista-libreria]]
+
+## Errores
+
+- **Lógico:** se envían criterios de filtrado contradictorios (ej: duración máxima menor que duración mínima) — el componente corrige el rango forzando a que `max = min` y ejecuta la consulta de forma segura.
+- **Semántico:** la consulta resulta en cero coincidencias — el componente devuelve un arreglo vacío (`[]`) y activa la bandera visual de error semántico de "Sin Coincidencias" en la UI.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
@@ -26,10 +60,6 @@ Muestra solo colecciones que duran dentro de un rango específico.
 └─────────────────────────────────────┘
 ```
 
-**Casos de uso:**
-- "Mostrame solo los sets que entren en 30 minutos."
-- "Quiero playlists de entre 20 y 40 minutos para mi viaje al trabajo."
-
 ### 2. Filtro por tipo de curva
 
 Muestra solo colecciones que tienen un tipo específico de curva de energía.
@@ -40,59 +70,14 @@ Muestra solo colecciones que tienen un tipo específico de curva de energía.
 [ ] Exponencial
 ```
 
-**Casos de uso:**
-- "Mostrame solo las colecciones lineales (BPM constante)."
-- "Quiero ver las curvas de energía que preparé."
-
 ### 3. Filtro por energía
 
 Muestra colecciones cuyo rango de BPM cae dentro de una categoría de energía.
 
-```text
-[ ] Suave (60-85 BPM)
-[✓] Media (86-115 BPM)
-[✓] Alta (116-140 BPM)
-[ ] Muy Alta (141-200 BPM)
-```
-
-**Casos de uso:**
-- "Mostrame colecciones de música tranquila."
-- "Quiero solo música movida para bailar."
-
-### 4. Filtro por cantidad de canciones
-
-```text
-[ 5 ] a [ 20 ] canciones
-```
-
-### 5. Filtro por estado
-
-```text
-[✓] Playlists
-[✓] Sets
-[✓] Colecciones Inteligentes
-[ ] Vacías (colecciones sin canciones)
-```
-
----
-
-## Cómo se combinan los filtros
-
-Los filtros se combinan con **AND lógico** (todos deben cumplirse):
-
-```text
-Ejemplo:
-  Duración: 20-40 min
-  Tipo: Lineal
-  Energía: Media o Alta
-  → Muestra colecciones que cumplen TODAS las condiciones
-```
-
-Si no hay resultados, se muestra:
-```text
-"Ninguna colección coincide con estos filtros.
-Probá con criterios más amplios."
-```
+- **Suave:** 60-85 BPM
+- **Media:** 86-115 BPM
+- **Alta:** 116-140 BPM
+- **Muy Alta:** 141-200 BPM
 
 ---
 
@@ -103,40 +88,4 @@ Probá con criterios más amplios."
 | Inicio (sección colecciones inteligentes) | Por tipo de curva, por duración, por energía |
 | Inicio (sección playlists) | Por duración, por cantidad de canciones |
 | Librería | Por formato, por energía, por BPM, por estado de cache |
-| Reproductor (cuando se agrega a cola desde librería) | Filtro rápido de búsqueda |
-
----
-
-## Interfaz de usuario
-
-Los filtros se activan desde un botón "Filtrar" (icono de embudo) en la barra superior de cada vista.
-
-```text
-Vista Inicio:
-┌──────────────────────────────────────────┐
-│  [Logo]      [🔍]   [Filtrar 🌀] [Perfil]│
-├──────────────────────────────────────────┤
-```
-
-Al tocar "Filtrar", se abre un panel lateral o modal con las opciones de filtro disponibles para esa vista.
-
----
-
-## Persistencia de filtros
-
-| Comportamiento | Default |
-|---------------|---------|
-| ¿Los filtros se recuerdan al cerrar la app? | No |
-| ¿Los filtros persisten al navegar entre vistas? | No (cada vista tiene sus propios filtros) |
-| ¿Se puede guardar un filtro como favorito? | No (futura mejora posible) |
-
----
-
-## Estados del filtro
-
-| Estado | Comportamiento |
-|--------|---------------|
-| Sin filtros activos | Se muestran todas las colecciones |
-| Filtros activos | Indicador visual en el botón de filtro (ej: "Filtrar • 3") |
-| Sin resultados | Mensaje "No hay coincidencias" + botón "Limpiar filtros" |
-| Limpiando | Al tocar "Limpiar filtros", se restablece la vista completa |
+| Reproductor | Filtro rápido de búsqueda |
