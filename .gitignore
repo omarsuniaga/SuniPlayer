@@ -1,5 +1,6 @@
 .atl/*.cache.json
 .obsidian/workspace*.json
+.vite/
 docs/.obsidian/workspace*.json
 app/node_modules/
 app/dist/
