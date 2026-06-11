@@ -16,10 +16,9 @@ Proveer un control persistente y mínimo de reproducción anclado al footer de t
 - Track activo y estado de reproducción (playing/paused/stopped/idle) ← [[01-audio-engine]]
 - Track siguiente en la QuouList ← [[02-modelo-colecciones]]
 - Posición actual y duración del track ← [[01-audio-engine]]
-- Tap en el cuerpo del minireproductor → solicitud de apertura ← [[02-vista-reproductor]]
 - Tap en botón play/pause → comando ← [[01-audio-engine]]
 - Tap en botón next → comando ← [[01-audio-engine]]
-- Evento de navegación de vistas ← cada vista contenedora (`01-vista-inicio` a `06-vista-perfil`)
+- Evento de navegación de vistas ← [[01-vista-inicio]], [[03-vista-libreria]], [[04-vista-show]], [[05-vista-edit]], [[06-vista-perfil]]
 - Estado de modo activo (Escucha/Edit/Show) ← [[03-modelo-sesion]]
 
 ## Proceso
@@ -100,7 +99,7 @@ Proveer un control persistente y mínimo de reproducción anclado al footer de t
 - Comando play() o pause() → [[01-audio-engine]]
 - Comando next() → [[01-audio-engine]]
 - Evento de navegación "abrir reproductor" → [[02-vista-reproductor]]
-- Indicador de modo SHOW activo → cada vista contenedora
+- Indicador de modo SHOW activo → [[01-vista-inicio]], [[03-vista-libreria]], [[04-vista-show]], [[05-vista-edit]], [[06-vista-perfil]]
 - Posición de seek (si aplica) → [[01-audio-engine]]
 
 ## Errores

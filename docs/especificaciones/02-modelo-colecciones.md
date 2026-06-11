@@ -18,7 +18,6 @@ Definir los cuatro tipos de agrupación de canciones que existen en Suniplayer (
 - Colecciones de curva calculadas ← [[10-algoritmo-mood]]
 - Asignación de canciones a colecciones desde la UI ← [[03-vista-libreria]]
 - Items confirmados por el músico hacia la QuouList ← [[18-completador-set]]
-- Consulta de próximo track en la QuouList desde footer ← [[19-minireproductor]]
 
 ## Proceso
 
