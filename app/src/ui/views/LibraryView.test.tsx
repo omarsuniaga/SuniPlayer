@@ -5,7 +5,7 @@ import { useCollectionStore } from '../../application/collectionStore'
 import { usePlayerStore } from '../../application/playerStore'
 import type { PersistedTrack } from '../../infrastructure/dexie'
 
-const { mockEngine, mockImportAudioFiles } = vi.hoisted(() => ({
+const { mockEngine, mockImportAudioFiles, mockGetAll } = vi.hoisted(() => ({
   mockEngine: {
     playTrack: vi.fn(),
     play: vi.fn(),
@@ -19,6 +19,7 @@ const { mockEngine, mockImportAudioFiles } = vi.hoisted(() => ({
     error: null,
   },
   mockImportAudioFiles: vi.fn(),
+  mockGetAll: vi.fn(),
 }))
 
 vi.mock('../hooks/useAudioEngine', () => ({
@@ -27,6 +28,10 @@ vi.mock('../hooks/useAudioEngine', () => ({
 
 vi.mock('../../application/importActions', () => ({
   importAudioFiles: mockImportAudioFiles,
+}))
+
+vi.mock('../../infrastructure/dexie', () => ({
+  trackRepo: { getAll: mockGetAll },
 }))
 
 function makeTrack(overrides: Partial<PersistedTrack> = {}): PersistedTrack {
@@ -45,9 +50,19 @@ function makeTrack(overrides: Partial<PersistedTrack> = {}): PersistedTrack {
   }
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
 describe('LibraryView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetAll.mockResolvedValue([])
+    mockImportAudioFiles.mockResolvedValue({ success: [], errors: [] })
     useCollectionStore.getState().reset()
     usePlayerStore.getState().reset()
   })
@@ -56,7 +71,7 @@ describe('LibraryView', () => {
     cleanup()
   })
 
-  it('renders tracks from the store with visible title, duration, bpm, and imported path', () => {
+  it('renders tracks from the store with visible title, duration, bpm, path, cache state, and added date', () => {
     useCollectionStore.getState().setTracks([makeTrack()])
 
     render(<LibraryView />)
@@ -65,7 +80,9 @@ describe('LibraryView', () => {
     expect(screen.getByText('Salsa Brava')).toBeDefined()
     expect(screen.getByText('3:45')).toBeDefined()
     expect(screen.getByText('128 BPM')).toBeDefined()
-    expect(screen.getAllByText('/Music/Importadas/').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('/Music/Importadas/')).toBeDefined()
+    expect(screen.getByText('Cached')).toBeDefined()
+    expect(screen.getByText(/Added:/)).toBeDefined()
   })
 
   it('renders the empty state with an import CTA when no tracks exist', () => {
@@ -73,6 +90,19 @@ describe('LibraryView', () => {
 
     expect(screen.getByText('No tracks in your library yet')).toBeDefined()
     expect(screen.getByRole('button', { name: 'Drop audio files here or click to browse' })).toBeDefined()
+  })
+
+  it('falls back to filename or id and shows No BPM when metadata is missing', () => {
+    useCollectionStore.getState().setTracks([
+      makeTrack({ id: 'fallback-track', title: '', filePath: '/Music/Importadas/fallback.mp3', bpm: undefined }),
+      makeTrack({ id: 'id-fallback', title: '', filePath: '', bpm: undefined }),
+    ])
+
+    render(<LibraryView />)
+
+    expect(screen.getByText('fallback.mp3')).toBeDefined()
+    expect(screen.getByText('id-fallback')).toBeDefined()
+    expect(screen.getAllByText('No BPM')).toHaveLength(2)
   })
 
   it('clicking a track calls playTrack with that track and notifies selection', () => {
@@ -88,7 +118,7 @@ describe('LibraryView', () => {
     expect(onTrackSelected).toHaveBeenCalledTimes(1)
   })
 
-  it('opens a context menu and shows the spec actions', () => {
+  it('opens a context menu and shows the spec actions with future items disabled', () => {
     useCollectionStore.getState().setTracks([makeTrack()])
 
     render(<LibraryView />)
@@ -96,16 +126,38 @@ describe('LibraryView', () => {
 
     expect(screen.getByRole('menu', { name: 'Actions for Salsa Brava' })).toBeDefined()
     expect(screen.getByRole('menuitem', { name: 'Play' })).toBeDefined()
-    expect(screen.getByRole('menuitem', { name: /Add to playlist/ })).toBeDefined()
+    expect(screen.getByRole('menuitem', { name: /Add to playlist/ }).getAttribute('aria-disabled')).toBe('true')
     expect(screen.getByRole('menuitem', { name: 'Add to queue' })).toBeDefined()
-    expect(screen.getByRole('menuitem', { name: /Link score/ })).toBeDefined()
-    expect(screen.getByRole('menuitem', { name: /Adjust pitch\/tempo/ })).toBeDefined()
-    expect(screen.getByRole('menuitem', { name: /Save in app/ })).toBeDefined()
-    expect(screen.getByRole('menuitem', { name: /Remove from library/ })).toBeDefined()
+    expect(screen.getByRole('menuitem', { name: /Link score/ }).getAttribute('aria-disabled')).toBe('true')
+    expect(screen.getByRole('menuitem', { name: /Adjust pitch\/tempo/ }).getAttribute('aria-disabled')).toBe('true')
+    expect(screen.getByRole('menuitem', { name: /Save in app/ }).getAttribute('aria-disabled')).toBe('true')
+    expect(screen.getByRole('menuitem', { name: /Remove from library/ }).getAttribute('aria-disabled')).toBe('true')
+  })
+
+  it('closes the context menu after an enabled action', () => {
+    useCollectionStore.getState().setTracks([makeTrack()])
+
+    render(<LibraryView />)
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Salsa Brava' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Add to queue' }))
+
+    expect(useCollectionStore.getState().queue).toEqual([{ id: 'track-1' }])
+    expect(screen.queryByRole('menu', { name: 'Actions for Salsa Brava' })).toBeNull()
+  })
+
+  it('keeps disabled context menu actions visible and inert', () => {
+    useCollectionStore.getState().setTracks([makeTrack()])
+
+    render(<LibraryView />)
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Salsa Brava' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Add to playlist/ }))
+
+    expect(mockEngine.playTrack).not.toHaveBeenCalled()
+    expect(screen.getByRole('menu', { name: 'Actions for Salsa Brava' })).toBeDefined()
   })
 
   it('imports files from the library and shows the new track after the application action updates the store', async () => {
-    const importedTrack = makeTrack({ id: 'new-track', title: 'Mereng�n', filePath: '/Music/Importadas/merengon.wav' })
+    const importedTrack = makeTrack({ id: 'new-track', title: 'Merengon', filePath: '/Music/Importadas/merengon.wav' })
     mockImportAudioFiles.mockImplementation(async () => {
       useCollectionStore.getState().setTracks([importedTrack])
       return { success: [importedTrack], errors: [] }
@@ -118,17 +170,35 @@ describe('LibraryView', () => {
     })
 
     await waitFor(() => expect(mockImportAudioFiles).toHaveBeenCalledWith([file]))
-    expect(await screen.findByText('Mereng�n')).toBeDefined()
+    expect(await screen.findByText('Merengon')).toBeDefined()
   })
 
-  it('keeps disabled context menu actions visible and inert', () => {
-    useCollectionStore.getState().setTracks([makeTrack()])
+  it('shows importing state and disables the dropzone while import is pending', async () => {
+    const pending = deferred<{ success: PersistedTrack[]; errors: { fileName: string; reason: string }[] }>()
+    mockImportAudioFiles.mockReturnValue(pending.promise)
 
     render(<LibraryView />)
-    fireEvent.click(screen.getByRole('button', { name: 'More actions for Salsa Brava' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: /Add to playlist/ }))
+    const dropzone = screen.getByRole('button', { name: 'Drop audio files here or click to browse' })
+    fireEvent.drop(dropzone, { dataTransfer: { files: [new File(['audio'], 'song.mp3', { type: 'audio/mpeg' })] } })
 
-    expect(mockEngine.playTrack).not.toHaveBeenCalled()
-    expect(screen.getByRole('menu', { name: 'Actions for Salsa Brava' })).toBeDefined()
+    expect(await screen.findByText('Importing audio files...')).toBeDefined()
+    expect(dropzone.getAttribute('aria-disabled')).toBe('true')
+
+    pending.resolve({ success: [], errors: [] })
+    await waitFor(() => expect(screen.queryByText('Importing audio files...')).toBeNull())
+  })
+
+  it('renders import errors returned by the application action', async () => {
+    mockImportAudioFiles.mockResolvedValue({
+      success: [],
+      errors: [{ fileName: 'bad.mp3', reason: 'Formato no soportado o archivo corrupto' }],
+    })
+
+    render(<LibraryView />)
+    fireEvent.drop(screen.getByRole('button', { name: 'Drop audio files here or click to browse' }), {
+      dataTransfer: { files: [new File(['bad'], 'bad.mp3', { type: 'audio/mpeg' })] },
+    })
+
+    expect((await screen.findByRole('alert')).textContent).toContain('bad.mp3: Formato no soportado o archivo corrupto')
   })
 })

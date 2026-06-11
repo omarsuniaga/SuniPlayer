@@ -45,13 +45,20 @@ const listStyle: React.CSSProperties = {
 
 const rowStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '1fr auto auto',
+  gridTemplateColumns: 'minmax(0, 1fr) auto',
   gap: 12,
-  alignItems: 'center',
+  alignItems: 'start',
   padding: 12,
   border: '1px solid #2a2a2a',
   borderRadius: 10,
   background: '#171717',
+}
+
+const trackMetaGridStyle: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '8px 12px',
+  marginTop: 6,
 }
 
 const titleButtonStyle: React.CSSProperties = {
@@ -247,9 +254,14 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
                 >
                   <div style={{ fontWeight: 700 }}>{title}</div>
                   <div style={metaStyle}>Name: {title}</div>
+                  <div style={trackMetaGridStyle} aria-label={`Metadata for ${title}`}>
+                    <span style={metaStyle}>{formatDuration(track.durationSeconds)}</span>
+                    <span style={{ ...metaStyle, color: track.bpm ? '#ffd36b' : '#777' }}>{track.bpm ? `${track.bpm} BPM` : 'No BPM'}</span>
+                    <span style={metaStyle}>Cached</span>
+                    <span style={metaStyle}>{importedDirectory(track.filePath)}</span>
+                    <span style={metaStyle}>Added: {formatAddedDate(track.createdAt)}</span>
+                  </div>
                 </button>
-                <div style={metaStyle}>{formatDuration(track.durationSeconds)}</div>
-                <div style={{ ...metaStyle, color: track.bpm ? '#ffd36b' : '#777' }}>{track.bpm ? `${track.bpm} BPM` : 'No BPM'}</div>
                 <button
                   type="button"
                   style={menuButtonStyle}
@@ -262,8 +274,6 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
                 >
                   ...
                 </button>
-                <div style={metaStyle}>{importedDirectory(track.filePath)}</div>
-                <div style={metaStyle}>Added: {formatAddedDate(track.createdAt)}</div>
                 {isMenuOpen && (
                   <div className="context-menu" role="menu" aria-label={`Actions for ${title}`} style={contextMenuStyle}>
                     {actionsFor(track).map((action) => (
@@ -272,10 +282,14 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
                         type="button"
                         role="menuitem"
                         disabled={action.disabled}
+                        aria-disabled={action.disabled || undefined}
                         title={action.disabled ? 'Próximamente' : undefined}
                         style={{ ...menuItemStyle, opacity: action.disabled ? 0.55 : 1, cursor: action.disabled ? 'not-allowed' : 'pointer' }}
                         onClick={() => {
-                          if (!action.disabled) action.run?.()
+                          if (!action.disabled) {
+                            action.run?.()
+                            setOpenMenuTrackId(null)
+                          }
                         }}
                       >
                         <span>{action.label}</span>
@@ -304,4 +318,3 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
     </section>
   )
 }
-
