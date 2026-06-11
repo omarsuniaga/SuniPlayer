@@ -71,7 +71,7 @@ export function completeSet(input: {
     // Iterate backwards to avoid reusing the same candidate (0/1 knapsack)
     for (let s = cap - 1; s >= dur; s--) {
       const prev = dp[s - dur]
-      if (prev !== null && dp[s] === null) {
+      if (prev !== null && prev !== undefined && dp[s] === null) {
         dp[s] = [...prev, candidate]
       }
     }
