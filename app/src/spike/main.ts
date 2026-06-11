@@ -239,7 +239,7 @@ async function getDecoded(ctx: AudioContext): Promise<AudioBuffer> {
     decoded = await decodeAudio(ctx, pendingFile.bytes);
   } catch (error) {
     throw new Error(
-      `decodeAudioData failed for "${pendingFile.name}" (type "${pendingFile.bytes.byteLength} bytes"). ` +
+      `decodeAudioData failed for "${pendingFile.name}" (${pendingFile.bytes.byteLength} bytes). ` +
         `This browser may not support that codec. Try a .wav or .mp3. Cause: ${describeError(error)}`,
     );
   }
