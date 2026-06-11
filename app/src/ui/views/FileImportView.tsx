@@ -110,12 +110,15 @@ const emptyTracksStyle: React.CSSProperties = {
 
 // ---- Component ----
 
-export function FileImportView() {
+type FileImportViewProps = {
+  onTrackSelected?: () => void
+}
+
+export function FileImportView({ onTrackSelected }: FileImportViewProps = {}) {
   const tracks = useCollectionStore((s) => s.tracks)
   const currentTrackId = usePlayerStore((s) => s.currentTrackId)
   const playing = usePlayerStore((s) => s.playing)
-  const loading = usePlayerStore((s) => s.loading)
-  const { playTrack } = useAudioEngine()
+  const { playTrack, loading } = useAudioEngine()
   const [importing, setImporting] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
   const [showDropzone, setShowDropzone] = useState(tracks.length === 0)
@@ -139,6 +142,7 @@ export function FileImportView() {
   }
 
   function handleTrackClick(track: PersistedTrack) {
+    onTrackSelected?.()
     playTrack(track)
   }
 

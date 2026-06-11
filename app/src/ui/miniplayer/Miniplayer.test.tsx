@@ -143,7 +143,7 @@ describe('Miniplayer', () => {
     expect(container.textContent).not.toContain('track-1')
   })
 
-  it('documents current locked-state bug: transport should be disabled in show mode', () => {
+  it('shows locked indicator and keeps transport disabled in show mode', () => {
     usePlayerStore.setState({
       currentTrackId: 'track-1',
       playing: false,
@@ -152,20 +152,26 @@ describe('Miniplayer', () => {
     useSessionStore.setState({ mode: 'show' })
 
     const { container } = render(<Miniplayer />)
+    const playButton = screen.getByRole('button', { name: 'Play' }) as HTMLButtonElement
 
     expect(container.textContent).toContain('Show mode')
+    expect(playButton.disabled).toBe(true)
+
+    fireEvent.click(playButton)
+    expect(mockEngine.play).not.toHaveBeenCalled()
   })
 
-  it.fails('should disable locked transport controls in show mode', () => {
+  it('keeps transport interactive in listen mode', () => {
     usePlayerStore.setState({
       currentTrackId: 'track-1',
       playing: false,
       duration: 180,
     })
-    useSessionStore.setState({ mode: 'show' })
+    useSessionStore.setState({ mode: 'listen' })
 
     render(<Miniplayer />)
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }))
 
-    expect((screen.getByRole('button', { name: 'Play' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(mockEngine.play).toHaveBeenCalledTimes(1)
   })
 })

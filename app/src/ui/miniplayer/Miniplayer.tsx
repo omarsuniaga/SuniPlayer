@@ -1,10 +1,10 @@
 import { usePlayerStore } from '../../application/playerStore'
-import { useCollectionStore } from '../../application/collectionStore'
 import { useSessionStore } from '../../application/sessionStore'
 import { useAudioEngine } from '../hooks/useAudioEngine'
 import { Button } from '../atoms/Button'
 import { ProgressBar } from '../atoms/ProgressBar'
 import { Slider } from '../atoms/Slider'
+import { useCurrentTrack } from '../hooks/useCurrentTrack'
 
 type MiniplayerState = 'empty' | 'active' | 'locked'
 
@@ -32,16 +32,6 @@ const footerStyle: React.CSSProperties = {
   zIndex: 100,
 }
 
-function trackDisplayName(trackId: string, track?: { title?: string; filePath?: string }): string {
-  const title = track?.title?.trim()
-  if (title) return title
-
-  const filePath = track?.filePath?.trim()
-  if (filePath) return filePath.split(/[\\/]/).pop() || filePath
-
-  return trackId
-}
-
 const rowStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -49,17 +39,15 @@ const rowStyle: React.CSSProperties = {
 }
 
 export function Miniplayer() {
-  const trackId = usePlayerStore((s) => s.currentTrackId)
+  const { trackId, displayName } = useCurrentTrack()
   const playing = usePlayerStore((s) => s.playing)
   const position = usePlayerStore((s) => s.position)
   const duration = usePlayerStore((s) => s.duration)
   const volume = usePlayerStore((s) => s.volume)
-  const tracks = useCollectionStore((s) => s.tracks)
   const { play, pause, seek, setVolume } = useAudioEngine()
 
   const mode = useSessionStore((s) => s.mode)
   const state = determineState(trackId !== null, playing, mode)
-  const currentTrack = trackId ? tracks.find((track) => track.id === trackId) : undefined
 
   return (
     <footer style={footerStyle}>
@@ -81,6 +69,7 @@ export function Miniplayer() {
             size="sm"
             onClick={playing ? pause : play}
             aria-label={playing ? 'Pause' : 'Play'}
+            disabled
           >
             {playing ? '⏸' : '▶'}
           </Button>
@@ -96,7 +85,7 @@ export function Miniplayer() {
           />
           <div style={rowStyle}>
             <span style={{ color: '#eee', fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
-              {trackId ? trackDisplayName(trackId, currentTrack) : 'Unknown track'}
+              {displayName ?? 'Unknown track'}
             </span>
             <Button
               variant="icon"

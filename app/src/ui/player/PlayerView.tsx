@@ -1,10 +1,10 @@
 import { usePlayerStore } from '../../application/playerStore'
-import { useCollectionStore } from '../../application/collectionStore'
 import { useSessionStore } from '../../application/sessionStore'
 import { useAudioEngine } from '../hooks/useAudioEngine'
 import { Slider } from '../atoms/Slider'
 import { Button } from '../atoms/Button'
 import { ProgressBar } from '../atoms/ProgressBar'
+import { useCurrentTrack } from '../hooks/useCurrentTrack'
 
 const containerStyle: React.CSSProperties = {
   padding: '24px 16px 160px', // bottom padding for miniplayer
@@ -28,16 +28,6 @@ const controlsRow: React.CSSProperties = {
   gap: 12,
 }
 
-function trackDisplayName(trackId: string, track?: { title?: string; filePath?: string }): string {
-  const title = track?.title?.trim()
-  if (title) return title
-
-  const filePath = track?.filePath?.trim()
-  if (filePath) return filePath.split(/[\\/]/).pop() || filePath
-
-  return trackId
-}
-
 const titleStyle: React.CSSProperties = {
   color: '#eee',
   fontSize: 14,
@@ -45,8 +35,12 @@ const titleStyle: React.CSSProperties = {
   textAlign: 'center',
 }
 
-export function PlayerView() {
-  const trackId = usePlayerStore((s) => s.currentTrackId)
+type PlayerViewProps = {
+  onBack?: () => void
+}
+
+export function PlayerView({ onBack }: PlayerViewProps = {}) {
+  const { trackId, displayName } = useCurrentTrack()
   const playing = usePlayerStore((s) => s.playing)
   const position = usePlayerStore((s) => s.position)
   const duration = usePlayerStore((s) => s.duration)
@@ -54,7 +48,6 @@ export function PlayerView() {
   const tempo = usePlayerStore((s) => s.tempo)
   const volume = usePlayerStore((s) => s.volume)
   const repeat = usePlayerStore((s) => s.repeat)
-  const tracks = useCollectionStore((s) => s.tracks)
 
   const { play, pause, stop, seek, setPitch, setTempo, setVolume } = useAudioEngine()
   const setRepeat = usePlayerStore((s) => s.setRepeat)
@@ -71,13 +64,17 @@ export function PlayerView() {
   }
 
   const isLocked = mode === 'show'
-  const currentTrack = trackId ? tracks.find((track) => track.id === trackId) : undefined
 
   return (
     <div style={containerStyle}>
       {/* Track info */}
       <div style={sectionStyle}>
-        <div style={titleStyle}>{trackDisplayName(trackId, currentTrack)}</div>
+        {onBack && (
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            ← Volver
+          </Button>
+        )}
+        <div style={titleStyle}>{displayName ?? trackId}</div>
       </div>
 
       {/* Seek bar */}
@@ -87,16 +84,16 @@ export function PlayerView() {
 
       {/* Transport controls */}
       <div style={controlsRow}>
-        <Button variant="icon" size="sm" onClick={stop} disabled={isLocked} aria-label="Stop">
+        <Button variant="icon" size="sm" onClick={stop} aria-label="Stop">
           ⏹
         </Button>
-        <Button variant="primary" size="md" onClick={playing ? pause : play} disabled={isLocked} aria-label={playing ? 'Pause' : 'Play'}>
+        <Button variant="primary" size="md" onClick={playing ? pause : play} aria-label={playing ? 'Pause' : 'Play'}>
           {playing ? '⏸' : '▶'}
         </Button>
         <Button
           variant="icon"
           size="sm"
-          onClick={() => setRepeat(repeat === 'none' ? 'all' : repeat === 'all' ? 'one' : 'none')}
+          onClick={() => setRepeat(repeat === 'none' ? 'playlist' : repeat === 'playlist' ? 'one' : 'none')}
           aria-label={`Repeat: ${repeat}`}
           style={{ color: repeat !== 'none' ? '#2d6cdf' : undefined }}
         >

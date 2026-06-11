@@ -118,11 +118,11 @@ describe('PlayerView', () => {
     expect(setter).toHaveBeenCalledWith(expected)
   })
 
-  it('cycles repeat all/playlist to one, then none, then back to all', () => {
-    loadTrack({ repeat: 'all' as any })
+  it('cycles repeat playlist to one, then none, then back to playlist', () => {
+    loadTrack({ repeat: 'playlist' })
     const { rerender } = render(<PlayerView />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Repeat: all' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Repeat: playlist' }))
     expect(usePlayerStore.getState().repeat).toBe('one')
 
     rerender(<PlayerView />)
@@ -131,7 +131,7 @@ describe('PlayerView', () => {
 
     rerender(<PlayerView />)
     fireEvent.click(screen.getByRole('button', { name: 'Repeat: none' }))
-    expect(usePlayerStore.getState().repeat).toBe('all')
+    expect(usePlayerStore.getState().repeat).toBe('playlist')
   })
 
 
@@ -168,14 +168,29 @@ describe('PlayerView', () => {
     expect(useSessionStore.getState().mode).toBe('listen')
   })
 
-  it('disables transport, seek, pitch, and tempo controls in show mode', () => {
+  it('keeps transport enabled in show mode', () => {
     loadTrack()
     useSessionStore.setState({ mode: 'show' })
 
     render(<PlayerView />)
 
-    expect((screen.getByRole('button', { name: 'Play' }) as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByRole('button', { name: 'Stop' }) as HTMLButtonElement).disabled).toBe(true)
+    const playButton = screen.getByRole('button', { name: 'Play' }) as HTMLButtonElement
+    const stopButton = screen.getByRole('button', { name: 'Stop' }) as HTMLButtonElement
+    expect(playButton.disabled).toBe(false)
+    expect(stopButton.disabled).toBe(false)
+
+    fireEvent.click(playButton)
+    fireEvent.click(stopButton)
+    expect(mockEngine.play).toHaveBeenCalledTimes(1)
+    expect(mockEngine.stop).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps seek, pitch, and tempo disabled in show mode', () => {
+    loadTrack()
+    useSessionStore.setState({ mode: 'show' })
+
+    render(<PlayerView />)
+
     expect(screen.getByLabelText('Seek').hasAttribute('disabled')).toBe(true)
     expect(sliderFor('Pitch').disabled).toBe(true)
     expect(sliderFor('Tempo').disabled).toBe(true)
