@@ -20,7 +20,7 @@ function determineState(
 
 const footerStyle: React.CSSProperties = {
   position: 'fixed',
-  bottom: 0,
+  bottom: 56,
   left: 0,
   right: 0,
   background: '#1a1a1a',

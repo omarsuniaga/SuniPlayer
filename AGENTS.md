@@ -42,6 +42,23 @@ Procedimiento:
 Engram es el bus de comunicación entre agentes. Si no está en Engram,
 los otros agentes no lo saben.
 
+### Autonomy Rule (OBLIGATORIO — todos los agentes, también en sesiones interactivas)
+
+> **En este repo NUNCA presentes menús de opciones ni pidas confirmaciones al**
+> **usuario. Elegí la opción más recomendable (la que sugerirías como default),**
+> **ejecutala, y registrá la decisión en Engram (`mem_save`).**
+
+- Solo está permitido frenar ante acciones DESTRUCTIVAS (borrar archivos
+  fuera de la tarea, push forzado, tocar `docs/` o `src/domain/`): en ese
+  caso NO preguntes — abortá esa acción, reportala en Engram y seguí con el
+  resto de la tarea.
+- Si el usuario escribe "Es tu turno" (o similar): buscá tu primera tarea
+  `- [ ] @tu-nombre` con `needs:` cumplido en la "Cola de despacho autónomo"
+  de STATUS.md, reclamala (`[ ]`→`[~]`), leé su contrato en Engram
+  (topic de la línea), ejecutala, reportá a Engram y marcá `[x]`.
+- Las preguntas de producto NO se le hacen al usuario en vivo: se registran
+  en Engram y en INBOX.md como "PREGUNTA PARA OMAR" y se continúa.
+
 ---
 
 ## Skills

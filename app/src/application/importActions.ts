@@ -1,6 +1,8 @@
 import { importFile } from '../infrastructure/fileSystem'
 import { trackRepo } from '../infrastructure/dexie'
 import { useCollectionStore } from './collectionStore'
+import { useWaveformStore } from './waveformStore'
+import { extractPeaks } from './waveform/extractPeaks'
 import type { PersistedTrack } from '../infrastructure/dexie'
 
 // ---- Lazy AudioContext for file decoding ----
@@ -41,11 +43,13 @@ export type ImportBatchResult = {
 export async function importAudioFiles(files: File[]): Promise<ImportBatchResult> {
   const ctx = getImportAudioContext()
   const success: PersistedTrack[] = []
+  const waveformPeaks: { trackId: string; peaks: number[] }[] = []
   const errors: { fileName: string; reason: string }[] = []
 
   for (const file of files) {
     try {
       const result = await importFile(file, ctx)
+      const peaks = extractPeaks(result.audioBuffer, 160)
       const now = new Date()
       const track: PersistedTrack = {
         id: result.id,
@@ -58,6 +62,7 @@ export async function importAudioFiles(files: File[]): Promise<ImportBatchResult
         createdAt: now,
         updatedAt: now,
       }
+      waveformPeaks.push({ trackId: track.id, peaks })
       success.push(track)
     } catch (err) {
       errors.push({
@@ -69,6 +74,10 @@ export async function importAudioFiles(files: File[]): Promise<ImportBatchResult
 
   if (success.length > 0) {
     await trackRepo.bulkUpsert(success)
+    const waveformStore = useWaveformStore.getState()
+    for (const { trackId, peaks } of waveformPeaks) {
+      waveformStore.setPeaks(trackId, peaks)
+    }
     // Reload full track list into store (catches any concurrent updates)
     const allTracks = await trackRepo.getAll()
     useCollectionStore.getState().setTracks(allTracks)

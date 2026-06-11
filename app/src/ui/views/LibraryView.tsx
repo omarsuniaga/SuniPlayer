@@ -256,8 +256,10 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
                   <div style={metaStyle}>Name: {title}</div>
                   <div style={trackMetaGridStyle} aria-label={`Metadata for ${title}`}>
                     <span style={metaStyle}>{formatDuration(track.durationSeconds)}</span>
-                    <span style={{ ...metaStyle, color: track.bpm ? '#ffd36b' : '#777' }}>{track.bpm ? `${track.bpm} BPM` : 'No BPM'}</span>
-                    <span style={metaStyle}>Cached</span>
+                    <span style={{ ...metaStyle, color: track.bpm ? '#ffd36b' : '#777' }}>
+                      {track.bpm ? `🔶 ${track.bpm} BPM` : 'No BPM'}
+                    </span>
+                    <span style={metaStyle} aria-label="Cached">⭐</span>
                     <span style={metaStyle}>{importedDirectory(track.filePath)}</span>
                     <span style={metaStyle}>Added: {formatAddedDate(track.createdAt)}</span>
                   </div>

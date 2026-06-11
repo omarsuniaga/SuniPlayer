@@ -7,7 +7,7 @@ const DOUBLE_TAP_MS = 650
 const navItems: Array<{ view: AppView; label: string }> = [
   { view: 'inicio', label: 'Inicio' },
   { view: 'reproductor', label: 'Reproductor' },
-  { view: 'libreria', label: 'Librería' },
+  { view: 'libreria', label: 'Librerï¿½a' },
   { view: 'show', label: 'Show' },
   { view: 'edit', label: 'Edit' },
   { view: 'perfil', label: 'Perfil' },
@@ -30,7 +30,9 @@ const navStyle: React.CSSProperties = {
 const buttonStyle: React.CSSProperties = {
   flex: 1,
   minWidth: 0,
-  border: '1px solid #333',
+  borderWidth: 1,
+  borderStyle: 'solid',
+  borderColor: '#333',
   borderRadius: 8,
   background: '#1f1f1f',
   color: '#eee',
@@ -120,7 +122,7 @@ export function BottomNav() {
       {pendingView && (
         <div className="panic-modal-confirm" role="dialog" aria-modal="true" aria-label="Confirm show mode exit" style={modalBackdropStyle}>
           <div style={modalStyle}>
-            <strong>¿CONFIRMAS SALIR DEL MODO SHOW? (Presiona dos veces rápido)</strong>
+            <strong>ï¿½CONFIRMAS SALIR DEL MODO SHOW? (Presiona dos veces rï¿½pido)</strong>
             <button type="button" onClick={confirmExit} style={activeButtonStyle}>
               Confirm exit
             </button>

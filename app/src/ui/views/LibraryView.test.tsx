@@ -79,9 +79,9 @@ describe('LibraryView', () => {
     expect(screen.getByRole('heading', { name: /LIBRARY/i })).toBeDefined()
     expect(screen.getByText('Salsa Brava')).toBeDefined()
     expect(screen.getByText('3:45')).toBeDefined()
-    expect(screen.getByText('128 BPM')).toBeDefined()
+    expect(screen.getByText(/128 BPM/)).toBeDefined()
     expect(screen.getByText('/Music/Importadas/')).toBeDefined()
-    expect(screen.getByText('Cached')).toBeDefined()
+    expect(screen.getByLabelText('Cached')).toBeDefined()
     expect(screen.getByText(/Added:/)).toBeDefined()
   })
 

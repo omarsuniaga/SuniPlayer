@@ -12,8 +12,8 @@
 retrofit-arquitectura-documental
 ```
 
-Último commit: `b8f6c0d` — Click-to-play wiring (useAudioEngine hook)
-Anterior: `0bb1d17` — File Import UI (drag & drop, import orchestration)
+Último commit: `812dd46` — fix: address library view review findings
+Anterior: `3479c2d` — feat: library view with track list, context menu and bulk import
 Base: `master`
 
 ---
@@ -138,15 +138,37 @@ src/
 
 ---
 
-## Handoff activo — Tareas para Gentle AI
+## Cola de despacho aut?nomo (formato m?quina ? tools/dispatch.ps1)
 
-(Sin tareas pendientes. Claude deja acá las tareas que quiere que Gentle AI ejecute.)
+> Detalle completo en Engram: `handoff/claude` (obs #2165). Reparto confirmado:
+> Antigravity (ex Gemini) = navegador/exploraci?n ? Codex = l?gica+tests headless ? Zen = review previo ? Claude = pasada final de arquitecto.
+> Formato: `- [ ] @agente #id engram:topic/key needs:#otra ? descripci?n`
+> Estados: `[ ]` abierta ? `[~]` en curso ? `[x]` hecha. Los agentes editan SOLO su l?nea.
 
-Formato:
-```
-## Tareas para Gentle AI
-- [ ] descripción concisa — archivos afectados — qué test verifica
-```
+- [x] @codex #ui-player-tests engram:sdd/ui-player-tests/tasks ? tests unitarios Miniplayer + PlayerView (contrato y mocks en el topic)
+- [x] @antigravity #click-to-play-e2e engram:sdd/click-to-play-e2e/tasks ? validaci?n e2e en navegador, entrega reporte a validation/click-to-play-e2e, NO arregla nada
+- [x] @zen #review-ui-player-tests needs:#ui-player-tests engram:workflow/review-criteria ? review del diff de Codex con el checklist de 7 puntos
+- [x] @claude #arch-review-ui-player-tests needs:#review-ui-player-tests engram:handoff/claude ? pasada final de arquitecto: APROBADO (veredicto en Engram review/ui-player-tests-claude; 2 hallazgos folded en #player-state-fixes)
+- [x] @codex #ctp-polish needs:#arch-review-ui-player-tests engram:sdd/ctp-polish/tasks ? P1 completo (commit 36bbaec, reportes #2186/#2188)
+- [x] @zen #review-ctp-polish needs:#ctp-polish engram:workflow/review-criteria ? review del diff de ctp-polish con el checklist de 7 puntos
+- [x] @claude #arch-review-ctp-polish needs:#review-ctp-polish engram:handoff/claude ? pasada final: APROBADO con 2 observaciones a backlog (Engram #2191)
+- [x] @codex #player-state-fixes needs:#arch-review-ctp-polish engram:sdd/player-state-fixes/tasks ? fixes A-D completos (commit 670f051, reportes #2195/#2196)
+- [x] @zen #review-player-state-fixes needs:#player-state-fixes engram:workflow/review-criteria ? review con el checklist de 7 puntos
+- [x] @claude #arch-review-player-state-fixes needs:#review-player-state-fixes engram:handoff/claude ? APROBADO (engram #2205); TS fix (commit a635e48) + 179 tests verde + tsc --noEmit limpio
+- [x] @codex #waveform needs:#arch-review-player-state-fixes engram:sdd/waveform/tasks ? gr?fica de ondas con seek seg?n docs/componentes/06-grafica-ondas.md (pedido de Omar v?a INBOX) (rework: ver Engram review/waveform)
+- [x] @zen #review-waveform needs:#waveform engram:workflow/review-criteria ? review con el checklist de 7 puntos
+- [x] @claude #arch-review-waveform needs:#review-waveform engram:handoff/claude ? pasada final de arquitecto (APROBADO: código sólido, tests verdes, 2 mejoras visuales en backlog)
+- [x] @antigravity #waveform-e2e needs:#arch-review-waveform engram:sdd/waveform/tasks ? validaci?n visual en navegador de la waveform (render, seek, bloqueo en show), reporta a validation/waveform-e2e
+- [x] @codex #nav-shell needs:#arch-review-waveform engram:sdd/nav-shell/tasks ? FASE 1.1: navegaci?n + barra inferior + shell de vistas + bloqueo show (contrato #2199) (rework: ver Engram review/nav-shell)
+- [x] @zen #review-nav-shell needs:#nav-shell engram:workflow/review-criteria ? review con el checklist de 7 puntos
+- [x] @claude #arch-review-nav-shell needs:#review-nav-shell engram:handoff/claude ? APROBADO (engram #2227); 204 tests verde + tsc --noEmit limpio + N1-N5 covered
+- [x] @antigravity #library-view needs:#arch-review-nav-shell engram:sdd/library-view/tasks ? FASE 1.2: vista librería completa según spec 03 (contrato #2200) (rework: tests failing, ver Engram #2234) (reasignada: codex sin tokens)
+- [ ] @zen #review-library-view needs:#library-view engram:workflow/review-criteria ? review con el checklist de 7 puntos (reabierta: re-revisar el rework)
+- [ ] @claude #arch-review-library-view needs:#review-library-view engram:handoff/claude ? pasada final de arquitecto (REWORK REQUERIDO: tests, ver Engram #2234)
+- [ ] @antigravity #home-view needs:#arch-review-library-view engram:sdd/home-view/tasks ? FASE 1.3: vista inicio con buscador y filtros seg?n specs 01+11 (contrato #2202) (reasignada: codex sin tokens)
+- [ ] @zen #review-home-view needs:#home-view engram:workflow/review-criteria ? review con el checklist de 7 puntos
+- [ ] @claude #arch-review-home-view needs:#review-home-view engram:handoff/claude ? pasada final de arquitecto
+- [ ] @antigravity #fase1-e2e needs:#arch-review-home-view engram:product/roadmap ? FASE 1 CIERRE: validaci?n e2e completa en navegador (nav, librer?a, home, show-lock), reporta a validation/fase1-e2e
 
 ---
 
