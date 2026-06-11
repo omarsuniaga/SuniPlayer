@@ -12,8 +12,8 @@
 retrofit-arquitectura-documental
 ```
 
-Último commit: *pendiente — PR 2 (AudioWorklet + WASM)*
-Anterior: `515188a` — fix(spike): mobile-safe audio decoding
+Último commit: *pendiente — PR 3 (UI components)*
+Anterior: `e6b4a9f` — PR 2 AudioWorklet + WASM
 Base: `master`
 
 ---
@@ -78,48 +78,45 @@ src/
 - `tsconfig.json` — `jsx: react-jsx`
 - ADR 0001 corregido (React+Zustand, no Vue+Pinia)
 
-### Total: 115 tests, 9 suites, todo verde ✅
+### Total: 125 tests, 12 suites, todo verde ✅
 
 ---
 
-## Spike P1 — WASM (signalsmith-stretch)
-
-**Estado:** ✅ Validado — cerrado
-
-| Check | Resultado |
-|-------|-----------|
-| Pitch shift +12 semitonos (440→880Hz) | ✅ <5% error |
-| Time stretch rate 0.5 (2s→4s) | ✅ <15% error |
-| Sin corrupción (NaN-free) | ✅ |
-| Señal audible a la salida | ✅ |
-| Estéreo multi-canal (desktop) | ✅ |
-| Mobile gesture handling | ✅ fix aplicado, falta test real |
-| `app/spike.html` + `src/spike/` | Código descartable, no parte del build |
+## Spike P1 — WASM (✅ cerrado)
 
 ---
 
 ## PR 2 — AudioWorklet + WASM (✅ completado)
 
-**Objetivo:** Reemplazar `AudioBufferSourceNode` por `signalsmith-stretch` en `audioEngine.ts`.
+---
 
-| Cambio | Descripción |
-|--------|-------------|
-| `load()` | Crea `SignalsmithStretchNode`, llama `addBuffers(channels[])` multi-canal |
-| `play()` | `stretch.schedule({ input, rate, semitones, active: true })` |
-| `pause()` | `stretch.schedule({ active: false })` |
-| `stop()` | Desactiva stretch + reset posición a 0 |
-| `seek()` | Re-schedule con nueva posición + rate/semitones actuales |
-| `setPitch()` | Re-schedule en vivo si está playing |
-| `setTempo()` | Re-schedule en vivo si está playing |
-| Posición | Via `setUpdateInterval` callback (inputTime del stretch) |
-| `_resumeFromPause()` | Eliminado — stretch maneja nativamente |
-| Tests | 7 → 16 tests (mock de signalsmith-stretch + ciclo play/pause/stop/seek/re-schedule) |
+## PR 3 — UI (✅ completado)
 
-### PR 3 — UI (siguiente)
-- Button, Slider, ProgressBar, Waveform
-- Miniplayer (footer persistente, 3 estados: EMPTY/ACTIVE/LOCKED)
-- Reproductor completo
-- `MediaSession` API wrapper
+| Componente | Archivos | Tests |
+|------------|----------|-------|
+| **Button** | `atoms/Button.tsx` | 4 (render, click, disabled, variant) |
+| **Slider** | `atoms/Slider.tsx` | 3 (label, format, render) |
+| **ProgressBar** | `atoms/ProgressBar.tsx` | 3 (time format, zero, render) |
+| **Miniplayer** | `miniplayer/Miniplayer.tsx` | Footer fijo, 3 estados: empty/active/locked, conecta a playerStore |
+| **PlayerView** | `player/PlayerView.tsx` | Full player: seek, transport, pitch/tempo/volume sliders, repeat, mode toggle |
+| **useMediaSession** | `hooks/useMediaSession.ts` | Wires navigator.mediaSession a playerStore |
+| **App.tsx** | `ui/App.tsx` | Renderiza PlayerView + Miniplayer + hook |
+
+### Árbol final de capas
+```
+src/
+  domain/          ← TS puro, 3 módulos, 49 tests
+  application/     ← Zustand stores, 3 stores, 29 tests
+  infrastructure/  ← Dexie, AudioEngine (WASM), FileSystem, 33 tests
+  ui/              ← React, atomic design, 10 tests
+  spike/           ← WASM validation (descartable)
+```
+
+### Pendiente para futuro
+- Waveform visualization (canvas + FFT)
+- File import UI (drag & drop, file browser)
+- Collection/playlist management UI
+- Capacitor mobile build
 
 ---
 
@@ -148,7 +145,7 @@ src/
 
 ```bash
 cd app && npx vitest run
-# → 9 files, 115 tests, 0 failures
+# → 12 files, 125 tests, 0 failures
 ```
 
 Sin CI configurado. Tests en `src/**/*.test.ts` y `src/**/*.test.tsx`.
