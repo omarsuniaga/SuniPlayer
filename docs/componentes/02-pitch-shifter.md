@@ -275,3 +275,9 @@ Phase Vocoder como default por su generalidad. PSOLA como optimización futura s
 **.show-mode .ui-pitch-slider**
 - display: none (en modo show no se ajusta tono) 
 
+---
+
+## Notas de Implementación
+
+- **Pitch Shifter en Native (no-op)**: En la implementación nativa (`ExpoAudioEngine`), el cambio de tono (`setPitch`) no está soportado debido a que React Native Track Player (RNTP v4) no provee control independiente de pitch sin afectar el tempo. Se implementó como un `no-op` que registra un `console.warn` en consola. Para habilitarlo a futuro, se requerirá integrar una librería DSP nativa o compilar `signalsmith-stretch` para móvil.
+

@@ -12,8 +12,8 @@
 retrofit-arquitectura-documental
 ```
 
-Último commit: *pendiente — PR 3 (UI components)*
-Anterior: `e6b4a9f` — PR 2 AudioWorklet + WASM
+Último commit: `0bb1d17` — File Import UI (drag & drop, import orchestration)
+Anterior: `095afab` — PR 3 (UI components)
 Base: `master`
 
 ---
@@ -106,15 +106,22 @@ src/
 ```
 src/
   domain/          ← TS puro, 3 módulos, 49 tests
-  application/     ← Zustand stores, 3 stores, 29 tests
+  application/     ← Zustand stores + importActions, 29 + 13 tests
   infrastructure/  ← Dexie, AudioEngine (WASM), FileSystem, 33 tests
-  ui/              ← React, atomic design, 10 tests
+  ui/              ← React, atomic design, 13 tests
   spike/           ← WASM validation (descartable)
 ```
 
+### File Import UI (commit `0bb1d17`) ✅
+| Archivo | Descripción | Tests |
+|---------|-------------|-------|
+| `application/importActions.ts` | Orchestación: decode → persist → store update | — |
+| `ui/atoms/FileDropzone.tsx` | Drag & drop + click-to-browse atom | 5 |
+| `ui/views/FileImportView.tsx` | Import page: dropzone, track list, errors | 8 |
+| `ui/App.tsx` | Show import view when no track loaded | — |
+
 ### Pendiente para futuro
 - Waveform visualization (canvas + FFT)
-- File import UI (drag & drop, file browser)
 - Collection/playlist management UI
 - Capacitor mobile build
 
@@ -145,7 +152,7 @@ src/
 
 ```bash
 cd app && npx vitest run
-# → 12 files, 125 tests, 0 failures
+# → 14 files, 138 tests, 0 failures
 ```
 
 Sin CI configurado. Tests en `src/**/*.test.ts` y `src/**/*.test.tsx`.

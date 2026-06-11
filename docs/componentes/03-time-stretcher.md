@@ -302,3 +302,11 @@ WSOLA para tiempo real (respuesta inmediata con slider). Phase Vocoder para proc
 **.show-mode .ui-stretch-slider**
 - display: none (en modo show no se ajusta velocidad)
 
+---
+
+## Notas de Implementación
+
+- **Time Stretcher Multiplataforma**:
+  - **Native**: Se controla el tempo delegando directamente a la propiedad de rate nativa de RNTP: `TrackPlayer.setRate(rate)`.
+  - **Web**: Se realiza mediante el motor Web Audio API utilizando la librería de procesamiento de estiramiento temporal basada en WebAssembly `signalsmith-stretch` integrada en un `AudioWorkletNode` procesando canales en tiempo real.
+

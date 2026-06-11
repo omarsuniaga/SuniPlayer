@@ -158,3 +158,9 @@ search-bar (text input) + file-trigger (import button) + list-item (tap on track
   - `archivo` (file-picker) — selector de archivo PDF o imagen
 - **Acciones:** confirmar / cancelar
 - **Valores recolectados:** `{ trackId, fileUri }`
+
+---
+
+## Notas de Implementación
+
+- **Decodificación Lazy de Audio en Importación**: Para cumplir con las políticas de autoplay y gestos de seguridad de navegadores móviles y de escritorio, la decodificación del archivo de audio cargado (`importActions`) inicializa el `AudioContext` de forma estrictamente perezosa (lazy). Esta inicialización ocurre únicamente como respuesta directa de eventos del usuario (en el callback de drag-and-drop o al confirmar en el selector de archivos), evitando el bloqueo del navegador al analizar los BPM y la onda del audio.

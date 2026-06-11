@@ -163,3 +163,4 @@ Crear un experimento aislado que:
 6. **Testeá todo.** El proyecto usa TDD estricto. Sin test aprobado, no hay código.
 7. **No borres archivos sin preguntar.** Si algo parece obsoleto, preguntá antes de eliminar.
 8. **Consultá este documento al inicio de cada sesión.** Esto es tu brújula. Si no lo leés, vas a desviarte.
+9. **Protocolo inter-agente obligatorio**: Todo cambio significativo (edición, commit, dependencia, etc.) DEBE registrarse proactivamente en Engram usando `mem_save` antes de finalizar la sesión para actuar como bus de comunicación entre los agentes.

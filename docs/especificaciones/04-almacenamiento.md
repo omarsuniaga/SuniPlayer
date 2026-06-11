@@ -277,3 +277,10 @@ valor                 → El valor correspondiente
 - No se sube nada a la nube.
 - No se comparten datos entre dispositivos.
 - No se envía información personal a ningún servidor (la telemetría es local).
+
+---
+
+## Notas de Implementación
+
+- **Capa 2 (Cache de Audio) - SQLiteStorage en Native**: La persistencia de binarios en Native no guarda los blobs directamente en SQLite debido a limitaciones de rendimiento de base de datos con archivos grandes. El binario se convierte a `base64` y se escribe físicamente en el filesystem en `documentDirectory/audio_storage/` con la extensión `.audio` (para evitar colisión con `LocalFileAccess`). SQLite almacena únicamente el mapeo `trackId -> file_path` en la tabla `audio_files`.
+- **Capa 2 (Cache de Audio) - Dexie en Web**: Se almacena el objeto `File` crudo directamente como un `fileBlob` en IndexedDB (Dexie).

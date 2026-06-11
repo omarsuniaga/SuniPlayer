@@ -179,6 +179,21 @@ export class AudioEngine {
     return this._position
   }
 
+  /** The engine's AudioContext — shared for decoding and playback. */
+  get context(): AudioContext {
+    return this.ctx
+  }
+
+  /** Whether a buffer is loaded and ready to play. */
+  get hasBuffer(): boolean {
+    return this._hasBuffer
+  }
+
+  /** Update the state change callback (e.g., after hook re-mount). */
+  setStateChangeHandler(handler: ((state: EngineState) => void) | undefined): void {
+    this.onStateChange = handler
+  }
+
   destroy(): void {
     this.stretch?.stop()
     this.stretch?.disconnect()

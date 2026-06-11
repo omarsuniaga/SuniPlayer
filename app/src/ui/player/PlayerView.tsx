@@ -1,5 +1,6 @@
 import { usePlayerStore } from '../../application/playerStore'
 import { useSessionStore } from '../../application/sessionStore'
+import { useAudioEngine } from '../hooks/useAudioEngine'
 import { Slider } from '../atoms/Slider'
 import { Button } from '../atoms/Button'
 import { ProgressBar } from '../atoms/ProgressBar'
@@ -43,13 +44,7 @@ export function PlayerView() {
   const volume = usePlayerStore((s) => s.volume)
   const repeat = usePlayerStore((s) => s.repeat)
 
-  const play = usePlayerStore((s) => s.play)
-  const pause = usePlayerStore((s) => s.pause)
-  const stop = usePlayerStore((s) => s.stop)
-  const seek = usePlayerStore((s) => s.seek)
-  const setPitch = usePlayerStore((s) => s.setPitch)
-  const setTempo = usePlayerStore((s) => s.setTempo)
-  const setVolume = usePlayerStore((s) => s.setVolume)
+  const { play, pause, stop, seek, setPitch, setTempo, setVolume } = useAudioEngine()
   const setRepeat = usePlayerStore((s) => s.setRepeat)
 
   const mode = useSessionStore((s) => s.mode)

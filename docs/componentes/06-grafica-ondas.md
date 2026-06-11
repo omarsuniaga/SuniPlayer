@@ -310,3 +310,11 @@ Representación de la amplitud del audio:
 **.show-mode .ui-waveform-container**
 - cursor: default (seek bloqueado)
 - .show-mode .ui-waveform-playhead: cursor: default; pointer-events: none
+
+---
+
+## Notas de Implementación
+
+- **Interacción y Waveform en Native**: Soporta la visualización e interacción táctil de marcadores con las siguientes lógicas:
+  - **Snapping**: Umbral de magnetismo táctil de `12px` con respecto a otros marcadores para facilitar la edición precisa durante el arrastre (seek).
+  - **Clamping**: Algoritmo de límites en el renderizado que previene que la etiqueta/burbuja flotante de texto asociada a un marcador desborde o se dibuje fuera de los márgenes laterales del componente/pantalla.

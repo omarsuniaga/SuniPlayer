@@ -1,5 +1,6 @@
 import { usePlayerStore } from '../../application/playerStore'
 import { useSessionStore } from '../../application/sessionStore'
+import { useAudioEngine } from '../hooks/useAudioEngine'
 import { Button } from '../atoms/Button'
 import { ProgressBar } from '../atoms/ProgressBar'
 import { Slider } from '../atoms/Slider'
@@ -41,11 +42,8 @@ export function Miniplayer() {
   const playing = usePlayerStore((s) => s.playing)
   const position = usePlayerStore((s) => s.position)
   const duration = usePlayerStore((s) => s.duration)
-  const play = usePlayerStore((s) => s.play)
-  const pause = usePlayerStore((s) => s.pause)
-  const seek = usePlayerStore((s) => s.seek)
-  const setVolume = usePlayerStore((s) => s.setVolume)
   const volume = usePlayerStore((s) => s.volume)
+  const { play, pause, seek, setVolume } = useAudioEngine()
 
   const mode = useSessionStore((s) => s.mode)
   const state = determineState(trackId !== null, playing, mode)

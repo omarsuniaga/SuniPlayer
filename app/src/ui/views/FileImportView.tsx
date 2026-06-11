@@ -3,6 +3,7 @@ import { FileDropzone } from '../atoms/FileDropzone'
 import { importAudioFiles } from '../../application/importActions'
 import { useCollectionStore } from '../../application/collectionStore'
 import { usePlayerStore } from '../../application/playerStore'
+import { useAudioEngine } from '../hooks/useAudioEngine'
 import type { PersistedTrack } from '../../infrastructure/dexie'
 
 // ---- Helpers ----
@@ -111,7 +112,10 @@ const emptyTracksStyle: React.CSSProperties = {
 
 export function FileImportView() {
   const tracks = useCollectionStore((s) => s.tracks)
-  const loadTrack = usePlayerStore((s) => s.loadTrack)
+  const currentTrackId = usePlayerStore((s) => s.currentTrackId)
+  const playing = usePlayerStore((s) => s.playing)
+  const loading = usePlayerStore((s) => s.loading)
+  const { playTrack } = useAudioEngine()
   const [importing, setImporting] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
   const [showDropzone, setShowDropzone] = useState(tracks.length === 0)
@@ -135,7 +139,13 @@ export function FileImportView() {
   }
 
   function handleTrackClick(track: PersistedTrack) {
-    loadTrack(track.id, track.durationSeconds)
+    playTrack(track)
+  }
+
+  function trackIcon(trackId: string): string {
+    if (trackId === currentTrackId && playing) return '▶'
+    if (trackId === currentTrackId && loading) return '⏳'
+    return '♫'
   }
 
   function handleImportMore() {
@@ -202,7 +212,7 @@ export function FileImportView() {
                   }
                 }}
               >
-                <span style={{ color: '#666', fontSize: 12, minWidth: 20 }}>♫</span>
+                <span style={{ color: track.id === currentTrackId ? '#4caf50' : '#666', fontSize: 12, minWidth: 20 }}>{trackIcon(track.id)}</span>
                 <div style={trackTitleStyle}>
                   <div>{track.title}</div>
                   <div style={{ color: '#888', fontSize: 12 }}>{track.artist}</div>

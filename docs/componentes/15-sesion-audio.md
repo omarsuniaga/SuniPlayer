@@ -190,3 +190,11 @@ Catálogo global: [[07-modelo-errores]]
 - padding: 2px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid
 - .theme-dark: background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.12)
 - .theme-light: background: rgba(0,0,0,0.03); color: rgba(0,0,0,0.6); border-color: rgba(0,0,0,0.12)
+
+---
+
+## Notas de Implementación
+
+- **Hardening de Audio en Segundo Plano (Native)**: Para evitar micro-cortes y stutters al suspender la app o bloquear el dispositivo:
+  - Se exigen permisos a nivel de OS en `AndroidManifest.xml`: `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK` (Android 14+) y `WAKE_LOCK`.
+  - Se configuran los buffers de la API nativa de audio (`TrackPlayer` / RNTP) con valores defensivos: `minBuffer = 15s`, `maxBuffer = 50s`, y `backBuffer = 30s`.

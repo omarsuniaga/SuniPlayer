@@ -10,6 +10,27 @@ vi.mock('../../application/importActions', () => ({
   importAudioFiles: vi.fn(),
 }))
 
+// Mock useAudioEngine so we don't need real AudioEngine / Dexie
+const mockPlayTrack = vi.fn((track: { id: string; durationSeconds: number }) => {
+  // Mirror the store side effects that the real playTrack does
+  usePlayerStore.getState().loadTrack(track.id, track.durationSeconds)
+  usePlayerStore.getState().play()
+})
+vi.mock('../hooks/useAudioEngine', () => ({
+  useAudioEngine: () => ({
+    playTrack: mockPlayTrack,
+    play: vi.fn(),
+    pause: vi.fn(),
+    stop: vi.fn(),
+    seek: vi.fn(),
+    setPitch: vi.fn(),
+    setTempo: vi.fn(),
+    setVolume: vi.fn(),
+    loading: 'idle',
+    error: null,
+  }),
+}))
+
 import { importAudioFiles } from '../../application/importActions'
 const mockImport = importAudioFiles as ReturnType<typeof vi.fn>
 
@@ -63,7 +84,7 @@ describe('FileImportView', () => {
     expect(container.textContent).toContain('5:54')
   })
 
-  it('calls loadTrack on track click', () => {
+  it('calls playTrack on track click', () => {
     const track = makeTrack({ id: 'abc-123', durationSeconds: 200 })
     useCollectionStore.getState().setTracks([track])
     const { container } = render(<FileImportView />)
@@ -71,10 +92,11 @@ describe('FileImportView', () => {
     const trackEl = container.querySelector('[role="listitem"]') as HTMLElement
     fireEvent.click(trackEl)
 
+    expect(mockPlayTrack).toHaveBeenCalledWith(track)
     const state = usePlayerStore.getState()
     expect(state.currentTrackId).toBe('abc-123')
     expect(state.duration).toBe(200)
-    expect(state.playing).toBe(false)
+    expect(state.playing).toBe(true)
   })
 
   it('imports files via importAudioFiles on drop', async () => {

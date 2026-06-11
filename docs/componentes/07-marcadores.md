@@ -317,3 +317,9 @@ Para crear un marcador sin abrir el panel:
 
 **.show-mode .ui-marker-add-btn**
 - display: none
+
+---
+
+## Notas de Implementación
+
+- **Interacción de Timeline nativa**: Wires directos con la UI del waveform con snapping (umbral de `12px`) y drag interactivo en la pantalla del reproductor principal.
