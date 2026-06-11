@@ -27,13 +27,20 @@ export function useMediaSession() {
       })
     }
 
-    // Position state
-    if (duration > 0) {
-      navigator.mediaSession.setPositionState({
-        duration,
-        playbackRate: 1,
-        position,
-      })
+    // Position state. The browser THROWS if position > duration (seen live:
+    // replay-after-stop leaves a stale position in the store, and the
+    // exception inside this effect unmounts the entire React tree). Media
+    // session sync is best-effort UX — it must never take the app down.
+    if (Number.isFinite(duration) && duration > 0) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration,
+          playbackRate: 1,
+          position: Math.min(Math.max(position, 0), duration),
+        })
+      } catch {
+        // Ignore: lock-screen position is cosmetic; playback must continue.
+      }
     }
 
     // Action handlers — set once, stable references
