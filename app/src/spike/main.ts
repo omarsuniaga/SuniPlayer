@@ -150,10 +150,27 @@ byId<HTMLButtonElement>('run-auto').addEventListener('click', async () => {
 });
 
 // ---------- 2. Human check ----------
+// Hardened for mobile: AudioContext is created/resumed INSIDE a user gesture
+// (iOS requirement), decoding has a callback fallback for old Safari, and
+// EVERY failure is surfaced on screen — never leaves the user staring at a
+// frozen status line.
 
 let humanCtx: AudioContext | null = null;
+let pendingFile: { name: string; bytes: ArrayBuffer } | null = null;
 let decoded: AudioBuffer | null = null;
 let activeNodes: { disconnect(): void; stop?(when?: number): void }[] = [];
+
+function setStatus(text: string, isError = false): void {
+  const el = byId<HTMLPreElement>('human-status');
+  el.textContent = text;
+  el.style.color = isError ? '#f44336' : '#eee';
+  if (isError) console.log('SPIKE_HUMAN_ERROR', text);
+}
+
+function describeError(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  return String(error);
+}
 
 function stopAll(): void {
   for (const node of activeNodes) {
@@ -167,6 +184,23 @@ function stopAll(): void {
   activeNodes = [];
 }
 
+/** Create or resume the context within the current user gesture. */
+async function ensureContext(): Promise<AudioContext> {
+  humanCtx ??= new AudioContext();
+  if (humanCtx.state === 'suspended') await humanCtx.resume();
+  return humanCtx;
+}
+
+/** decodeAudioData with the old callback signature as a fallback (iOS Safari). */
+function decodeAudio(ctx: AudioContext, bytes: ArrayBuffer): Promise<AudioBuffer> {
+  return new Promise((resolve, reject) => {
+    const maybePromise = ctx.decodeAudioData(bytes.slice(0), resolve, reject);
+    if (maybePromise && typeof maybePromise.then === 'function') {
+      maybePromise.then(resolve, reject);
+    }
+  });
+}
+
 const semitonesInput = byId<HTMLInputElement>('semitones');
 const rateInput = byId<HTMLInputElement>('rate');
 semitonesInput.addEventListener('input', () => {
@@ -177,56 +211,89 @@ rateInput.addEventListener('input', () => {
   byId<HTMLOutputElement>('rate-value').textContent = Number(rateInput.value).toFixed(2);
 });
 
+// File select only reads bytes — decoding waits for the Play gesture (iOS-safe).
 byId<HTMLInputElement>('file-input').addEventListener('change', async (e) => {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
-  humanCtx ??= new AudioContext();
-  const status = byId<HTMLPreElement>('human-status');
-  status.textContent = `Decoding ${file.name}...`;
-  decoded = await humanCtx.decodeAudioData(await file.arrayBuffer());
-  status.textContent = `Loaded: ${file.name} — ${decoded.duration.toFixed(1)}s, ${decoded.numberOfChannels}ch @ ${decoded.sampleRate}Hz`;
-  byId<HTMLButtonElement>('play-processed').disabled = false;
-  byId<HTMLButtonElement>('play-original').disabled = false;
-  byId<HTMLButtonElement>('stop-all').disabled = false;
+  decoded = null;
+  try {
+    const bytes = await file.arrayBuffer();
+    pendingFile = { name: file.name, bytes };
+    setStatus(
+      `Ready: ${file.name} (${(bytes.byteLength / 1048576).toFixed(1)} MB, type "${file.type || 'unknown'}").\nPress "Play processed" or "Play original".`,
+    );
+    byId<HTMLButtonElement>('play-processed').disabled = false;
+    byId<HTMLButtonElement>('play-original').disabled = false;
+    byId<HTMLButtonElement>('stop-all').disabled = false;
+  } catch (error) {
+    setStatus(`Could not read file: ${describeError(error)}`, true);
+  }
 });
 
-byId<HTMLButtonElement>('play-processed').addEventListener('click', async () => {
-  if (!decoded || !humanCtx) return;
-  stopAll();
-  await humanCtx.resume();
-  const stretch = await SignalsmithStretch(humanCtx, {
-    outputChannelCount: [decoded.numberOfChannels],
-  });
-  const channels: Float32Array[] = [];
-  for (let c = 0; c < decoded.numberOfChannels; c++) {
-    channels.push(decoded.getChannelData(c));
+/** Decodes the pending file on demand, caching the result. */
+async function getDecoded(ctx: AudioContext): Promise<AudioBuffer> {
+  if (decoded) return decoded;
+  if (!pendingFile) throw new Error('no file loaded');
+  setStatus(`Decoding ${pendingFile.name}...`);
+  try {
+    decoded = await decodeAudio(ctx, pendingFile.bytes);
+  } catch (error) {
+    throw new Error(
+      `decodeAudioData failed for "${pendingFile.name}" (type "${pendingFile.bytes.byteLength} bytes"). ` +
+        `This browser may not support that codec. Try a .wav or .mp3. Cause: ${describeError(error)}`,
+    );
   }
-  await stretch.addBuffers(channels);
-  stretch.connect(humanCtx.destination);
-  stretch.schedule({
-    input: 0,
-    rate: Number(rateInput.value),
-    semitones: Number(semitonesInput.value),
-    active: true,
-  });
-  activeNodes.push(stretch);
-  byId<HTMLPreElement>('human-status').textContent =
-    `Playing PROCESSED: ${semitonesInput.value} semitones, rate ${rateInput.value} — latency ${Math.round(stretch.latency() * 1000)}ms`;
+  return decoded;
+}
+
+byId<HTMLButtonElement>('play-processed').addEventListener('click', async () => {
+  try {
+    const ctx = await ensureContext();
+    stopAll();
+    const audio = await getDecoded(ctx);
+    setStatus('Loading WASM stretch node...');
+    const stretch = await SignalsmithStretch(ctx, {
+      outputChannelCount: [audio.numberOfChannels],
+    });
+    const channels: Float32Array[] = [];
+    for (let c = 0; c < audio.numberOfChannels; c++) {
+      channels.push(audio.getChannelData(c));
+    }
+    await stretch.addBuffers(channels);
+    stretch.connect(ctx.destination);
+    stretch.schedule({
+      input: 0,
+      rate: Number(rateInput.value),
+      semitones: Number(semitonesInput.value),
+      active: true,
+    });
+    activeNodes.push(stretch);
+    setStatus(
+      `▶ PROCESSED: ${audio.numberOfChannels}ch, ${semitonesInput.value} semitones, rate ${rateInput.value} ` +
+        `(ctx ${ctx.state}, ${ctx.sampleRate}Hz)`,
+    );
+  } catch (error) {
+    setStatus(`Play processed failed: ${describeError(error)}`, true);
+  }
 });
 
 byId<HTMLButtonElement>('play-original').addEventListener('click', async () => {
-  if (!decoded || !humanCtx) return;
-  stopAll();
-  await humanCtx.resume();
-  const source = humanCtx.createBufferSource();
-  source.buffer = decoded;
-  source.connect(humanCtx.destination);
-  source.start();
-  activeNodes.push(source);
-  byId<HTMLPreElement>('human-status').textContent = 'Playing ORIGINAL';
+  try {
+    const ctx = await ensureContext();
+    stopAll();
+    const audio = await getDecoded(ctx);
+    const source = ctx.createBufferSource();
+    source.buffer = audio;
+    source.connect(ctx.destination);
+    source.start();
+    activeNodes.push(source);
+    setStatus(`▶ ORIGINAL: ${audio.duration.toFixed(1)}s, ${audio.numberOfChannels}ch @ ${audio.sampleRate}Hz`);
+  } catch (error) {
+    setStatus(`Play original failed: ${describeError(error)}`, true);
+  }
 });
 
 byId<HTMLButtonElement>('stop-all').addEventListener('click', () => {
   stopAll();
-  byId<HTMLPreElement>('human-status').textContent = 'Stopped';
+  setStatus('Stopped');
 });
