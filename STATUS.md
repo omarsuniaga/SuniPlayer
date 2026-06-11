@@ -12,8 +12,8 @@
 retrofit-arquitectura-documental
 ```
 
-Último commit: `0bb1d17` — File Import UI (drag & drop, import orchestration)
-Anterior: `095afab` — PR 3 (UI components)
+Último commit: `b8f6c0d` — Click-to-play wiring (useAudioEngine hook)
+Anterior: `0bb1d17` — File Import UI (drag & drop, import orchestration)
 Base: `master`
 
 ---
@@ -78,7 +78,16 @@ src/
 - `tsconfig.json` — `jsx: react-jsx`
 - ADR 0001 corregido (React+Zustand, no Vue+Pinia)
 
-### Total: 125 tests, 12 suites, todo verde ✅
+### Click-to-play — useAudioEngine hook (commit `b8f6c0d`) ✅
+- `src/ui/hooks/useAudioEngine.ts` — singleton engine + playTrack (reconstruye AudioBuffer desde blob de Dexie)
+- `src/ui/hooks/useAudioEngine.test.ts` — 10 tests (play, pause, stop, seek, pitch, tempo, volume, playTrack, errores)
+- `src/infrastructure/audioEngine.ts` — agregó `setStateChangeHandler`, `context` getter, `hasBuffer` getter
+- `src/ui/views/FileImportView.tsx` — click en track llama a playTrack con indicador ▶ verde
+- `src/ui/miniplayer/Miniplayer.tsx` — play/pause/seek/volume via engine (no store-only)
+- `src/ui/player/PlayerView.tsx` — play/pause/stop/seek/pitch/tempo/volume via engine
+- `vitest.setup.ts` — polyfill Blob.arrayBuffer para jsdom
+
+### Total: 148 tests, 15 suites, todo verde ✅
 
 ---
 
@@ -127,6 +136,30 @@ src/
 
 ---
 
+---
+
+## Handoff activo — Tareas para Gentle AI
+
+(Sin tareas pendientes. Claude deja acá las tareas que quiere que Gentle AI ejecute.)
+
+Formato:
+```
+## Tareas para Gentle AI
+- [ ] descripción concisa — archivos afectados — qué test verifica
+```
+
+---
+
+## Pendiente de revisión por CLAUDE
+
+Claude, antes de empezar a implementar nada nuevo:
+
+1. **Revisá el engram-docs-sync** — los archivos `docs/componentes/*.md` y `docs/especificaciones/04-almacenamiento.md` y `docs/vistas/03-vista-libreria.md` tienen nuevas secciones "Notas de Implementación" sincronizadas desde Engram. Verificá que sean correctas y consistentes.
+2. **Revisá AGENTS.md** — nuevo archivo root con reglas cross-agent obligatorias. Leélo completo.
+3. **Validá el click-to-play end-to-end** — levantá `npx vite` y probá que importar un archivo y hacer click reproduzca audio de verdad. El hook usa `engine.context.decodeAudioData(arrayBuffer)` que necesita un **user gesture** — el click del track lo provee.
+4. **Evaluá huecos** — ¿qué falta para que un usuario pueda importar y escuchar música sin fricción? ¿Mensajes de error claros? ¿Estados vacíos? ¿Transiciones?
+5. **Revisá si hay que testear Miniplayer/PlayerView** — no tienen tests unitarios todavía.
+
 ## Lo que NO debe tocar NADIE sin aprobación
 
 - `src/domain/` — ya implementado, ownership compartido
@@ -152,7 +185,7 @@ src/
 
 ```bash
 cd app && npx vitest run
-# → 14 files, 138 tests, 0 failures
+# → 15 files, 148 tests, 0 failures
 ```
 
 Sin CI configurado. Tests en `src/**/*.test.ts` y `src/**/*.test.tsx`.

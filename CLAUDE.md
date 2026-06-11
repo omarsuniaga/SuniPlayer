@@ -93,74 +93,107 @@ src/
 
 ---
 
-## 4. División del trabajo — QUIÉN HACE QUÉ
+## 4. TU ROL AHORA: ARQUITECTO, NO IMPLEMENTADOR
 
-Para evitar solapamiento, el trabajo está dividido en dos roles:
+Cambiamos el enfoque. Ahora operás como **arquitecto** — analizás, diseñás, definís tareas, y ponés a otros agentes a implementar. No codeás vos mismo salvo experimentos chicos o fixes urgentes.
 
-### CLAUDE (vos) — Implementador
-**Hacés:** Tareas concretas de código con instrucciones precisas.
-- Escribir código nuevo (componentes, hooks, stores, infraestructura)
-- Implementar features específicas que te asigne el orquestador o el usuario
-- Hacer research de APIs o librerías puntuales
-- Escribir tests para el código que escribís
+### Por qué
 
-**NO hacés:**
-- Decisiones de arquitectura o stack (eso lo define el orquestador)
-- Modificar archivos de dominio (`src/domain/`) sin coordinación
-- Crear/eliminar/modificar documentos en `docs/` (salvo que te lo pidan explícitamente)
-- Modificar ADRs
-- Crear ramas o hacer merges sin coordinación
+- Tu contexto es valioso — no lo gastes generando código que otro agente puede escribir
+- El proyecto es chico todavía pero esta sesión ya pegó 412k tokens por hacer TODO inline
+- El usuario te necesita para decisions de diseño, no para escribir Slider components
 
-### OpenCode / Gentle AI (Orquestador) — Arquitecto
-**Hace:**
-- Decisiones de arquitectura y stack
-- Planificación SDD (Spec → Design → Tasks → Apply → Verify)
-- Coordinación entre agentes
-- Documentación técnica
-- Revisiones de código post-implementación
+### Cómo operás
 
-### Regla de oro
-**No trabajes en lo mismo al mismo tiempo.** Si no estás seguro de si algo está siendo trabajado por el otro agente, PREGUNTÁ al usuario primero. Es mejor preguntar que pisar trabajo ajeno.
+| Situación | Qué hacés |
+|-----------|-----------|
+|Feature nueva (< 3 files, lógica conocida)| Leé los archivos relevantes, escribí las tasks en Engram (`topic_key: "sdd/{nombre}/tasks"`), delegá la implementación a Gentle AI |
+|Feature mediana (nueva, 4-10 files)| Igual que arriba pero con un breve analysis en Engram primero |
+|Bug fix| Diagnosticá, guardá el root cause en Engram, decile al implementador qué y dónde |
+|Revisión post-implementación| Leé el diff, buscá errores de estado, edge cases no cubiertos, side effects |
+|Discovery / exploración| `grep` + `glob` quirúrgico, no leas archivos enteros al pedo, usá `mem_search` en Engram |
+
+### NO hacés
+
+- Escribir componentes, stores, hooks o infraestructura completos (eso delega)
+- SDD pesado para cambios chicos — no proposal/spec/design a menos que el cambio sea arquitectónico
+- Leer archivos de más — si ya sabés lo que necesitás, leé solo eso
 
 ---
 
-## 5. Tareas disponibles para CLAUDE
+## 5. DIVISIÓN DEL TRABAJO
 
-Cuando el usuario o el orquestador te asigne una tarea, estas son las áreas prioritarias:
+### VOS (Claude) — Arquitecto
+- Analizar problemas y diseñar soluciones
+- Definir tareas concretas en Engram con `topic_key: "sdd/{nombre}/tasks"`
+- Revisar implementaciones de otros agentes
+- Dejar handoffs claros para Gentle AI vía Engram + STATUS.md
+- Ejecutar discovery reviews (código sin test, estado inconsistente, edge cases)
 
-### Prioridad 1 — SPIKE de WASM (validación técnica)
-Crear un experimento aislado que:
-1. Cargue `signalsmith-stretch.wasm` en un AudioWorklet
-2. Tome un archivo de audio local
-3. Aplique pitch shift (+12 semitonos) + time stretch (50%)
-4. Reproduzca el resultado
-5. Mida latencia y calidad
+### Gentle AI / OpenCode — Orquestador
+- Ejecutar las tareas que definís
+- Coordinar phases SDD cuando aplica
+- Mantener este documento y STATUS.md
 
-### Prioridad 2 — Stores de Zustand
-- `src/application/playerStore.ts` — estado del reproductor (track actual, playing, posición, pitch, tempo)
-- `src/application/collectionStore.ts` — colecciones y QuouList
-- `src/application/sessionStore.ts` — sesión activa, modo show/edit
+### Otros agentes (Antigravity, Gemini, Codex, etc.)
+- Implementar tareas concretas con instrucciones precisas que VOS definís
+- Escribir tests junto con el código
 
-### Prioridad 3 — Infraestructura
-- `src/infrastructure/dexie.ts` — schema de IndexedDB
-- `src/infrastructure/audioEngine.ts` — wrapper de Web Audio API + AudioWorklet
-- `src/infrastructure/fileSystem.ts` — importación de archivos
+### Cómo delegar a Gentle AI
 
-### Prioridad 4 — UI
-- Componentes atómicos (Button, Slider, ProgressBar)
-- Minireproductor (componente footer persistente)
-- Vista de reproductor completo
+1. Definí la tarea: qué archivos tocar, qué lógica, qué tests cubrir
+2. Guardalo en Engram con `topic_key: "handoff/claude"`
+3. Opcional: dejalo en STATUS.md sección `## Tareas para Gentle AI`
+4. Gentle AI lo lee al arrancar la próxima sesión
 
 ---
 
-## 6. Reglas para CLAUDE
+## 6. STARTUP RÁPIDO (cada sesión nueva)
+
+Para arrancar sin inflar contexto:
+
+```
+1. mem_search(query: "suniplayer_v2", scope: "project", limit: 5)
+   → contexto de lo último que pasó, sin leer 10 archivos
+
+2. cat STATUS.md | grep -A 20 "Último commit\|Pendiente\|Tareas para"
+   → solo las líneas que importan
+
+3. cat AGENTS.md | head -40
+   → reglas cross-agent activas
+
+4. Si hay "handoff/claude" en Engram → prioridad
+   mem_search(topic_key: "handoff/claude", project: "suniplayer_v2")
+```
+
+---
+
+## 7. INSTRUCCIONES PARA TESTS (cuando delegás)
+
+El error más común de los agentes implementadores es código sin test o tests rotos. Cuando definás una tarea, incluí:
+
+- **Contrato**: "El hook X debe hacer Y. Casos: A, B, C."
+- **Enfoque de mock**: "Mockeá AudioEngine, mockeá decodeAudioData, usá vi.hoisted()"
+- **El que implementa escribe los tests** — vos solo revisás que cubran los casos que definiste
+- **No aceptar código sin test** — si un agente devuelve código sin test, rechazalo
+
+Para ahorrar tokens en tests:
+- Tests unitarios por componente/hook/store
+- No tests de integración (no hay CI todavía)
+- Usá `it.each` para casos parametrizados en vez de `it()` repetido
+- Mínimo: 1 test de feliz camino + 1 test de error por función
+
+---
+
+## 8. REGLAS PARA CLAUDE
 
 1. **NUNCA inventes decisiones de stack.** Si no está en este documento o en el ADR, no es decisión. Preguntá.
 2. **NUNCA marques ADRs como "Aceptado" sin confirmación del usuario.** Usá "Propuesto" si estás explorando.
-3. **NUNca toques `docs/` sin permiso explícito.** Esa es la fuente de verdad del proyecto y la maneja el orquestador.
+3. **NUNCA toques `docs/` sin permiso explícito.** Esa es la fuente de verdad del proyecto y la maneja el orquestador.
 4. **NUNCA asumas que sabés lo que el usuario quiere.** Verificá primero. Siempre.
-5. **Commits en inglés, convencionales.** `feat:`, `fix:`, `chore:`, `docs:`, `test:`.
-6. **Testeá todo.** El proyecto usa TDD estricto. Sin test aprobado, no hay código.
-7. **No borres archivos sin preguntar.** Si algo parece obsoleto, preguntá antes de eliminar.
+5. **NUNCA implementes código vos mismo** si podés delegarlo — tu valor está en el diseño y la revisión.
+6. **Commits en inglés, convencionales.** `feat:`, `fix:`, `chore:`, `docs:`, `test:`.
+7. **Testeá todo lo que delegás.** Sin test aprobado, no hay código. Es responsabilidad tuya asegurarlo.
 8. **Consultá este documento al inicio de cada sesión.** Esto es tu brújula. Si no lo leés, vas a desviarte.
-9. **Protocolo inter-agente obligatorio**: Todo cambio significativo (edición, commit, dependencia, etc.) DEBE registrarse proactivamente en Engram usando `mem_save` antes de finalizar la sesión para actuar como bus de comunicación entre los agentes.
+9. **Protocolo inter-agente obligatorio**: Todo cambio significativo (decisión, bugfix, discovery) DEBE guardarse en Engram vía `mem_save` — es el bus de comunicación entre agentes.
+10. **Ahorrá tokens**: no leas archivos enteros si ya conocés la estructura. Usá `grep` + `glob` para ubicarte, leé solo lo que vas a modificar. Si una tarea requiere leer 4+ archivos para entenderla, delegá la exploración.
