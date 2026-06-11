@@ -70,7 +70,7 @@ describe('App player navigation', () => {
   it('returns to library without unloading the current track and keeps Miniplayer active', () => {
     useCollectionStore.getState().setTracks([makeTrack()])
 
-    const { container } = render(<App />)
+    render(<App />)
 
     fireEvent.click(screen.getByLabelText('Play Visible Song by Test Artist'))
     expect(screen.getAllByText('Visible Song').length).toBeGreaterThan(0)
@@ -78,7 +78,7 @@ describe('App player navigation', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Volver/ }))
 
-    expect(container.textContent).toContain('Your Music')
+    expect(screen.getByRole('heading', { name: 'LIBRARY' })).toBeDefined()
     expect(usePlayerStore.getState().currentTrackId).toBe('track-1')
     expect(screen.getByRole('button', { name: 'Pause' })).toBeDefined()
   })

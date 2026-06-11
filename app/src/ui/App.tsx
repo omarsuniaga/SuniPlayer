@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Miniplayer } from './miniplayer/Miniplayer'
 import { BottomNav } from './nav/BottomNav'
 import { PlayerView } from './player/PlayerView'
-import { FileImportView } from './views/FileImportView'
+import { LibraryView } from './views/LibraryView'
 import { useMediaSession } from './hooks/useMediaSession'
 import { usePlayerStore } from '../application/playerStore'
 import { useNavigationStore } from '../application/navigationStore'
@@ -44,7 +44,7 @@ function App() {
       case 'reproductor':
         return <PlayerView onBack={() => navigate('libreria')} />
       case 'libreria':
-        return <FileImportView onTrackSelected={() => navigate('reproductor')} />
+        return <LibraryView onTrackSelected={() => navigate('reproductor')} />
       case 'show':
         return <PlaceholderView title="Show" />
       case 'edit':
@@ -52,7 +52,7 @@ function App() {
       case 'perfil':
         return <PlaceholderView title="Perfil" />
       default:
-        return <FileImportView onTrackSelected={() => navigate('reproductor')} />
+        return <LibraryView onTrackSelected={() => navigate('reproductor')} />
     }
   }
 
