@@ -1,23 +1,60 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Miniplayer } from './miniplayer/Miniplayer'
+import { BottomNav } from './nav/BottomNav'
 import { PlayerView } from './player/PlayerView'
 import { FileImportView } from './views/FileImportView'
 import { useMediaSession } from './hooks/useMediaSession'
 import { usePlayerStore } from '../application/playerStore'
+import { useNavigationStore } from '../application/navigationStore'
+import { useSessionStore } from '../application/sessionStore'
 
-type AppView = 'library' | 'player'
+const placeholderStyle: React.CSSProperties = {
+  padding: '24px 16px 160px',
+  maxWidth: 480,
+  margin: '0 auto',
+}
+
+function PlaceholderView({ title }: { title: string }) {
+  return (
+    <section style={placeholderStyle} aria-label={title}>
+      <h1>{title}</h1>
+      <p>Ready for the next implementation phase.</p>
+    </section>
+  )
+}
 
 function App() {
   useMediaSession()
   const currentTrackId = usePlayerStore((s) => s.currentTrackId)
+  const currentView = useNavigationStore((s) => s.currentView)
+  const navigate = useNavigationStore((s) => s.navigate)
+  const mode = useSessionStore((s) => s.mode)
   const hasTrack = currentTrackId !== null
-  const [view, setView] = useState<AppView>('library')
 
   useEffect(() => {
-    if (hasTrack) {
-      setView('player')
+    if (hasTrack && mode !== 'show') {
+      navigate('reproductor')
     }
-  }, [currentTrackId, hasTrack])
+  }, [currentTrackId, hasTrack, mode, navigate])
+
+  const renderView = () => {
+    switch (currentView) {
+      case 'inicio':
+        return <PlaceholderView title="Inicio" />
+      case 'reproductor':
+        return <PlayerView onBack={() => navigate('libreria')} />
+      case 'libreria':
+        return <FileImportView onTrackSelected={() => navigate('reproductor')} />
+      case 'show':
+        return <PlaceholderView title="Show" />
+      case 'edit':
+        return <PlaceholderView title="Edit" />
+      case 'perfil':
+        return <PlaceholderView title="Perfil" />
+      default:
+        return <FileImportView onTrackSelected={() => navigate('reproductor')} />
+    }
+  }
 
   return (
     <div
@@ -29,14 +66,9 @@ function App() {
         fontFamily: 'system-ui, sans-serif',
       }}
     >
-      <main style={{ paddingBottom: 80 }}>
-        {hasTrack && view === 'player' ? (
-          <PlayerView onBack={() => setView('library')} />
-        ) : (
-          <FileImportView onTrackSelected={() => setView('player')} />
-        )}
-      </main>
+      <main style={{ paddingBottom: 160 }}>{renderView()}</main>
       <Miniplayer />
+      <BottomNav />
     </div>
   )
 }
