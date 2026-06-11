@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAudioEngine, _resetEngineForTest } from './useAudioEngine'
 import { usePlayerStore } from '../../application/playerStore'
+import { useWaveformStore } from '../../application/waveformStore'
 
 // Hoisted mocks — defined before vi.mock calls so factories can reference them
 const {
@@ -78,6 +79,7 @@ describe('useAudioEngine', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     usePlayerStore.getState().reset()
+    useWaveformStore.getState().clear()
     _resetEngineForTest()
     // Default mock returns
     mockContext.state = 'running'
@@ -247,6 +249,7 @@ describe('useAudioEngine', () => {
     expect(state.currentTrackId).toBe('track-1')
     expect(state.duration).toBe(200)
     expect(state.playing).toBe(true)
+    expect(useWaveformStore.getState().peaksByTrackId['track-1']).toBeDefined()
   })
 
   it('playTrack shows error when blob is missing', async () => {

@@ -2,6 +2,8 @@ import { useRef, useState, useCallback } from 'react'
 import { AudioEngine, type EngineState } from '../../infrastructure/audioEngine'
 import { trackRepo } from '../../infrastructure/dexie'
 import { usePlayerStore } from '../../application/playerStore'
+import { extractPeaks } from '../../application/waveform/extractPeaks'
+import { useWaveformStore } from '../../application/waveformStore'
 import type { PersistedTrack } from '../../infrastructure/dexie'
 
 // ---- Module-level singleton — persists across re-renders and navigation ----
@@ -26,6 +28,8 @@ export function _resetEngineForTest(): void {
 // ---- Hook ----
 
 export type EngineLoading = 'idle' | 'loading' | 'loaded' | 'error'
+
+const WAVEFORM_BUCKETS = 160
 
 async function resumeContextIfSuspended(engine: AudioEngine): Promise<void> {
   if (engine.context.state === 'suspended') {
@@ -86,6 +90,10 @@ export function useAudioEngine() {
 
       const arrayBuffer = await blob.arrayBuffer()
       const audioBuffer = await engine.context.decodeAudioData(arrayBuffer)
+      const waveformStore = useWaveformStore.getState()
+      if (!waveformStore.peaksByTrackId[track.id]) {
+        waveformStore.setPeaks(track.id, extractPeaks(audioBuffer, WAVEFORM_BUCKETS))
+      }
 
       // Stop current playback if any
       engine.stop()

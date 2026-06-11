@@ -4,6 +4,8 @@ import { useAudioEngine } from '../hooks/useAudioEngine'
 import { Slider } from '../atoms/Slider'
 import { Button } from '../atoms/Button'
 import { ProgressBar } from '../atoms/ProgressBar'
+import { useWaveformStore } from '../../application/waveformStore'
+import { WaveformCanvas } from '../waveform/WaveformCanvas'
 import { useCurrentTrack } from '../hooks/useCurrentTrack'
 
 const containerStyle: React.CSSProperties = {
@@ -48,6 +50,7 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
   const tempo = usePlayerStore((s) => s.tempo)
   const volume = usePlayerStore((s) => s.volume)
   const repeat = usePlayerStore((s) => s.repeat)
+  const peaks = useWaveformStore((s) => (trackId ? s.peaksByTrackId[trackId] : undefined))
 
   const { play, pause, stop, seek, setPitch, setTempo, setVolume } = useAudioEngine()
   const setRepeat = usePlayerStore((s) => s.setRepeat)
@@ -79,6 +82,9 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
 
       {/* Seek bar */}
       <div style={sectionStyle}>
+        {peaks && peaks.length > 0 && (
+          <WaveformCanvas peaks={peaks} position={position} duration={duration} onSeek={seek} disabled={isLocked} />
+        )}
         <ProgressBar position={position} duration={duration} onSeek={seek} disabled={isLocked} />
       </div>
 

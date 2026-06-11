@@ -4,6 +4,7 @@ import { PlayerView } from './PlayerView'
 import { usePlayerStore } from '../../application/playerStore'
 import { useSessionStore } from '../../application/sessionStore'
 import { useCollectionStore } from '../../application/collectionStore'
+import { useWaveformStore } from '../../application/waveformStore'
 
 const { mockEngine } = vi.hoisted(() => ({
   mockEngine: {
@@ -63,13 +64,28 @@ function sliderFor(label: string): HTMLInputElement {
 describe('PlayerView', () => {
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
   })
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      clearRect: vi.fn(),
+      fillRect: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
+      fillStyle: '',
+      strokeStyle: '',
+    } as unknown as CanvasRenderingContext2D)
+    vi.spyOn(HTMLCanvasElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0, top: 0, right: 200, bottom: 120, width: 200, height: 120, x: 0, y: 0, toJSON: () => ({}),
+    })
     usePlayerStore.getState().reset()
     useSessionStore.getState().reset()
     useCollectionStore.getState().reset()
+    useWaveformStore.getState().clear()
   })
 
   it('renders empty state without transport controls when no track is loaded', () => {
@@ -101,6 +117,28 @@ describe('PlayerView', () => {
     render(<PlayerView />)
 
     fireEvent.change(screen.getByLabelText('Seek'), { target: { value: '90' } })
+
+    expect(mockEngine.seek).toHaveBeenCalledWith(90)
+  })
+
+  it('calls engine.seek when the waveform is clicked', () => {
+    loadTrack()
+    useWaveformStore.getState().setPeaks('track-1', [0.2, 0.8])
+    render(<PlayerView />)
+    const waveform = screen.getByRole('img', { name: 'Waveform' })
+    vi.spyOn(waveform, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      width: 200,
+      height: 120,
+      top: 0,
+      right: 200,
+      bottom: 120,
+      left: 0,
+      toJSON: () => ({}),
+    })
+
+    fireEvent.click(waveform, { clientX: 100 })
 
     expect(mockEngine.seek).toHaveBeenCalledWith(90)
   })
@@ -194,5 +232,37 @@ describe('PlayerView', () => {
     expect(screen.getByLabelText('Seek').hasAttribute('disabled')).toBe(true)
     expect(sliderFor('Pitch').disabled).toBe(true)
     expect(sliderFor('Tempo').disabled).toBe(true)
+  })
+
+  it('renders the waveform when the current track has peaks', () => {
+    loadTrack()
+    useWaveformStore.getState().setPeaks('track-1', [0.25, 1, 0.5])
+
+    render(<PlayerView />)
+
+    expect(screen.getByLabelText('Waveform')).toBeDefined()
+  })
+
+  it('seeks through the waveform in listen mode', () => {
+    loadTrack()
+    useWaveformStore.getState().setPeaks('track-1', [1])
+
+    render(<PlayerView />)
+
+    fireEvent.mouseDown(screen.getByLabelText('Waveform'), { clientX: 50 })
+
+    expect(mockEngine.seek).toHaveBeenCalledWith(45)
+  })
+
+  it('does not seek through the waveform in show mode', () => {
+    loadTrack()
+    useWaveformStore.getState().setPeaks('track-1', [1])
+    useSessionStore.setState({ mode: 'show' })
+
+    render(<PlayerView />)
+
+    fireEvent.mouseDown(screen.getByLabelText('Waveform'), { clientX: 50 })
+
+    expect(mockEngine.seek).not.toHaveBeenCalled()
   })
 })
