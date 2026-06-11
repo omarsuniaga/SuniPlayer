@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { PlayerView } from './PlayerView'
 import { usePlayerStore } from '../../application/playerStore'
 import { useSessionStore } from '../../application/sessionStore'
+import { useCollectionStore } from '../../application/collectionStore'
 
 const { mockEngine } = vi.hoisted(() => ({
   mockEngine: {
@@ -22,6 +23,20 @@ const { mockEngine } = vi.hoisted(() => ({
 vi.mock('../hooks/useAudioEngine', () => ({
   useAudioEngine: () => mockEngine,
 }))
+
+function makeTrack(overrides: Partial<{ id: string; title: string; filePath: string }> = {}) {
+  return {
+    id: 'track-1',
+    title: 'Visible Song',
+    artist: 'Test Artist',
+    durationSeconds: 180,
+    filePath: 'visible-song.mp3',
+    playCount: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }
+}
 
 function loadTrack(overrides: Partial<ReturnType<typeof usePlayerStore.getState>> = {}) {
   usePlayerStore.setState({
@@ -54,6 +69,7 @@ describe('PlayerView', () => {
     vi.clearAllMocks()
     usePlayerStore.getState().reset()
     useSessionStore.getState().reset()
+    useCollectionStore.getState().reset()
   })
 
   it('renders empty state without transport controls when no track is loaded', () => {
@@ -103,7 +119,7 @@ describe('PlayerView', () => {
   })
 
   it('cycles repeat all/playlist to one, then none, then back to all', () => {
-    loadTrack({ repeat: 'all' })
+    loadTrack({ repeat: 'all' as any })
     const { rerender } = render(<PlayerView />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Repeat: all' }))
@@ -116,6 +132,29 @@ describe('PlayerView', () => {
     rerender(<PlayerView />)
     fireEvent.click(screen.getByRole('button', { name: 'Repeat: none' }))
     expect(usePlayerStore.getState().repeat).toBe('all')
+  })
+
+
+  it('renders the current track title instead of the id', () => {
+    loadTrack({ currentTrackId: 'track-1' })
+    useCollectionStore.getState().setTracks([makeTrack({ id: 'track-1', title: 'Visible Song' })])
+
+    render(<PlayerView />)
+
+    expect(screen.getByText('Visible Song')).toBeDefined()
+    expect(screen.queryByText('track-1')).toBeNull()
+  })
+
+  it('falls back to file name when the current track title is blank', () => {
+    loadTrack({ currentTrackId: 'track-1' })
+    useCollectionStore.getState().setTracks([
+      makeTrack({ id: 'track-1', title: '', filePath: '/music/fallback-name.mp3' }),
+    ])
+
+    render(<PlayerView />)
+
+    expect(screen.getByText('fallback-name.mp3')).toBeDefined()
+    expect(screen.queryByText('track-1')).toBeNull()
   })
 
   it('updates session mode from the mode toggle', () => {
@@ -135,8 +174,8 @@ describe('PlayerView', () => {
 
     render(<PlayerView />)
 
-    expect(screen.getByRole('button', { name: 'Play' }).disabled).toBe(true)
-    expect(screen.getByRole('button', { name: 'Stop' }).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Play' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Stop' }) as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByLabelText('Seek').hasAttribute('disabled')).toBe(true)
     expect(sliderFor('Pitch').disabled).toBe(true)
     expect(sliderFor('Tempo').disabled).toBe(true)

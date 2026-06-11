@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react'
-import { AudioEngine } from '../../infrastructure/audioEngine'
+import { AudioEngine, type EngineState } from '../../infrastructure/audioEngine'
 import { trackRepo } from '../../infrastructure/dexie'
 import { usePlayerStore } from '../../application/playerStore'
 import type { PersistedTrack } from '../../infrastructure/dexie'
@@ -8,7 +8,7 @@ import type { PersistedTrack } from '../../infrastructure/dexie'
 
 let _engine: AudioEngine | null = null
 
-function getEngine(onStateChange: (state: ReturnType<AudioEngine['state']>) => void): AudioEngine {
+function getEngine(onStateChange: (state: EngineState) => void): AudioEngine {
   if (!_engine) {
     _engine = new AudioEngine(onStateChange)
   } else {
@@ -26,6 +26,12 @@ export function _resetEngineForTest(): void {
 // ---- Hook ----
 
 export type EngineLoading = 'idle' | 'loading' | 'loaded' | 'error'
+
+async function resumeContextIfSuspended(engine: AudioEngine): Promise<void> {
+  if (engine.context.state === 'suspended') {
+    await engine.context.resume()
+  }
+}
 
 export function useAudioEngine() {
   const [loading, setLoading] = useState<EngineLoading>('idle')
@@ -86,6 +92,7 @@ export function useAudioEngine() {
 
       await engine.load(audioBuffer)
       usePlayerStore.getState().loadTrack(track.id, track.durationSeconds)
+      await resumeContextIfSuspended(engine)
       engine.play()
       usePlayerStore.getState().play()
 
@@ -99,9 +106,10 @@ export function useAudioEngine() {
     }
   }, [])
 
-  const play = useCallback(() => {
+  const play = useCallback(async () => {
     const engine = engineRef.current
     if (!engine?.hasBuffer) return
+    await resumeContextIfSuspended(engine)
     engine.play()
     usePlayerStore.getState().play()
   }, [])

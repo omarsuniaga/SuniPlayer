@@ -1,4 +1,5 @@
 import { usePlayerStore } from '../../application/playerStore'
+import { useCollectionStore } from '../../application/collectionStore'
 import { useSessionStore } from '../../application/sessionStore'
 import { useAudioEngine } from '../hooks/useAudioEngine'
 import { Button } from '../atoms/Button'
@@ -31,6 +32,16 @@ const footerStyle: React.CSSProperties = {
   zIndex: 100,
 }
 
+function trackDisplayName(trackId: string, track?: { title?: string; filePath?: string }): string {
+  const title = track?.title?.trim()
+  if (title) return title
+
+  const filePath = track?.filePath?.trim()
+  if (filePath) return filePath.split(/[\\/]/).pop() || filePath
+
+  return trackId
+}
+
 const rowStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -43,10 +54,12 @@ export function Miniplayer() {
   const position = usePlayerStore((s) => s.position)
   const duration = usePlayerStore((s) => s.duration)
   const volume = usePlayerStore((s) => s.volume)
+  const tracks = useCollectionStore((s) => s.tracks)
   const { play, pause, seek, setVolume } = useAudioEngine()
 
   const mode = useSessionStore((s) => s.mode)
   const state = determineState(trackId !== null, playing, mode)
+  const currentTrack = trackId ? tracks.find((track) => track.id === trackId) : undefined
 
   return (
     <footer style={footerStyle}>
@@ -83,7 +96,7 @@ export function Miniplayer() {
           />
           <div style={rowStyle}>
             <span style={{ color: '#eee', fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
-              {trackId ?? 'Unknown track'}
+              {trackId ? trackDisplayName(trackId, currentTrack) : 'Unknown track'}
             </span>
             <Button
               variant="icon"

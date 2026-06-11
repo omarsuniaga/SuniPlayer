@@ -1,4 +1,5 @@
 import { usePlayerStore } from '../../application/playerStore'
+import { useCollectionStore } from '../../application/collectionStore'
 import { useSessionStore } from '../../application/sessionStore'
 import { useAudioEngine } from '../hooks/useAudioEngine'
 import { Slider } from '../atoms/Slider'
@@ -27,6 +28,16 @@ const controlsRow: React.CSSProperties = {
   gap: 12,
 }
 
+function trackDisplayName(trackId: string, track?: { title?: string; filePath?: string }): string {
+  const title = track?.title?.trim()
+  if (title) return title
+
+  const filePath = track?.filePath?.trim()
+  if (filePath) return filePath.split(/[\\/]/).pop() || filePath
+
+  return trackId
+}
+
 const titleStyle: React.CSSProperties = {
   color: '#eee',
   fontSize: 14,
@@ -43,6 +54,7 @@ export function PlayerView() {
   const tempo = usePlayerStore((s) => s.tempo)
   const volume = usePlayerStore((s) => s.volume)
   const repeat = usePlayerStore((s) => s.repeat)
+  const tracks = useCollectionStore((s) => s.tracks)
 
   const { play, pause, stop, seek, setPitch, setTempo, setVolume } = useAudioEngine()
   const setRepeat = usePlayerStore((s) => s.setRepeat)
@@ -59,12 +71,13 @@ export function PlayerView() {
   }
 
   const isLocked = mode === 'show'
+  const currentTrack = trackId ? tracks.find((track) => track.id === trackId) : undefined
 
   return (
     <div style={containerStyle}>
       {/* Track info */}
       <div style={sectionStyle}>
-        <div style={titleStyle}>{trackId}</div>
+        <div style={titleStyle}>{trackDisplayName(trackId, currentTrack)}</div>
       </div>
 
       {/* Seek bar */}

@@ -7,6 +7,7 @@ import { usePlayerStore } from '../../application/playerStore'
 const {
   mockDecode, mockPlay, mockPause, mockStop, mockSeek, mockLoad,
   mockSetPitch, mockSetTempo, mockSetVolume, mockDestroy, mockSetOnStateChange,
+  mockResume, mockContext,
 } = vi.hoisted(() => ({
   mockDecode: vi.fn(),
   mockPlay: vi.fn(),
@@ -19,6 +20,12 @@ const {
   mockSetVolume: vi.fn(),
   mockDestroy: vi.fn(),
   mockSetOnStateChange: vi.fn(),
+  mockResume: vi.fn(),
+  mockContext: {
+    state: 'running',
+    resume: vi.fn(),
+    decodeAudioData: vi.fn(),
+  },
 }))
 
 vi.mock('../../infrastructure/audioEngine', () => {
@@ -33,7 +40,7 @@ vi.mock('../../infrastructure/audioEngine', () => {
   MockAudioEngine.prototype.setVolume = mockSetVolume
   MockAudioEngine.prototype.destroy = mockDestroy
   MockAudioEngine.prototype.setStateChangeHandler = mockSetOnStateChange
-  MockAudioEngine.prototype.context = { decodeAudioData: mockDecode }
+  MockAudioEngine.prototype.context = mockContext
   Object.defineProperty(MockAudioEngine.prototype, 'hasBuffer', {
     get: () => true,
     configurable: true,
@@ -73,6 +80,10 @@ describe('useAudioEngine', () => {
     usePlayerStore.getState().reset()
     _resetEngineForTest()
     // Default mock returns
+    mockContext.state = 'running'
+    mockContext.resume = mockResume
+    mockContext.decodeAudioData = mockDecode
+    mockResume.mockResolvedValue(undefined)
     mockDecode.mockResolvedValue({
       duration: 240,
       numberOfChannels: 2,
@@ -98,11 +109,26 @@ describe('useAudioEngine', () => {
     expect(result.current.error).toBeNull()
   })
 
-  it('play calls engine.play and store.play', () => {
+  it('play calls engine.play and store.play', async () => {
     const { result } = renderHook(() => useAudioEngine())
-    act(() => result.current.play())
+    await act(async () => {
+      await result.current.play()
+    })
     expect(mockPlay).toHaveBeenCalledTimes(1)
     expect(usePlayerStore.getState().playing).toBe(true)
+  })
+
+
+  it('play resumes suspended AudioContext before playing', async () => {
+    mockContext.state = 'suspended'
+    const { result } = renderHook(() => useAudioEngine())
+
+    await act(async () => {
+      await result.current.play()
+    })
+
+    expect(mockResume).toHaveBeenCalledTimes(1)
+    expect(mockResume.mock.invocationCallOrder[0]!).toBeLessThan(mockPlay.mock.invocationCallOrder[0]!)
   })
 
   it('pause calls engine.pause and store.pause', () => {
@@ -148,6 +174,57 @@ describe('useAudioEngine', () => {
     act(() => result.current.setVolume(0.5))
     expect(mockSetVolume).toHaveBeenCalledWith(0.5)
     expect(usePlayerStore.getState().volume).toBe(0.5)
+  })
+
+  it('playTrack resumes suspended AudioContext before playing', async () => {
+    mockContext.state = 'suspended'
+    const track = makeTrack({ id: 'track-1', durationSeconds: 200 })
+    const repoGet = await mockRepoGet()
+    repoGet.mockResolvedValue(track)
+
+    const { result } = renderHook(() => useAudioEngine())
+
+    await act(async () => {
+      await result.current.playTrack(track)
+    })
+
+    expect(mockResume).toHaveBeenCalledTimes(1)
+    expect(mockResume.mock.invocationCallOrder[0]!).toBeLessThan(mockPlay.mock.invocationCallOrder[0]!)
+  })
+
+  it('playTrack does not resume a running AudioContext', async () => {
+    mockContext.state = 'running'
+    const track = makeTrack({ id: 'track-1', durationSeconds: 200 })
+    const repoGet = await mockRepoGet()
+    repoGet.mockResolvedValue(track)
+
+    const { result } = renderHook(() => useAudioEngine())
+
+    await act(async () => {
+      await result.current.playTrack(track)
+    })
+
+    expect(mockResume).not.toHaveBeenCalled()
+    expect(mockPlay).toHaveBeenCalledTimes(1)
+  })
+
+  it('playTrack reports resume errors like other playback errors', async () => {
+    mockContext.state = 'suspended'
+    mockResume.mockRejectedValue(new Error('resume blocked'))
+    const track = makeTrack({ id: 'track-1', durationSeconds: 200 })
+    const repoGet = await mockRepoGet()
+    repoGet.mockResolvedValue(track)
+
+    const { result } = renderHook(() => useAudioEngine())
+
+    await act(async () => {
+      await result.current.playTrack(track)
+    })
+
+    expect(result.current.loading).toBe('error')
+    expect(result.current.error).toContain('resume blocked')
+    expect(mockPlay).not.toHaveBeenCalled()
+    expect(usePlayerStore.getState().playing).toBe(false)
   })
 
   it('playTrack loads from Dexie, decodes, and plays', async () => {
