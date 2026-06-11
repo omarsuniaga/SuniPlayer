@@ -12,7 +12,8 @@
 retrofit-arquitectura-documental
 ```
 
-Último commit: *pendiente — PR 1 (Foundation + Stores)*
+Último commit: *pendiente — PR 2 (AudioWorklet + WASM)*
+Anterior: `515188a` — fix(spike): mobile-safe audio decoding
 Base: `master`
 
 ---
@@ -65,7 +66,7 @@ src/
 
 ### Infrastructure — 3 módulos (+12 tests)
 - `src/infrastructure/dexie.ts` — schema IndexedDB + repositorios
-- `src/infrastructure/audioEngine.ts` — wrapper Web Audio API (+7 tests)
+- `src/infrastructure/audioEngine.ts` — wrapper Web Audio API + WASM (signalsmith-stretch) (+16 tests)
 - `src/infrastructure/fileSystem.ts` — importación de archivos de audio (+5 tests)
 - **12 tests de infra → verdes**
 
@@ -77,28 +78,48 @@ src/
 - `tsconfig.json` — `jsx: react-jsx`
 - ADR 0001 corregido (React+Zustand, no Vue+Pinia)
 
-### Total: 106 tests, 9 suites, todo verde ✅
+### Total: 115 tests, 9 suites, todo verde ✅
 
 ---
 
-## Pendiente para PR 2 (Audio Engine + WASM)
+## Spike P1 — WASM (signalsmith-stretch)
 
-- Conectar `audioEngine.setPitch/setTempo` al AudioWorklet + signalsmith-stretch
-- Integrar con el spike de validación WASM de CLAUDE
-- Tests de integración AudioWorklet
+**Estado:** ✅ Validado — cerrado
 
-## Tareas disponibles
+| Check | Resultado |
+|-------|-----------|
+| Pitch shift +12 semitonos (440→880Hz) | ✅ <5% error |
+| Time stretch rate 0.5 (2s→4s) | ✅ <15% error |
+| Sin corrupción (NaN-free) | ✅ |
+| Señal audible a la salida | ✅ |
+| Estéreo multi-canal (desktop) | ✅ |
+| Mobile gesture handling | ✅ fix aplicado, falta test real |
+| `app/spike.html` + `src/spike/` | Código descartable, no parte del build |
 
-### PR 2 (siguiente) — Audio Engine + WASM
-- Conectar `audioEngine.setPitch/setTempo` al AudioWorklet con signalsmith-stretch
-- Integrar con el spike de validación de CLAUDE
-- Tests de integración con AudioWorklet
-- `MediaSession` API wrapper
+---
 
-### PR 3 — UI (componentes atómicos primero)
+## PR 2 — AudioWorklet + WASM (✅ completado)
+
+**Objetivo:** Reemplazar `AudioBufferSourceNode` por `signalsmith-stretch` en `audioEngine.ts`.
+
+| Cambio | Descripción |
+|--------|-------------|
+| `load()` | Crea `SignalsmithStretchNode`, llama `addBuffers(channels[])` multi-canal |
+| `play()` | `stretch.schedule({ input, rate, semitones, active: true })` |
+| `pause()` | `stretch.schedule({ active: false })` |
+| `stop()` | Desactiva stretch + reset posición a 0 |
+| `seek()` | Re-schedule con nueva posición + rate/semitones actuales |
+| `setPitch()` | Re-schedule en vivo si está playing |
+| `setTempo()` | Re-schedule en vivo si está playing |
+| Posición | Via `setUpdateInterval` callback (inputTime del stretch) |
+| `_resumeFromPause()` | Eliminado — stretch maneja nativamente |
+| Tests | 7 → 16 tests (mock de signalsmith-stretch + ciclo play/pause/stop/seek/re-schedule) |
+
+### PR 3 — UI (siguiente)
 - Button, Slider, ProgressBar, Waveform
 - Miniplayer (footer persistente, 3 estados: EMPTY/ACTIVE/LOCKED)
 - Reproductor completo
+- `MediaSession` API wrapper
 
 ---
 
@@ -127,7 +148,7 @@ src/
 
 ```bash
 cd app && npx vitest run
-# → 9 files, 106 tests, 0 failures
+# → 9 files, 115 tests, 0 failures
 ```
 
 Sin CI configurado. Tests en `src/**/*.test.ts` y `src/**/*.test.tsx`.

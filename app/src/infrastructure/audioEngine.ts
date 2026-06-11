@@ -1,3 +1,6 @@
+import SignalsmithStretch from 'signalsmith-stretch'
+import type { SignalsmithStretchNode } from 'signalsmith-stretch'
+
 export type EngineStatus = 'idle' | 'loading' | 'playing' | 'paused'
 
 export type EngineState = {
@@ -21,17 +24,16 @@ export type EngineCommand =
 
 export class AudioEngine {
   private ctx: AudioContext
-  private source: AudioBufferSourceNode | null = null
+  private stretch: SignalsmithStretchNode | null = null
   private _position = 0
   private _duration = 0
-  private _startedAt = 0
-  private _pausedAt = 0
   private _status: EngineStatus = 'idle'
   private _pitch = 0
   private _tempo = 1
   private _volume = 1
   private gain: GainNode
   private onStateChange?: (state: EngineState) => void
+  private _hasBuffer = false
 
   constructor(onStateChange?: (state: EngineState) => void) {
     this.ctx = new AudioContext()
@@ -56,88 +58,86 @@ export class AudioEngine {
   }
 
   async load(buffer: AudioBuffer): Promise<void> {
+    // Clean up previous stretch node
+    if (this.stretch) {
+      this.stretch.disconnect()
+      this.stretch = null
+    }
+
     this._duration = buffer.duration
     this._position = 0
-    this._pausedAt = 0
+    this._hasBuffer = false
     this._status = 'loading'
     this.emit()
 
-    // store buffer for later playback
-    this.source = this.ctx.createBufferSource()
-    this.source.buffer = buffer
-    this.source.connect(this.gain)
-    this.source.onended = () => {
-      if (this._status === 'playing') {
-        this._status = 'idle'
-        this._position = this._duration
-        this.emit()
-      }
+    // Extract per-channel audio data (supports stereo+)
+    const channels: Float32Array[] = []
+    for (let c = 0; c < buffer.numberOfChannels; c++) {
+      channels.push(buffer.getChannelData(c))
     }
 
+    // Create signalsmith-stretch AudioWorklet node
+    this.stretch = await SignalsmithStretch(this.ctx, {
+      outputChannelCount: [buffer.numberOfChannels],
+    })
+    await this.stretch.addBuffers(channels)
+    this.stretch.connect(this.gain)
+
+    // Track playback progress via stretch's input position
+    this.stretch.setUpdateInterval(0.05, (inputTime: number) => {
+      if (this._status === 'playing') {
+        this._position = inputTime
+        if (inputTime >= this._duration - 0.01) {
+          this._status = 'idle'
+          this.emit()
+        }
+      }
+    })
+
+    this._hasBuffer = true
     this._status = 'idle'
     this.emit()
   }
 
   play(): void {
-    if (!this.source) return
+    if (!this.stretch || !this._hasBuffer) return
     if (this._status === 'playing') return
 
-    if (this._pausedAt > 0) {
-      // resume from pause — needs a new source
-      this._resumeFromPause()
-      return
-    }
-
-    this._startedAt = this.ctx.currentTime
-    this.source!.start(0, this._position)
-    this._status = 'playing'
-    this.emit()
-  }
-
-  private _resumeFromPause(): void {
-    const buffer = this.source!.buffer
-    if (!buffer) return
-
-    const newSource = this.ctx.createBufferSource()
-    newSource.buffer = buffer
-    newSource.connect(this.gain)
-    newSource.onended = this.source!.onended
-    newSource.start(0, this._pausedAt)
-
-    this.source = newSource
-    this._startedAt = this.ctx.currentTime
+    this.stretch.schedule({
+      input: this._position,
+      rate: this._tempo,
+      semitones: this._pitch,
+      active: true,
+    })
     this._status = 'playing'
     this.emit()
   }
 
   pause(): void {
     if (this._status !== 'playing') return
-    this._pausedAt = this._position + (this.ctx.currentTime - this._startedAt)
-    this.source?.stop()
+    this.stretch?.schedule({ active: false })
     this._status = 'paused'
     this.emit()
   }
 
   stop(): void {
-    this.source?.stop()
-    this.source?.disconnect()
-    this.source = null
+    if (this._status === 'idle') return
+    this.stretch?.schedule({ active: false })
     this._position = 0
-    this._pausedAt = 0
     this._status = 'idle'
     this.emit()
   }
 
   seek(position: number): void {
-    if (!this.source?.buffer) return
-    const wasPlaying = this._status === 'playing'
-    if (wasPlaying) {
-      this.source.stop()
-    }
+    if (!this._hasBuffer) return
     this._position = Math.min(position, this._duration)
-    this._pausedAt = this._position
-    if (wasPlaying) {
-      this._resumeFromPause()
+    if (this._status === 'playing') {
+      this.stretch?.schedule({
+        input: this._position,
+        rate: this._tempo,
+        semitones: this._pitch,
+        active: true,
+      })
     }
     this.emit()
   }
@@ -150,25 +150,40 @@ export class AudioEngine {
 
   setPitch(semitones: number): void {
     this._pitch = Math.max(-12, Math.min(12, semitones))
-    // TODO: PR 2 — wire to AudioWorklet + WASM
+    if (this._status === 'playing') {
+      this.stretch?.schedule({
+        input: this._position,
+        rate: this._tempo,
+        semitones: this._pitch,
+        active: true,
+      })
+    }
     this.emit()
   }
 
   setTempo(ratio: number): void {
     this._tempo = Math.max(0.5, Math.min(2, ratio))
-    // TODO: PR 2 — wire to AudioWorklet + WASM
+    if (this._status === 'playing') {
+      this.stretch?.schedule({
+        input: this._position,
+        rate: this._tempo,
+        semitones: this._pitch,
+        active: true,
+      })
+    }
     this.emit()
   }
 
+  /** Current playback position in seconds. Updated by stretch callback during playback. */
   get currentTime(): number {
-    if (this._status === 'playing') {
-      return this._position + (this.ctx.currentTime - this._startedAt)
-    }
-    return this._pausedAt
+    return this._position
   }
 
   destroy(): void {
-    this.stop()
+    this.stretch?.stop()
+    this.stretch?.disconnect()
+    this.stretch = null
+    this._hasBuffer = false
     this.ctx.close()
   }
 }
