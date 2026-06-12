@@ -5,6 +5,7 @@ import { usePlayerStore } from '../../application/playerStore'
 import { useSessionStore } from '../../application/sessionStore'
 import { useCollectionStore } from '../../application/collectionStore'
 import { useWaveformStore } from '../../application/waveformStore'
+import type { PersistedTrack } from '../../infrastructure/dexie'
 
 const { mockEngine } = vi.hoisted(() => ({
   mockEngine: {
@@ -25,7 +26,7 @@ vi.mock('../hooks/useAudioEngine', () => ({
   useAudioEngine: () => mockEngine,
 }))
 
-function makeTrack(overrides: Partial<{ id: string; title: string; filePath: string }> = {}) {
+function makeTrack(overrides: Partial<PersistedTrack> = {}): PersistedTrack {
   return {
     id: 'track-1',
     title: 'Visible Song',
