@@ -23,6 +23,16 @@ export interface PersistedPlaylist {
   updatedAt: Date
 }
 
+export interface PersistedSet {
+  id: string
+  name: string
+  trackIds: string[]
+  targetDurationMinutes: number
+  startTrackId?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface PersistedSetting {
   key: string
   value: string
@@ -31,6 +41,7 @@ export interface PersistedSetting {
 class SuniplayerDB extends Dexie {
   tracks!: EntityTable<PersistedTrack, 'id'>
   playlists!: EntityTable<PersistedPlaylist, 'id'>
+  sets!: EntityTable<PersistedSet, 'id'>
   settings!: EntityTable<PersistedSetting, 'key'>
 
   constructor() {
@@ -39,6 +50,9 @@ class SuniplayerDB extends Dexie {
       tracks: 'id, title, artist, bpm, playCount, createdAt',
       playlists: 'id, name, createdAt',
       settings: 'key',
+    })
+    this.version(2).stores({
+      sets: 'id, name, createdAt',
     })
   }
 }
@@ -88,6 +102,21 @@ export const playlistRepo = {
     await db.playlists.where('id').equals(playlistId).modify((p) => {
       p.trackIds = p.trackIds.filter((id) => id !== trackId)
     })
+  },
+}
+
+export const setRepo = {
+  async getAll(): Promise<PersistedSet[]> {
+    return db.sets.orderBy('createdAt').toArray()
+  },
+  async get(id: string): Promise<PersistedSet | undefined> {
+    return db.sets.get(id)
+  },
+  async upsert(set: PersistedSet): Promise<void> {
+    await db.sets.put(set)
+  },
+  async delete(id: string): Promise<void> {
+    await db.sets.delete(id)
   },
 }
 

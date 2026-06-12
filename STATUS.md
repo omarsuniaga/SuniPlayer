@@ -12,7 +12,7 @@
 retrofit-arquitectura-documental
 ```
 
-Último commit: `812dd46` — fix: address library view review findings
+Último commit: `9b36e04` — fix(player): handle async play() rejection
 Anterior: `3479c2d` — feat: library view with track list, context menu and bulk import
 Base: `master`
 
@@ -163,12 +163,25 @@ src/
 - [x] @zen #review-nav-shell needs:#nav-shell engram:workflow/review-criteria ? review con el checklist de 7 puntos
 - [x] @claude #arch-review-nav-shell needs:#review-nav-shell engram:handoff/claude ? APROBADO (engram #2227); 204 tests verde + tsc --noEmit limpio + N1-N5 covered
 - [x] @antigravity #library-view needs:#arch-review-nav-shell engram:sdd/library-view/tasks ? FASE 1.2: vista librería completa según spec 03 (contrato #2200) (rework: tests failing, ver Engram #2234) (reasignada: codex sin tokens)
-- [ ] @zen #review-library-view needs:#library-view engram:workflow/review-criteria ? review con el checklist de 7 puntos (reabierta: re-revisar el rework)
-- [ ] @claude #arch-review-library-view needs:#review-library-view engram:handoff/claude ? pasada final de arquitecto (REWORK REQUERIDO: tests, ver Engram #2234)
-- [ ] @antigravity #home-view needs:#arch-review-library-view engram:sdd/home-view/tasks ? FASE 1.3: vista inicio con buscador y filtros seg?n specs 01+11 (contrato #2202) (reasignada: codex sin tokens)
-- [ ] @zen #review-home-view needs:#home-view engram:workflow/review-criteria ? review con el checklist de 7 puntos
-- [ ] @claude #arch-review-home-view needs:#review-home-view engram:handoff/claude ? pasada final de arquitecto
-- [ ] @antigravity #fase1-e2e needs:#arch-review-home-view engram:product/roadmap ? FASE 1 CIERRE: validaci?n e2e completa en navegador (nav, librer?a, home, show-lock), reporta a validation/fase1-e2e
+- [x] @zen #review-library-view needs:#library-view engram:workflow/review-criteria ? review con el checklist de 7 puntos (reabierta: re-revisar el rework)
+- [x] @claude #arch-review-library-view needs:#review-library-view engram:handoff/claude ? pasada final de arquitecto (APROBADO: 10/10 tests, spec cubierto, accesibilidad OK — Engram #2234)
+- [x] @antigravity #home-view needs:#arch-review-library-view engram:sdd/home-view/tasks ? FASE 1.3: vista inicio con buscador y filtros seg?n specs 01+11 (contrato #2202) (reasignada: codex sin tokens)
+- [x] @zen #review-home-view needs:#home-view engram:workflow/review-criteria ? review con el checklist de 7 puntos
+- [x] @claude #arch-review-home-view needs:#review-home-view engram:handoff/claude ? pasada final de arquitecto (APROBADO: Engram #2253)
+- [x] @antigravity #fase1-e2e needs:#arch-review-home-view engram:product/roadmap ? FASE 1 CIERRE: validaci?n e2e completa en navegador (nav, librer?a, home, show-lock), reporta a validation/fase1-e2e
+- [x] @antigravity #play-async-fix needs:#fase1-e2e engram:sdd/play-async-fix/tasks - FIX backlog: manejar rechazo de play() async, revertir estado a paused (contrato #2259)
+- [x] @zen #review-play-async-fix needs:#play-async-fix engram:workflow/review-criteria - review con el checklist de 7 puntos ✅ APROBADO (Engram #2265)
+- [x] @claude #arch-review-play-async-fix needs:#review-play-async-fix engram:handoff/claude - pasada final de arquitecto ✅ APROBADO sin observaciones (Engram #2267)
+- [x] @antigravity #collections-ui needs:#arch-review-play-async-fix engram:sdd/collections-ui/tasks - FASE 2.1: gestion Playlist/Set/QuouList segun spec 02 (contrato #2260)
+- [ ] @zen #review-collections-ui needs:#collections-ui engram:workflow/review-criteria - review con el checklist de 7 puntos
+- [ ] @claude #arch-review-collections-ui needs:#review-collections-ui engram:handoff/claude - pasada final de arquitecto
+- [ ] @antigravity #set-completer-ui needs:#arch-review-collections-ui engram:sdd/set-completer-ui/tasks - FASE 2.2: UI del completador de set sobre dominio existente (contrato #2261)
+- [ ] @zen #review-set-completer-ui needs:#set-completer-ui engram:workflow/review-criteria - review con el checklist de 7 puntos
+- [ ] @claude #arch-review-set-completer-ui needs:#review-set-completer-ui engram:handoff/claude - pasada final de arquitecto
+- [ ] @antigravity #bpm-mood needs:#arch-review-set-completer-ui engram:sdd/bpm-mood/tasks - FASE 2.3: BPM analyzer + mood + colecciones inteligentes (contrato #2262)
+- [ ] @zen #review-bpm-mood needs:#bpm-mood engram:workflow/review-criteria - review con el checklist de 7 puntos
+- [ ] @claude #arch-review-bpm-mood needs:#review-bpm-mood engram:handoff/claude - pasada final de arquitecto
+- [ ] @antigravity #fase2-e2e needs:#arch-review-bpm-mood engram:product/roadmap - FASE 2 CIERRE: validacion e2e en navegador (colecciones CRUD, quoulist, set completer, smart collections en Home), reporta a validation/fase2-e2e
 
 ---
 

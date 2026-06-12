@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FileDropzone } from '../atoms/FileDropzone'
 import { importAudioFiles } from '../../application/importActions'
+import { createPlaylist, createSet, loadCollections, addTrackToPlaylist, deletePlaylist, deleteSet, playCollection } from '../../application/collectionActions'
 import { useCollectionStore } from '../../application/collectionStore'
 import { usePlayerStore } from '../../application/playerStore'
 import { useAudioEngine } from '../hooks/useAudioEngine'
@@ -29,6 +30,24 @@ const headerStyle: React.CSSProperties = {
   gap: 12,
   marginBottom: 18,
 }
+
+const tabContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  marginBottom: 20,
+  borderBottom: '1px solid #2a2a2a',
+  paddingBottom: 8,
+}
+
+const tabStyle = (active: boolean): React.CSSProperties => ({
+  border: 0,
+  background: active ? '#4caf50' : 'transparent',
+  color: active ? '#fff' : '#aaa',
+  padding: '6px 12px',
+  borderRadius: 6,
+  cursor: 'pointer',
+  fontWeight: active ? 700 : 400,
+})
 
 const pathStyle: React.CSSProperties = {
   color: '#888',
@@ -150,10 +169,14 @@ function displayTitle(track: PersistedTrack): string {
 
 export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
   const tracks = useCollectionStore((s) => s.tracks)
+  const playlists = useCollectionStore((s) => s.playlists)
+  const sets = useCollectionStore((s) => s.sets)
   const setTracks = useCollectionStore((s) => s.setTracks)
   const addToQueue = useCollectionStore((s) => s.addToQueue)
   const currentTrackId = usePlayerStore((s) => s.currentTrackId)
   const { playTrack } = useAudioEngine()
+  
+  const [activeTab, setActiveTab] = useState<'tracks' | 'playlists' | 'sets'>('tracks')
   const [openMenuTrackId, setOpenMenuTrackId] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
@@ -161,25 +184,24 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
   useEffect(() => {
     let cancelled = false
 
-    async function loadPersistedTracks() {
+    async function loadData() {
       try {
         const persistedTracks = await trackRepo.getAll()
-        if (!cancelled && persistedTracks.length > 0) {
+        if (!cancelled) {
           setTracks(persistedTracks)
         }
+        await loadCollections()
       } catch {
-        // IndexedDB may be unavailable in tests or private browsing. Keep the in-memory store usable.
+        // IndexedDB may be unavailable
       }
     }
 
-    if (tracks.length === 0) {
-      void loadPersistedTracks()
-    }
+    loadData()
 
     return () => {
       cancelled = true
     }
-  }, [setTracks, tracks.length])
+  }, [setTracks])
 
   async function handleFilesSelected(files: File[]) {
     setImporting(true)
@@ -199,16 +221,40 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
     onTrackSelected?.()
   }
 
+  function handleCreatePlaylist() {
+    const name = prompt('Playlist name:')
+    if (name) void createPlaylist(name)
+  }
+
+  function handleCreateSet() {
+    const name = prompt('Set name:')
+    const duration = prompt('Target duration (minutes):', '45')
+    if (name && duration) void createSet(name, parseInt(duration, 10))
+  }
+
   function actionsFor(track: PersistedTrack): MenuAction[] {
-    return [
+    const actions: MenuAction[] = [
       { label: 'Play', run: () => play(track) },
-      { label: 'Add to playlist', disabled: true },
       { label: 'Add to queue', run: () => addToQueue({ id: track.id }) },
-      { label: 'Link score', disabled: true },
-      { label: 'Adjust pitch/tempo', disabled: true },
-      { label: 'Save in app', disabled: true },
-      { label: 'Remove from library', disabled: true },
     ]
+
+    // Simplified: add to first playlist if exists, or show alert
+    // In a real app we'd show a nested menu or modal
+    if (playlists.length > 0) {
+      actions.push({ 
+        label: `Add to ${playlists[0]!.name}`, 
+        run: () => void addTrackToPlaylist(playlists[0]!.id, track.id) 
+      })
+    } else {
+      actions.push({ label: 'Add to playlist', disabled: true })
+    }
+
+    actions.push({ label: 'Link score', disabled: true })
+    actions.push({ label: 'Adjust pitch/tempo', disabled: true })
+    actions.push({ label: 'Save in app', disabled: true })
+    actions.push({ label: 'Remove from library', disabled: true })
+
+    return actions
   }
 
   return (
@@ -220,95 +266,149 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
         </div>
       </header>
 
-      <div className="search-bar" style={{ marginBottom: 12 }}>
-        <input
-          type="search"
-          placeholder="Search in your library..."
-          aria-label="Search in your library"
-          disabled
-          style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #333', background: '#151515', color: '#aaa' }}
-        />
-      </div>
+      <nav style={tabContainerStyle}>
+        <button type="button" style={tabStyle(activeTab === 'tracks')} onClick={() => setActiveTab('tracks')}>TRACKS</button>
+        <button type="button" style={tabStyle(activeTab === 'playlists')} onClick={() => setActiveTab('playlists')}>PLAYLISTS</button>
+        <button type="button" style={tabStyle(activeTab === 'sets')} onClick={() => setActiveTab('sets')}>SETS</button>
+      </nav>
 
-      <div style={pathStyle}>Path: /Music/Importadas/</div>
+      {activeTab === 'tracks' && (
+        <>
+          <div className="search-bar" style={{ marginBottom: 12 }}>
+            <input
+              type="search"
+              placeholder="Search in your library..."
+              aria-label="Search in your library"
+              disabled
+              style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #333', background: '#151515', color: '#aaa' }}
+            />
+          </div>
 
-      {tracks.length === 0 && (
-        <div className="view-empty" style={emptyStyle}>
-          <div>No tracks in your library yet</div>
-          <div style={{ fontSize: 12, color: '#777', marginTop: 4 }}>Import audio files from your device to start.</div>
-        </div>
+          <div style={pathStyle}>Path: /Music/Importadas/</div>
+
+          {tracks.length === 0 && (
+            <div className="view-empty" style={emptyStyle}>
+              <div>No tracks in your library yet</div>
+              <div style={{ fontSize: 12, color: '#777', marginTop: 4 }}>Import audio files from your device to start.</div>
+            </div>
+          )}
+
+          {tracks.length > 0 && (
+            <div role="list" aria-label="Library tracks" style={listStyle}>
+              {tracks.map((track) => {
+                const title = displayTitle(track)
+                const isMenuOpen = openMenuTrackId === track.id
+                return (
+                  <div key={track.id} className="track-row" role="listitem" style={rowStyle}>
+                    <button
+                      type="button"
+                      style={{ ...titleButtonStyle, color: track.id === currentTrackId ? '#4caf50' : '#eee' }}
+                      onClick={() => play(track)}
+                      aria-label={`Play ${title} by ${track.artist}`}
+                    >
+                      <div style={{ fontWeight: 700 }}>{title}</div>
+                      <div style={trackMetaGridStyle} aria-label={`Metadata for ${title}`}>
+                        <span style={metaStyle}>{formatDuration(track.durationSeconds)}</span>
+                        <span style={{ ...metaStyle, color: track.bpm ? '#ffd36b' : '#777' }}>
+                          {track.bpm ? `🔶 ${track.bpm} BPM` : 'No BPM'}
+                        </span>
+                        <span style={metaStyle} aria-label="Cached">⭐</span>
+                        <span style={metaStyle}>{importedDirectory(track.filePath)}</span>
+                        <span style={metaStyle}>Added: {formatAddedDate(track.createdAt)}</span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      style={menuButtonStyle}
+                      onClick={() => setOpenMenuTrackId(isMenuOpen ? null : track.id)}
+                      aria-label={`More actions for ${title}`}
+                    >
+                      ...
+                    </button>
+                    {isMenuOpen && (
+                      <div className="context-menu" role="menu" aria-label={`Actions for ${title}`} style={contextMenuStyle}>
+                        {actionsFor(track).map((action) => (
+                          <button
+                            key={action.label}
+                            type="button"
+                            role="menuitem"
+                            disabled={action.disabled}
+                            aria-disabled={action.disabled || undefined}
+                            title={action.disabled ? 'Próximamente' : undefined}
+                            style={{ ...menuItemStyle, opacity: action.disabled ? 0.55 : 1, cursor: action.disabled ? 'not-allowed' : 'pointer' }}
+                            onClick={() => {
+                              if (!action.disabled) {
+                                action.run?.()
+                                setOpenMenuTrackId(null)
+                              }
+                            }}
+                          >
+                            <span>{action.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div style={{ marginTop: 20 }}>
+            <FileDropzone onFilesSelected={handleFilesSelected} disabled={importing} />
+          </div>
+        </>
       )}
 
-      {tracks.length > 0 && (
-        <div role="list" aria-label="Library tracks" style={listStyle}>
-          {tracks.map((track) => {
-            const title = displayTitle(track)
-            const isMenuOpen = openMenuTrackId === track.id
-            return (
-              <div key={track.id} className="track-row" role="listitem" style={rowStyle}>
-                <button
-                  type="button"
-                  style={{ ...titleButtonStyle, color: track.id === currentTrackId ? '#4caf50' : '#eee' }}
-                  onClick={() => play(track)}
-                  aria-label={`Play ${title} by ${track.artist}`}
-                >
-                  <div style={{ fontWeight: 700 }}>{title}</div>
-                  <div style={metaStyle}>Name: {title}</div>
-                  <div style={trackMetaGridStyle} aria-label={`Metadata for ${title}`}>
-                    <span style={metaStyle}>{formatDuration(track.durationSeconds)}</span>
-                    <span style={{ ...metaStyle, color: track.bpm ? '#ffd36b' : '#777' }}>
-                      {track.bpm ? `🔶 ${track.bpm} BPM` : 'No BPM'}
-                    </span>
-                    <span style={metaStyle} aria-label="Cached">⭐</span>
-                    <span style={metaStyle}>{importedDirectory(track.filePath)}</span>
-                    <span style={metaStyle}>Added: {formatAddedDate(track.createdAt)}</span>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  style={menuButtonStyle}
-                  onClick={() => setOpenMenuTrackId(isMenuOpen ? null : track.id)}
-                  onContextMenu={(event) => {
-                    event.preventDefault()
-                    setOpenMenuTrackId(track.id)
+      {activeTab === 'playlists' && (
+        <div>
+          <button type="button" style={menuButtonStyle} onClick={handleCreatePlaylist}>+ NEW PLAYLIST</button>
+          <div style={listStyle}>
+            {playlists.length === 0 && <div style={emptyStyle}>No playlists yet</div>}
+            {playlists.map((p) => (
+              <div key={p.id} style={rowStyle}>
+                <button 
+                  type="button" 
+                  style={titleButtonStyle} 
+                  onClick={() => {
+                    void playCollection(p.id, 'playlist')
+                    onTrackSelected?.()
                   }}
-                  aria-label={`More actions for ${title}`}
                 >
-                  ...
+                  <div style={{ fontWeight: 700 }}>{p.name}</div>
+                  <div style={metaStyle}>{p.trackIds.length} tracks</div>
                 </button>
-                {isMenuOpen && (
-                  <div className="context-menu" role="menu" aria-label={`Actions for ${title}`} style={contextMenuStyle}>
-                    {actionsFor(track).map((action) => (
-                      <button
-                        key={action.label}
-                        type="button"
-                        role="menuitem"
-                        disabled={action.disabled}
-                        aria-disabled={action.disabled || undefined}
-                        title={action.disabled ? 'Próximamente' : undefined}
-                        style={{ ...menuItemStyle, opacity: action.disabled ? 0.55 : 1, cursor: action.disabled ? 'not-allowed' : 'pointer' }}
-                        onClick={() => {
-                          if (!action.disabled) {
-                            action.run?.()
-                            setOpenMenuTrackId(null)
-                          }
-                        }}
-                      >
-                        <span>{action.label}</span>
-                        {action.disabled && <span>Próximamente</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <button type="button" style={{ ...menuButtonStyle, color: '#f44336' }} onClick={() => void deletePlaylist(p.id)}>Delete</button>
               </div>
-            )
-          })}
+            ))}
+          </div>
         </div>
       )}
 
-      <div style={{ marginTop: 20 }}>
-        <FileDropzone onFilesSelected={handleFilesSelected} disabled={importing} />
-      </div>
+      {activeTab === 'sets' && (
+        <div>
+          <button type="button" style={menuButtonStyle} onClick={handleCreateSet}>+ NEW SET</button>
+          <div style={listStyle}>
+            {sets.length === 0 && <div style={emptyStyle}>No sets yet</div>}
+            {sets.map((s) => (
+              <div key={s.id} style={rowStyle}>
+                <button 
+                  type="button" 
+                  style={titleButtonStyle} 
+                  onClick={() => {
+                    void playCollection(s.id, 'set')
+                    onTrackSelected?.()
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>{s.name}</div>
+                  <div style={metaStyle}>{s.trackIds.length} tracks | Goal: {s.targetDurationMinutes}m</div>
+                </button>
+                <button type="button" style={{ ...menuButtonStyle, color: '#f44336' }} onClick={() => void deleteSet(s.id)}>Delete</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {importing && <div className="view-loading" style={metaStyle}>Importing audio files...</div>}
 

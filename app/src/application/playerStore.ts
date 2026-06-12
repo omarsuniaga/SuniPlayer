@@ -10,6 +10,7 @@ export type PlayerState = {
   tempo: number    // 0.5 to 2.0, 1.0 = original
   volume: number   // 0 to 1
   repeat: RepeatMode
+  shuffle: boolean
 }
 
 export type PlayerActions = {
@@ -22,6 +23,7 @@ export type PlayerActions = {
   setTempo: (ratio: number) => void
   setVolume: (volume: number) => void
   setRepeat: (mode: RepeatMode) => void
+  setShuffle: (shuffle: boolean) => void
   updatePosition: (position: number) => void
   reset: () => void
 }
@@ -35,6 +37,7 @@ const initialState: PlayerState = {
   tempo: 1,
   volume: 1,
   repeat: 'none',
+  shuffle: false,
 }
 
 export const usePlayerStore = create<PlayerState & PlayerActions>((set) => ({
@@ -61,6 +64,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>((set) => ({
     set({ volume: Math.max(0, Math.min(1, volume)) }),
 
   setRepeat: (repeat) => set({ repeat }),
+
+  setShuffle: (shuffle) => set({ shuffle }),
 
   updatePosition: (position) => set({ position }),
 
