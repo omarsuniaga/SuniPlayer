@@ -120,7 +120,7 @@ describe('App navigation shell', () => {
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Inicio' }))
-    expect(screen.getByRole('heading', { name: 'Inicio' })).toBeDefined()
+    expect(screen.getByRole('heading', { name: /SUNIPLAYER/i })).toBeDefined()
 
     fireEvent.click(screen.getByRole('button', { name: 'Perfil' }))
     expect(screen.getByRole('heading', { name: 'Perfil' })).toBeDefined()

@@ -32,6 +32,18 @@ vi.mock('../../application/importActions', () => ({
 
 vi.mock('../../infrastructure/dexie', () => ({
   trackRepo: { getAll: mockGetAll },
+  playlistRepo: {
+    getAll: vi.fn().mockResolvedValue([]),
+    get: vi.fn().mockResolvedValue(undefined),
+    upsert: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
+  },
+  setRepo: {
+    getAll: vi.fn().mockResolvedValue([]),
+    get: vi.fn().mockResolvedValue(undefined),
+    upsert: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
+  },
 }))
 
 function makeTrack(overrides: Partial<PersistedTrack> = {}): PersistedTrack {
@@ -159,11 +171,14 @@ describe('LibraryView', () => {
   it('imports files from the library and shows the new track after the application action updates the store', async () => {
     const importedTrack = makeTrack({ id: 'new-track', title: 'Merengon', filePath: '/Music/Importadas/merengon.wav' })
     mockImportAudioFiles.mockImplementation(async () => {
+      mockGetAll.mockResolvedValue([importedTrack])
       useCollectionStore.getState().setTracks([importedTrack])
       return { success: [importedTrack], errors: [] }
     })
 
     render(<LibraryView />)
+    await screen.findByText('No tracks in your library yet')
+
     const file = new File(['audio'], 'merengon.wav', { type: 'audio/wav' })
     fireEvent.drop(screen.getByRole('button', { name: 'Drop audio files here or click to browse' }), {
       dataTransfer: { files: [file] },
@@ -173,11 +188,14 @@ describe('LibraryView', () => {
     expect(await screen.findByText('Merengon')).toBeDefined()
   })
 
+
   it('shows importing state and disables the dropzone while import is pending', async () => {
     const pending = deferred<{ success: PersistedTrack[]; errors: { fileName: string; reason: string }[] }>()
     mockImportAudioFiles.mockReturnValue(pending.promise)
 
     render(<LibraryView />)
+    await screen.findByText('No tracks in your library yet')
+
     const dropzone = screen.getByRole('button', { name: 'Drop audio files here or click to browse' })
     fireEvent.drop(dropzone, { dataTransfer: { files: [new File(['audio'], 'song.mp3', { type: 'audio/mpeg' })] } })
 
@@ -188,6 +206,7 @@ describe('LibraryView', () => {
     await waitFor(() => expect(screen.queryByText('Importing audio files...')).toBeNull())
   })
 
+
   it('renders import errors returned by the application action', async () => {
     mockImportAudioFiles.mockResolvedValue({
       success: [],
@@ -195,6 +214,8 @@ describe('LibraryView', () => {
     })
 
     render(<LibraryView />)
+    await screen.findByText('No tracks in your library yet')
+
     fireEvent.drop(screen.getByRole('button', { name: 'Drop audio files here or click to browse' }), {
       dataTransfer: { files: [new File(['bad'], 'bad.mp3', { type: 'audio/mpeg' })] },
     })

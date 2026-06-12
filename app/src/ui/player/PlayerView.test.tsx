@@ -265,4 +265,73 @@ describe('PlayerView', () => {
 
     expect(mockEngine.seek).not.toHaveBeenCalled()
   })
+
+  it('renders empty queue state when there are no items in QuouList', () => {
+    loadTrack()
+    render(<PlayerView />)
+    expect(screen.getByText('La cola está vacía. Agregá tracks desde la librería.')).toBeDefined()
+  })
+
+  it('renders queue tracks and remaining duration when QuouList has items', () => {
+    loadTrack()
+    useCollectionStore.getState().setTracks([
+      makeTrack({ id: 't-1', title: 'First Queue Song', durationSeconds: 120 }),
+      makeTrack({ id: 't-2', title: 'Second Queue Song', durationSeconds: 90 })
+    ])
+    useCollectionStore.getState().addToQueue({ id: 't-1' })
+    useCollectionStore.getState().addToQueue({ id: 't-2' })
+
+    render(<PlayerView />)
+
+    expect(screen.getByText('COLA DE REPRODUCCIÓN (QUOULIST)')).toBeDefined()
+    expect(screen.getByText('Tiempo restante: 3m 30s')).toBeDefined()
+    expect(screen.getByText('First Queue Song')).toBeDefined()
+    expect(screen.getByText('Second Queue Song')).toBeDefined()
+  })
+
+  it('clears queue when Vaciar button is clicked', () => {
+    loadTrack()
+    useCollectionStore.getState().setTracks([
+      makeTrack({ id: 't-1', title: 'First Queue Song', durationSeconds: 120 })
+    ])
+    useCollectionStore.getState().addToQueue({ id: 't-1' })
+
+    render(<PlayerView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Vaciar' }))
+
+    expect(useCollectionStore.getState().queue).toEqual([])
+  })
+
+  it('removes item from queue when quit button is clicked', () => {
+    loadTrack()
+    useCollectionStore.getState().setTracks([
+      makeTrack({ id: 't-1', title: 'First Queue Song', durationSeconds: 120 })
+    ])
+    useCollectionStore.getState().addToQueue({ id: 't-1' })
+
+    render(<PlayerView />)
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar de cola' }))
+
+    expect(useCollectionStore.getState().queue).toEqual([])
+  })
+
+  it('reorders queue items when up or down buttons are clicked', () => {
+    loadTrack()
+    useCollectionStore.getState().setTracks([
+      makeTrack({ id: 't-1', title: 'First Queue Song', durationSeconds: 120 }),
+      makeTrack({ id: 't-2', title: 'Second Queue Song', durationSeconds: 90 })
+    ])
+    useCollectionStore.getState().addToQueue({ id: 't-1' })
+    useCollectionStore.getState().addToQueue({ id: 't-2' })
+
+    render(<PlayerView />)
+    
+    // First track cannot be moved up (disabled)
+    const upButtons = screen.getAllByRole('button', { name: 'Subir en cola' })
+    expect((upButtons[0] as HTMLButtonElement).disabled).toBe(true)
+
+    // Move second track up
+    fireEvent.click(upButtons[1]!)
+    expect(useCollectionStore.getState().queue).toEqual([{ id: 't-2' }, { id: 't-1' }])
+  })
 })

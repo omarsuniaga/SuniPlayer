@@ -7,6 +7,8 @@ import { ProgressBar } from '../atoms/ProgressBar'
 import { useWaveformStore } from '../../application/waveformStore'
 import { WaveformCanvas } from '../waveform/WaveformCanvas'
 import { useCurrentTrack } from '../hooks/useCurrentTrack'
+import { toggleShuffle } from '../../application/collectionActions'
+import { useCollectionStore } from '../../application/collectionStore'
 
 const containerStyle: React.CSSProperties = {
   padding: '24px 16px 160px', // bottom padding for miniplayer
@@ -50,6 +52,7 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
   const tempo = usePlayerStore((s) => s.tempo)
   const volume = usePlayerStore((s) => s.volume)
   const repeat = usePlayerStore((s) => s.repeat)
+  const shuffle = usePlayerStore((s) => s.shuffle)
   const peaks = useWaveformStore((s) => (trackId ? s.peaksByTrackId[trackId] : undefined))
 
   const { play, pause, stop, seek, setPitch, setTempo, setVolume } = useAudioEngine()
@@ -57,6 +60,13 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
 
   const mode = useSessionStore((s) => s.mode)
   const setMode = useSessionStore((s) => s.setMode)
+
+  const queue = useCollectionStore((s) => s.queue)
+  const tracks = useCollectionStore((s) => s.tracks)
+  const clearQueue = useCollectionStore((s) => s.clearQueue)
+  const removeFromQueue = useCollectionStore((s) => s.removeFromQueue)
+  const reorderQueue = useCollectionStore((s) => s.reorderQueue)
+  const getQueueTotalDuration = useCollectionStore((s) => s.getQueueTotalDuration)
 
   if (!trackId) {
     return (
@@ -105,6 +115,16 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
         >
           {repeat === 'one' ? '🔂' : '🔁'}
         </Button>
+        <Button
+          variant="icon"
+          size="sm"
+          onClick={toggleShuffle}
+          aria-label={`Shuffle: ${shuffle ? 'on' : 'off'}`}
+          style={{ color: shuffle ? '#4caf50' : undefined }}
+          disabled={isLocked}
+        >
+          🔀
+        </Button>
       </div>
 
       {/* Pitch & Tempo */}
@@ -144,6 +164,72 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
         />
       </div>
 
+      {/* QuouList (Queue) */}
+      <div style={{ ...sectionStyle, borderTop: '1px solid #2a2a2a', paddingTop: 16, marginTop: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: '#eee', fontSize: 14, fontWeight: 600 }}>COLA DE REPRODUCCIÓN (QUOULIST)</span>
+          {queue.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearQueue} style={{ color: '#ff5252' }}>
+              Vaciar
+            </Button>
+          )}
+        </div>
+        
+        {queue.length > 0 ? (
+          <>
+            <div style={{ color: '#aaa', fontSize: 12 }}>
+              Tiempo restante: {formatQueueDuration(getQueueTotalDuration())}
+            </div>
+            <div role="list" aria-label="Queue tracks" style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+              {queue.map((qTrack, index) => {
+                const trackInfo = tracks.find((t) => t.id === qTrack.id)
+                const title = trackInfo ? (trackInfo.title.trim() || trackInfo.filePath.split(/[\\/]/).pop() || trackInfo.id) : qTrack.id
+                return (
+                  <div key={`${qTrack.id}-${index}`} role="listitem" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1c1c1c', padding: '6px 10px', borderRadius: 6 }}>
+                    <span style={{ color: '#eee', fontSize: 13, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: 220 }}>
+                      {title}
+                    </span>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <Button
+                        variant="icon"
+                        size="sm"
+                        onClick={() => reorderQueue(index, index - 1)}
+                        disabled={index === 0}
+                        aria-label="Subir en cola"
+                      >
+                        ▲
+                      </Button>
+                      <Button
+                        variant="icon"
+                        size="sm"
+                        onClick={() => reorderQueue(index, index + 1)}
+                        disabled={index === queue.length - 1}
+                        aria-label="Bajar en cola"
+                      >
+                        ▼
+                      </Button>
+                      <Button
+                        variant="icon"
+                        size="sm"
+                        onClick={() => removeFromQueue(index)}
+                        style={{ color: '#ff5252' }}
+                        aria-label="Quitar de cola"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        ) : (
+          <div style={{ color: '#666', fontSize: 12, fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>
+            La cola está vacía. Agregá tracks desde la librería.
+          </div>
+        )}
+      </div>
+
       {/* Session mode toggle */}
       <div style={sectionStyle}>
         <div style={controlsRow}>
@@ -165,4 +251,10 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
       </div>
     </div>
   )
+}
+
+function formatQueueDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}m ${seconds}s`
 }

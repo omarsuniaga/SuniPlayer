@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { HomeView } from './views/HomeView'
 import { Miniplayer } from './miniplayer/Miniplayer'
 import { BottomNav } from './nav/BottomNav'
 import { PlayerView } from './player/PlayerView'
@@ -40,7 +41,7 @@ function App() {
   const renderView = () => {
     switch (currentView) {
       case 'inicio':
-        return <PlaceholderView title="Inicio" />
+        return <HomeView />
       case 'reproductor':
         return <PlayerView onBack={() => navigate('libreria')} />
       case 'libreria':

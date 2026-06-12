@@ -2,6 +2,9 @@ import { useRef, useState, useCallback } from 'react'
 import { AudioEngine, type EngineState } from '../../infrastructure/audioEngine'
 import { trackRepo } from '../../infrastructure/dexie'
 import { usePlayerStore } from '../../application/playerStore'
+import { useCollectionStore } from '../../application/collectionStore'
+import { useSessionStore } from '../../application/sessionStore'
+import { resolveNext } from '../../domain/playback/resolveNext'
 import { extractPeaks } from '../../application/waveform/extractPeaks'
 import { useWaveformStore } from '../../application/waveformStore'
 import type { PersistedTrack } from '../../infrastructure/dexie'
@@ -45,33 +48,6 @@ export function useAudioEngine() {
   // On each render, sync engine → store via the callback
   const stateRef = useRef(usePlayerStore.getState)
 
-  const engineRef = useRef<AudioEngine | null>(null)
-  if (!engineRef.current) {
-    engineRef.current = getEngine((state) => {
-      const store = stateRef.current()
-      store.updatePosition(state.position)
-
-      // Sync status flags from engine to store
-      const isPlaying = state.status === 'playing'
-      if (isPlaying && !store.playing) {
-        store.play()
-      } else if (!isPlaying && store.playing) {
-        if (state.status === 'paused') {
-          store.pause()
-        } else {
-          store.stop()
-        }
-      }
-
-      // Sync DSP params (engine may clamp them)
-      store.setPitch(state.pitch)
-      store.setTempo(state.tempo)
-      store.setVolume(state.volume)
-    })
-  }
-
-  // ---- Actions ----
-
   const playTrack = useCallback(async (track: PersistedTrack) => {
     if (loadingRef.current) return
     loadingRef.current = true
@@ -100,6 +76,8 @@ export function useAudioEngine() {
 
       await engine.load(audioBuffer)
       usePlayerStore.getState().loadTrack(track.id, track.durationSeconds)
+      useCollectionStore.getState().setActiveCollection(null, null)
+      useCollectionStore.getState().setSource(null)
       await resumeContextIfSuspended(engine)
       engine.play()
       usePlayerStore.getState().play()
@@ -113,6 +91,80 @@ export function useAudioEngine() {
       loadingRef.current = false
     }
   }, [])
+
+  const engineRef = useRef<AudioEngine | null>(null)
+  if (!engineRef.current) {
+    engineRef.current = getEngine((state) => {
+      const store = stateRef.current()
+      store.updatePosition(state.position)
+
+      // Sync status flags from engine to store
+      const isPlaying = state.status === 'playing'
+      if (isPlaying && !store.playing) {
+        store.play()
+      } else if (!isPlaying && store.playing) {
+        if (state.status === 'paused') {
+          store.pause()
+        } else {
+          store.stop()
+          // Check if it finished naturally
+          if (state.position >= state.duration - 0.05) {
+            const collectionStore = useCollectionStore.getState()
+            const sessionStore = useSessionStore.getState()
+            const queue = collectionStore.queue
+            const activeSource = collectionStore.source
+
+            if (activeSource) {
+              const nextRes = resolveNext({
+                queue,
+                source: activeSource,
+                mode: sessionStore.mode,
+                repeat: store.repeat,
+              })
+
+              if (nextRes.action === 'play-queue-item') {
+                const queuedTrack = collectionStore.consumeQueue()
+                if (queuedTrack) {
+                  const persisted = collectionStore.tracks.find((t) => t.id === queuedTrack.id)
+                  if (persisted) {
+                    playTrack(persisted).catch(console.error)
+                  }
+                }
+              } else if (nextRes.action === 'play-source-track') {
+                const sourceTrack = nextRes.track
+                const persisted = collectionStore.tracks.find((t) => t.id === sourceTrack.id)
+                if (persisted) {
+                  const trackIdx = activeSource.tracks.findIndex((t) => t.id === sourceTrack.id)
+                  if (trackIdx !== -1) {
+                    collectionStore.setSource({
+                      ...activeSource,
+                      currentIndex: trackIdx,
+                    })
+                  }
+                  playTrack(persisted).catch(console.error)
+                }
+              } else {
+                store.stop()
+              }
+            } else if (queue.length > 0) {
+              const queuedTrack = collectionStore.consumeQueue()
+              if (queuedTrack) {
+                const persisted = collectionStore.tracks.find((t) => t.id === queuedTrack.id)
+                if (persisted) {
+                  playTrack(persisted).catch(console.error)
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Sync DSP params (engine may clamp them)
+      store.setPitch(state.pitch)
+      store.setTempo(state.tempo)
+      store.setVolume(state.volume)
+    })
+  }
 
   const play = useCallback(async () => {
     const engine = engineRef.current
