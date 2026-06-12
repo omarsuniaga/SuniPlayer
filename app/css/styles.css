@@ -135,6 +135,47 @@ button { font: inherit; }
   text-overflow: ellipsis;
 }
 
+/* mode shortcuts + centered show chrono in the header */
+.mode-switch { display: flex; gap: var(--sp-1); margin-left: auto; }
+.mode-btn.active { border-color: var(--accent); color: var(--accent); }
+.mode-btn.live {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  animation: pulse 1.8s infinite;
+}
+.hdr-chrono {
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 800;
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+.hdr-chrono.visible { display: block; }
+.view-header { position: relative; }
+
+/* inline tool panels (no modals — everything at hand) */
+.tool-bar .btn.tool.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.inline-panel {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  margin-top: var(--sp-2);
+  animation: panelIn 0.18s var(--ease);
+  box-shadow: var(--shadow-1);
+}
+@keyframes panelIn { from { opacity: 0; transform: translateY(-6px); } }
+
 .live-badge {
   background: var(--danger);
   color: #fff;

@@ -5,6 +5,7 @@ import { energyClass } from '../audio/analyzer.js';
 import { importFiles } from '../importer.js';
 import { playSong, queueAdd } from '../player.js';
 import { navigate, refreshSmartCollections } from '../app.js';
+import { appHeader } from './header.js';
 
 const PAGE_SIZE = 25;
 let sortBy = 'addedAt';
@@ -26,9 +27,7 @@ export async function renderLibrary(container) {
   });
 
   container.append(
-    h('header', { class: 'view-header' },
-      h('h1', {}, '📂 Librería'),
-    ),
+    appHeader({ title: '📂 Librería' }),
     h('div', { class: 'search-box' },
       h('input', {
         type: 'search', placeholder: '🔍 Buscar en tu librería...', value: query,

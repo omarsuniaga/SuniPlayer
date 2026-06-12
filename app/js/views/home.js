@@ -3,6 +3,7 @@ import { h, fmtTime, openModal, closeModal, confirmModal, toast } from '../ui.js
 import { Songs, Playlists, Config } from '../db.js';
 import { playSong, state } from '../player.js';
 import { navigate, refreshSmartCollections } from '../app.js';
+import { appHeader } from './header.js';
 
 let query = '';
 
@@ -15,11 +16,10 @@ export async function renderHome(container) {
   container.innerHTML = '';
 
   container.append(
-    h('header', { class: 'view-header' },
-      h('h1', {}, '🎵 Suniplayer'),
-      h('div', { class: 'header-actions' },
-        h('button', { class: 'btn-icon', 'aria-label': 'Perfil', onclick: () => navigate('profile') }, '👤')),
-    ),
+    appHeader({
+      title: '🎵 Suniplayer',
+      actions: [h('button', { class: 'btn-icon', 'aria-label': 'Perfil', onclick: () => navigate('profile') }, '👤')],
+    }),
     h('div', { class: 'search-box' },
       h('input', {
         type: 'search', placeholder: '🔍 Buscar canciones, playlists...', value: query,

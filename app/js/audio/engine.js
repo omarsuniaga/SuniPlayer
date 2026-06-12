@@ -1,11 +1,14 @@
 // Playback engine (docs/componentes/01-audio-engine, 02-pitch-shifter,
 // 03-time-stretcher, 05-fade-engine).
 //
-// Built on signalsmith-stretch (WASM AudioWorklet): true independent
-// pitch shift (-12..+12 st) and time-stretch (50%..200%) with
-// professional quality — same engine the original prototype validated.
+// Primary mode ("worklet"): signalsmith-stretch (WASM AudioWorklet) —
+// true independent pitch shift (-12..+12 st) and time-stretch (50%..200%).
+// AudioWorklet requires a secure context (HTTPS or localhost). When it is
+// unavailable (e.g. opening the app over plain http on a phone), the engine
+// degrades to "buffer" mode: AudioBufferSourceNode playback where pitch and
+// tempo are coupled (vinyl-style) — playback never fails.
 //
-// Graph: SignalsmithStretchNode -> songGain -> masterGain -> destination
+// Graph: [stretch node | buffer source] -> songGain -> masterGain -> out
 
 import SignalsmithStretch from '../vendor/signalsmith-stretch.mjs';
 
@@ -16,6 +19,12 @@ export class AudioEngine extends EventTarget {
     this.stretch = null;
     this.currentSong = null;
     this.preservePitch = true;
+    this.mode = 'worklet'; // worklet | buffer (compat)
+    this._buffer = null;
+    this._source = null;       // buffer mode
+    this._srcAnchorPos = 0;    // buffer mode position tracking
+    this._srcAnchorTime = 0;
+    this._tickTimer = null;
     this._status = 'idle'; // idle | loading | playing | paused
     this._position = 0;
     this._duration = 0;
@@ -42,6 +51,7 @@ export class AudioEngine extends EventTarget {
     this._ensureGraph();
     if (this.ctx.state === 'suspended') await this.ctx.resume();
     this._status = 'loading';
+    this._stopBufferSource();
 
     if (this.stretch) {
       try { this.stretch.stop(); this.stretch.disconnect(); } catch { }
@@ -49,16 +59,33 @@ export class AudioEngine extends EventTarget {
     }
 
     const arrayBuffer = await blob.arrayBuffer();
-    const buffer = await this.ctx.decodeAudioData(arrayBuffer);
+    let buffer;
+    try {
+      buffer = await this.ctx.decodeAudioData(arrayBuffer);
+    } catch (err) {
+      throw new Error('decode-failed');
+    }
+    this._buffer = buffer;
 
-    const channels = [];
-    for (let c = 0; c < buffer.numberOfChannels; c++) channels.push(buffer.getChannelData(c));
-
-    this.stretch = await SignalsmithStretch(this.ctx, {
-      outputChannelCount: [buffer.numberOfChannels],
-    });
-    await this.stretch.addBuffers(channels);
-    this.stretch.connect(this.songGain);
+    // pick engine mode: worklet needs a secure context
+    this.mode = 'buffer';
+    if (window.isSecureContext && this.ctx.audioWorklet) {
+      try {
+        const channels = [];
+        for (let c = 0; c < buffer.numberOfChannels; c++) channels.push(buffer.getChannelData(c));
+        this.stretch = await SignalsmithStretch(this.ctx, {
+          outputChannelCount: [buffer.numberOfChannels],
+        });
+        await this.stretch.addBuffers(channels);
+        this.stretch.connect(this.songGain);
+        this.stretch.setUpdateInterval(0.05, (inputTime) => this._progress(inputTime));
+        this.mode = 'worklet';
+      } catch (err) {
+        console.warn('signalsmith-stretch unavailable, using buffer mode:', err);
+        this.stretch = null;
+        this.mode = 'buffer';
+      }
+    }
 
     this.currentSong = song;
     this._duration = buffer.duration;
@@ -68,39 +95,45 @@ export class AudioEngine extends EventTarget {
     this._fadeOutScheduled = false;
     this.setSongVolume(song.volume ?? 75);
 
-    // progress tracking + custom-end + fade-out handling
-    this.stretch.setUpdateInterval(0.05, (inputTime) => {
-      if (this._status !== 'playing') return;
-      this._position = inputTime;
-      const cur = this.currentSong;
-      const end = cur && cur.endAt > 0 ? Math.min(cur.endAt, this._duration) : this._duration;
-      const fadeOut = (cur && cur.fadeOut) || 0;
-
-      if (fadeOut > 0 && !this._fadeOutScheduled && inputTime >= end - fadeOut) {
-        this._fadeOutScheduled = true;
-        this._fade(this._songGainTarget(), 0, Math.max(0.05, end - inputTime));
-      }
-      if (inputTime >= end - 0.03) {
-        this.stretch.schedule({ active: false });
-        this._status = 'idle';
-        this._position = cur ? (cur.startAt ?? 0) : 0;
-        this._emit('pause');
-        this._emit('ended');
-        return;
-      }
-      this._emit('timeupdate', { time: inputTime, duration: this._duration });
-    });
-
     this._status = 'idle';
+    if (this.mode === 'buffer') this._emit('compat');
     this._emit('songchange', { song });
+  }
+
+  // shared progress handler: custom end, fade-out, timeupdate
+  _progress(inputTime) {
+    if (this._status !== 'playing') return;
+    this._position = inputTime;
+    const cur = this.currentSong;
+    const end = cur && cur.endAt > 0 ? Math.min(cur.endAt, this._duration) : this._duration;
+    const fadeOut = (cur && cur.fadeOut) || 0;
+
+    if (fadeOut > 0 && !this._fadeOutScheduled && inputTime >= end - fadeOut) {
+      this._fadeOutScheduled = true;
+      this._fade(this._songGainTarget(), 0, Math.max(0.05, end - inputTime));
+    }
+    if (inputTime >= end - 0.03) {
+      this._deactivate();
+      this._status = 'idle';
+      this._position = cur ? (cur.startAt ?? 0) : 0;
+      this._emit('pause');
+      this._emit('ended');
+      return;
+    }
+    this._emit('timeupdate', { time: inputTime, duration: this._duration });
   }
 
   _rate() { return Math.min(200, Math.max(50, this._tempoPct)) / 100; }
 
-  // when "preservar tono" is off, pitch follows playback rate like vinyl
+  // worklet mode: when "preservar tono" is off, pitch follows rate (vinyl)
   _effectiveSemitones() {
     const drift = this.preservePitch ? 0 : 12 * Math.log2(this._rate());
     return Math.min(24, Math.max(-24, this._pitch + drift));
+  }
+
+  // buffer mode: pitch and tempo are inherently coupled
+  _totalRate() {
+    return this._rate() * Math.pow(2, this._pitch / 12);
   }
 
   _schedule(active = true) {
@@ -113,8 +146,49 @@ export class AudioEngine extends EventTarget {
     });
   }
 
+  // ---- buffer (compat) mode internals ----
+  _startBufferSource() {
+    this._stopBufferSource();
+    const src = this.ctx.createBufferSource();
+    src.buffer = this._buffer;
+    src.playbackRate.value = this._totalRate();
+    src.connect(this.songGain);
+    src.start(0, this._position);
+    this._source = src;
+    this._srcAnchorPos = this._position;
+    this._srcAnchorTime = this.ctx.currentTime;
+    this._tickTimer = setInterval(() => {
+      if (this._status !== 'playing') return;
+      const elapsed = (this.ctx.currentTime - this._srcAnchorTime) * this._source.playbackRate.value;
+      this._progress(this._srcAnchorPos + elapsed);
+    }, 100);
+  }
+
+  _stopBufferSource() {
+    if (this._tickTimer) { clearInterval(this._tickTimer); this._tickTimer = null; }
+    if (this._source) {
+      try { this._source.stop(); this._source.disconnect(); } catch { }
+      this._source = null;
+    }
+  }
+
+  _rescheduleBuffer() {
+    // re-anchor position, then apply the new rate live
+    if (!this._source) return;
+    const elapsed = (this.ctx.currentTime - this._srcAnchorTime) * this._source.playbackRate.value;
+    this._position = this._srcAnchorPos + elapsed;
+    this._srcAnchorPos = this._position;
+    this._srcAnchorTime = this.ctx.currentTime;
+    this._source.playbackRate.value = this._totalRate();
+  }
+
+  _deactivate() {
+    if (this.mode === 'worklet') this.stretch?.schedule({ active: false });
+    else this._stopBufferSource();
+  }
+
   async play() {
-    if (!this.stretch || !this.currentSong) return;
+    if (!this.currentSong || (!this.stretch && !this._buffer)) return;
     this._ensureGraph();
     if (this.ctx.state === 'suspended') await this.ctx.resume();
     if (this._status === 'playing') return;
@@ -125,20 +199,25 @@ export class AudioEngine extends EventTarget {
     } else if (!this._fadeOutScheduled) {
       this.songGain.gain.setValueAtTime(this._songGainTarget(), this.ctx.currentTime);
     }
-    this._schedule(true);
+    if (this.mode === 'worklet') this._schedule(true);
+    else this._startBufferSource();
     this._status = 'playing';
     this._emit('play');
   }
 
   pause() {
     if (this._status !== 'playing') return;
-    this.stretch?.schedule({ active: false });
+    if (this.mode === 'buffer') {
+      const elapsed = (this.ctx.currentTime - this._srcAnchorTime) * (this._source ? this._source.playbackRate.value : 1);
+      this._position = this._srcAnchorPos + elapsed;
+    }
+    this._deactivate();
     this._status = 'paused';
     this._emit('pause');
   }
 
   stop() {
-    this.stretch?.schedule({ active: false });
+    this._deactivate();
     if (this.currentSong) this._position = this.currentSong.startAt ?? 0;
     this._status = 'idle';
     this._fadeOutScheduled = false;
@@ -159,23 +238,28 @@ export class AudioEngine extends EventTarget {
     this._fadeOutScheduled = false;
     if (this._status === 'playing') {
       this.songGain.gain.setValueAtTime(this._songGainTarget(), this.ctx.currentTime);
-      this._schedule(true);
+      if (this.mode === 'worklet') this._schedule(true);
+      else this._startBufferSource();
     }
     this._emit('timeupdate', { time: this._position, duration: this._duration });
   }
 
-  // Tempo 50..200 (%) — true time-stretch, pitch untouched
+  // Tempo 50..200 (%) — worklet: true time-stretch; buffer: coupled rate
   setTempo(pct) {
     this._tempoPct = Math.min(200, Math.max(50, pct));
     if (this.currentSong) this.currentSong.tempo = this._tempoPct;
-    if (this._status === 'playing') this._schedule(true);
+    if (this._status !== 'playing') return;
+    if (this.mode === 'worklet') this._schedule(true);
+    else this._rescheduleBuffer();
   }
 
-  // Pitch -12..+12 semitones — independent of tempo
+  // Pitch -12..+12 st — worklet: independent; buffer: coupled rate
   setPitch(semitones) {
     this._pitch = Math.min(12, Math.max(-12, semitones));
     if (this.currentSong) this.currentSong.pitch = this._pitch;
-    if (this._status === 'playing') this._schedule(true);
+    if (this._status !== 'playing') return;
+    if (this.mode === 'worklet') this._schedule(true);
+    else this._rescheduleBuffer();
   }
 
   // Song volume 0..100

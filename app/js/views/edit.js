@@ -4,6 +4,7 @@ import { Songs, Playlists } from '../db.js';
 import { state, setMode, startShow, playSong } from '../player.js';
 import { navigate } from '../app.js';
 import { createPlaylistModal } from './home.js';
+import { appHeader } from './header.js';
 
 let currentSetId = null;
 let selectedSongId = null;
@@ -20,9 +21,7 @@ export async function renderEdit(container) {
   const sets = allPlaylists.filter(p => p.kind === 'set');
   container.innerHTML = '';
 
-  container.append(h('header', { class: 'view-header' },
-    h('button', { class: 'btn-icon', onclick: () => { setMode('escucha'); navigate('home'); }, 'aria-label': 'Volver' }, '←'),
-    h('h1', {}, '✏️ Modo Edit')));
+  container.append(appHeader({ title: '✏️ Modo Edit', backTo: 'home' }));
 
   if (sets.length === 0) {
     container.append(h('div', { class: 'empty-state' },

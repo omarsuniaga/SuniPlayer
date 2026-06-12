@@ -8,7 +8,7 @@ import { renderPlayer } from './views/playerView.js';
 import { renderEdit } from './views/edit.js';
 import { renderShow, cleanupShow } from './views/show.js';
 import { renderProfile } from './views/profile.js';
-import { toast } from './ui.js';
+import { toast, fmtTime } from './ui.js';
 
 const views = {
   home: renderHome,
@@ -95,6 +95,25 @@ async function init() {
   subscribe((event) => {
     if (['songchange', 'playstate', 'mode'].includes(event)) updateMiniPlayer();
     if (event === 'mode' && state.show.active) navigate('show');
+  });
+
+  // header chronometer: centered, visible once the show is live and
+  // the first song started (docs/vistas/04-vista-show.md + pedido UX)
+  setInterval(() => {
+    const el = document.getElementById('hdr-chrono');
+    if (!el) return;
+    if (state.show.active && state.show.songsPlayed > 0) {
+      el.textContent = `⏱ ${fmtTime(Math.floor((Date.now() - state.show.startedAt) / 1000))}`;
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+      el.textContent = '';
+    }
+  }, 1000);
+
+  // engine fell back to compat mode (no AudioWorklet — e.g. plain http on LAN)
+  engine.addEventListener('compat', () => {
+    toast('Modo compatibilidad: tono y tempo acoplados. Abrí la app por HTTPS para calidad completa.');
   });
 
   // keyboard shortcuts: space = play/pause, ←/→ = seek ±5s

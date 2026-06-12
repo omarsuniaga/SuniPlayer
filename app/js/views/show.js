@@ -28,6 +28,7 @@ export function renderShow(container) {
 
   container.append(h('header', { class: 'view-header show-header' },
     h('span', { class: 'live-badge' }, '🔴 EN VIVO'),
+    h('span', { class: 'hdr-chrono', id: 'hdr-chrono' }),
     h('span', { class: 'show-name' }, `SHOW: ${state.show.setName}`)));
 
   // --- chronometer ---

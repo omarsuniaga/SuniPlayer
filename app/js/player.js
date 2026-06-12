@@ -37,7 +37,7 @@ export async function playSong(song, sourceInfo = null) {
   try {
     const blob = await blobForSong(song);
     if (!blob) {
-      state.error = 'No se pudo reproducir este archivo. ¿Está corrupto o fue movido?';
+      state.error = 'El audio no está guardado en la app. Volvé a importar esta canción desde la Librería.';
       state.loading = false;
       notify('error');
       return false;
@@ -61,7 +61,9 @@ export async function playSong(song, sourceInfo = null) {
     return true;
   } catch (err) {
     console.error(err);
-    state.error = 'No se pudo reproducir este archivo. ¿Está corrupto o fue movido?';
+    state.error = err && err.message === 'decode-failed'
+      ? 'No se pudo decodificar el audio. El formato puede no estar soportado en este dispositivo.'
+      : 'No se pudo reproducir este archivo. Reintentá; si persiste, reimportá la canción.';
     state.loading = false;
     notify('error');
     return false;

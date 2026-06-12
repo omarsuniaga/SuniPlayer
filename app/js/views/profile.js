@@ -3,6 +3,7 @@ import { h, fmtBytes, confirmModal, toast } from '../ui.js';
 import { Songs, Config, ShowHistory, AudioCache } from '../db.js';
 import { engine } from '../player.js';
 import { navigate, applyTheme } from '../app.js';
+import { appHeader } from './header.js';
 
 function fmtHours(seconds) {
   const hr = Math.floor(seconds / 3600);
@@ -20,9 +21,7 @@ export async function renderProfile(container) {
   const autoplay = await Config.get('autoplay', false);
 
   container.innerHTML = '';
-  container.append(h('header', { class: 'view-header' },
-    h('button', { class: 'btn-icon', onclick: () => navigate('home'), 'aria-label': 'Volver' }, '←'),
-    h('h1', {}, '⚙️ Configuración')));
+  container.append(appHeader({ title: '⚙️ Configuración', backTo: 'home' }));
 
   // --- theme ---
   const themeBtn = (value, label) => h('button', {
