@@ -117,9 +117,16 @@ export function useAudioEngine() {
   const play = useCallback(async () => {
     const engine = engineRef.current
     if (!engine?.hasBuffer) return
-    await resumeContextIfSuspended(engine)
-    engine.play()
-    usePlayerStore.getState().play()
+    setError(null)
+    try {
+      await resumeContextIfSuspended(engine)
+      engine.play()
+      usePlayerStore.getState().play()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(msg)
+      usePlayerStore.getState().pause()
+    }
   }, [])
 
   const pause = useCallback(() => {

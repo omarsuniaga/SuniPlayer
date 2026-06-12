@@ -133,6 +133,19 @@ describe('useAudioEngine', () => {
     expect(mockResume.mock.invocationCallOrder[0]!).toBeLessThan(mockPlay.mock.invocationCallOrder[0]!)
   })
 
+  it('play reports resume errors and reverts store state', async () => {
+    mockContext.state = 'suspended'
+    mockResume.mockRejectedValue(new Error('autoplay blocked'))
+    const { result } = renderHook(() => useAudioEngine())
+
+    await act(async () => {
+      await result.current.play()
+    })
+
+    expect(result.current.error).toContain('autoplay blocked')
+    expect(usePlayerStore.getState().playing).toBe(false)
+  })
+
   it('pause calls engine.pause and store.pause', () => {
     usePlayerStore.getState().play()
     const { result } = renderHook(() => useAudioEngine())
