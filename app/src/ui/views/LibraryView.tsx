@@ -6,6 +6,7 @@ import { useCollectionStore } from '../../application/collectionStore'
 import { usePlayerStore } from '../../application/playerStore'
 import { useAudioEngine } from '../hooks/useAudioEngine'
 import { trackRepo, type PersistedTrack } from '../../infrastructure/dexie'
+import { SetDetailView } from './SetDetailView'
 
 type LibraryViewProps = {
   onTrackSelected?: () => void
@@ -181,6 +182,7 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
   const [submenuTarget, setSubmenuTarget] = useState<'playlist' | 'set' | null>(null)
   const [importing, setImporting] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
+  const [selectedSetId, setSelectedSetId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -266,6 +268,10 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
     actions.push({ label: 'Remove from library', disabled: true })
 
     return actions
+  }
+
+  if (selectedSetId) {
+    return <SetDetailView setId={selectedSetId} onBack={() => setSelectedSetId(null)} />
   }
 
   return (
@@ -444,7 +450,10 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
                   <div style={{ fontWeight: 700 }}>{s.name}</div>
                   <div style={metaStyle}>{s.trackIds.length} tracks | Goal: {s.targetDurationMinutes}m</div>
                 </button>
-                <button type="button" style={{ ...menuButtonStyle, color: '#f44336' }} onClick={() => void deleteSet(s.id)}>Delete</button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" style={menuButtonStyle} onClick={() => setSelectedSetId(s.id)}>Manage</button>
+                  <button type="button" style={{ ...menuButtonStyle, color: '#f44336' }} onClick={() => void deleteSet(s.id)}>Delete</button>
+                </div>
               </div>
             ))}
           </div>
