@@ -173,7 +173,7 @@ src/
 - [x] @zen #review-play-async-fix needs:#play-async-fix engram:workflow/review-criteria - review con el checklist de 7 puntos ✅ APROBADO (Engram #2265)
 - [x] @claude #arch-review-play-async-fix needs:#review-play-async-fix engram:handoff/claude - pasada final de arquitecto ✅ APROBADO sin observaciones (Engram #2267)
 - [x] @antigravity #collections-ui needs:#arch-review-play-async-fix engram:sdd/collections-ui/tasks - FASE 2.1: gestion Playlist/Set/QuouList segun spec 02 (contrato #2260)
-- [ ] @zen #review-collections-ui needs:#collections-ui engram:workflow/review-criteria - review con el checklist de 7 puntos
+- [~] @zen #review-collections-ui needs:#collections-ui engram:workflow/review-criteria - review con el checklist de 7 puntos
 - [ ] @claude #arch-review-collections-ui needs:#review-collections-ui engram:handoff/claude - pasada final de arquitecto
 - [ ] @antigravity #set-completer-ui needs:#arch-review-collections-ui engram:sdd/set-completer-ui/tasks - FASE 2.2: UI del completador de set sobre dominio existente (contrato #2261)
 - [ ] @zen #review-set-completer-ui needs:#set-completer-ui engram:workflow/review-criteria - review con el checklist de 7 puntos
