@@ -4,11 +4,6 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 const logger = createLogger();
-const loggerWarn = logger.warn.bind(logger);
-logger.warn = (msg, options) => {
-    if (msg.includes('@soundtouchjs') && msg.includes('Sourcemap')) return;
-    loggerWarn(msg, options);
-};
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -40,7 +35,4 @@ export default defineConfig({
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'manifest.webmanifest'],
         })
     ],
-    optimizeDeps: {
-        exclude: ['@soundtouchjs/audio-worklet']
-    },
 })
