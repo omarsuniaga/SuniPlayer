@@ -178,4 +178,21 @@ describe('App navigation shell', () => {
     expect(useNavigationStore.getState().currentView).toBe('edit')
     expect(screen.getByRole('heading', { name: 'Edit' })).toBeDefined()
   })
+
+  it('applies theme-dark-forced class when showActive is true', () => {
+    useSessionStore.getState().startShow()
+    render(<App />)
+
+    const root = document.getElementById('suniplayer-root')
+    expect(root?.className).toContain('theme-dark-forced')
+  })
+
+  it('removes theme-dark-forced class when showActive is false', () => {
+    render(<App />)
+    useSessionStore.getState().startShow()
+    useSessionStore.getState().stopShow()
+
+    const root = document.getElementById('suniplayer-root')
+    expect(root?.className).not.toContain('theme-dark-forced')
+  })
 })

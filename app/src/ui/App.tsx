@@ -30,6 +30,7 @@ function App() {
   const currentView = useNavigationStore((s) => s.currentView)
   const navigate = useNavigationStore((s) => s.navigate)
   const mode = useSessionStore((s) => s.mode)
+  const showActive = useSessionStore((s) => s.showActive)
   const hasTrack = currentTrackId !== null
 
   useEffect(() => {
@@ -60,6 +61,7 @@ function App() {
   return (
     <div
       id="suniplayer-root"
+      className={showActive ? 'theme-dark-forced' : ''}
       style={{
         minHeight: '100vh',
         background: '#111',
