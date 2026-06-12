@@ -1,5 +1,5 @@
 // Service worker: cache-first shell so the app works fully offline.
-const CACHE = 'suniplayer-v2';
+const CACHE = 'suniplayer-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -13,8 +13,8 @@ const ASSETS = [
   './js/importer.js',
   './js/collections.js',
   './js/audio/engine.js',
-  './js/audio/jungle.js',
   './js/audio/analyzer.js',
+  './js/vendor/signalsmith-stretch.mjs',
   './js/views/home.js',
   './js/views/library.js',
   './js/views/playerView.js',

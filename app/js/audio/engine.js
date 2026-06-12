@@ -1,52 +1,36 @@
 // Playback engine (docs/componentes/01-audio-engine, 02-pitch-shifter,
 // 03-time-stretcher, 05-fade-engine).
 //
-// Graph: <audio> element -> MediaElementSource -> [dry | Jungle pitch] -> songGain -> masterGain -> out
-//  - Tempo: audio.playbackRate with preservesPitch = true (native time-stretch)
-//  - Pitch: Jungle dual-delay granular shifter (independent of tempo)
-//  - Fades: songGain automation
+// Built on signalsmith-stretch (WASM AudioWorklet): true independent
+// pitch shift (-12..+12 st) and time-stretch (50%..200%) with
+// professional quality — same engine the original prototype validated.
+//
+// Graph: SignalsmithStretchNode -> songGain -> masterGain -> destination
 
-import { Jungle } from './jungle.js';
+import SignalsmithStretch from '../vendor/signalsmith-stretch.mjs';
 
 export class AudioEngine extends EventTarget {
   constructor() {
     super();
-    this.audio = new Audio();
-    this.audio.preload = 'auto';
     this.ctx = null;
+    this.stretch = null;
     this.currentSong = null;
-    this.currentUrl = null;
     this.preservePitch = true;
+    this._status = 'idle'; // idle | loading | playing | paused
+    this._position = 0;
+    this._duration = 0;
+    this._tempoPct = 100;
+    this._pitch = 0;
     this._fadeOutScheduled = false;
-    this._endTimer = null;
-
-    this.audio.addEventListener('timeupdate', () => this._onTimeUpdate());
-    this.audio.addEventListener('ended', () => this._emit('ended'));
-    this.audio.addEventListener('play', () => this._emit('play'));
-    this.audio.addEventListener('pause', () => this._emit('pause'));
-    this.audio.addEventListener('error', () => this._emit('error'));
   }
 
   _ensureGraph() {
     if (this.ctx) return;
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this.sourceNode = this.ctx.createMediaElementSource(this.audio);
-    this.dryGain = this.ctx.createGain();
-    this.jungle = new Jungle(this.ctx);
-    this.wetGain = this.ctx.createGain();
     this.songGain = this.ctx.createGain();
     this.masterGain = this.ctx.createGain();
-
-    this.sourceNode.connect(this.dryGain);
-    this.dryGain.connect(this.songGain);
-    this.sourceNode.connect(this.jungle.input);
-    this.jungle.output.connect(this.wetGain);
-    this.wetGain.connect(this.songGain);
     this.songGain.connect(this.masterGain);
     this.masterGain.connect(this.ctx.destination);
-
-    this.wetGain.gain.value = 0; // dry by default (pitch 0)
-    this.dryGain.gain.value = 1;
   }
 
   _emit(type, detail = {}) {
@@ -57,83 +41,148 @@ export class AudioEngine extends EventTarget {
   async load(song, blob) {
     this._ensureGraph();
     if (this.ctx.state === 'suspended') await this.ctx.resume();
-    if (this.currentUrl) URL.revokeObjectURL(this.currentUrl);
-    this.currentSong = song;
-    this.currentUrl = URL.createObjectURL(blob);
-    this.audio.src = this.currentUrl;
-    this._fadeOutScheduled = false;
+    this._status = 'loading';
 
-    this.setTempo(song.tempo ?? 100);
-    this.setPitch(song.pitch ?? 0);
+    if (this.stretch) {
+      try { this.stretch.stop(); this.stretch.disconnect(); } catch { }
+      this.stretch = null;
+    }
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const buffer = await this.ctx.decodeAudioData(arrayBuffer);
+
+    const channels = [];
+    for (let c = 0; c < buffer.numberOfChannels; c++) channels.push(buffer.getChannelData(c));
+
+    this.stretch = await SignalsmithStretch(this.ctx, {
+      outputChannelCount: [buffer.numberOfChannels],
+    });
+    await this.stretch.addBuffers(channels);
+    this.stretch.connect(this.songGain);
+
+    this.currentSong = song;
+    this._duration = buffer.duration;
+    this._tempoPct = song.tempo ?? 100;
+    this._pitch = song.pitch ?? 0;
+    this._position = song.startAt ?? 0;
+    this._fadeOutScheduled = false;
     this.setSongVolume(song.volume ?? 75);
-    this.audio.currentTime = song.startAt ?? 0;
+
+    // progress tracking + custom-end + fade-out handling
+    this.stretch.setUpdateInterval(0.05, (inputTime) => {
+      if (this._status !== 'playing') return;
+      this._position = inputTime;
+      const cur = this.currentSong;
+      const end = cur && cur.endAt > 0 ? Math.min(cur.endAt, this._duration) : this._duration;
+      const fadeOut = (cur && cur.fadeOut) || 0;
+
+      if (fadeOut > 0 && !this._fadeOutScheduled && inputTime >= end - fadeOut) {
+        this._fadeOutScheduled = true;
+        this._fade(this._songGainTarget(), 0, Math.max(0.05, end - inputTime));
+      }
+      if (inputTime >= end - 0.03) {
+        this.stretch.schedule({ active: false });
+        this._status = 'idle';
+        this._position = cur ? (cur.startAt ?? 0) : 0;
+        this._emit('pause');
+        this._emit('ended');
+        return;
+      }
+      this._emit('timeupdate', { time: inputTime, duration: this._duration });
+    });
+
+    this._status = 'idle';
     this._emit('songchange', { song });
   }
 
-  async play() {
-    if (!this.currentSong) return;
-    this._ensureGraph();
-    if (this.ctx.state === 'suspended') await this.ctx.resume();
-    const song = this.currentSong;
-    if ((song.fadeIn ?? 0) > 0 && this.audio.currentTime <= (song.startAt ?? 0) + 0.1) {
-      this._fade(0, this._songGainTarget(), song.fadeIn);
-    } else {
-      this.songGain.gain.setValueAtTime(this._songGainTarget(), this.ctx.currentTime);
-    }
-    await this.audio.play();
+  _rate() { return Math.min(200, Math.max(50, this._tempoPct)) / 100; }
+
+  // when "preservar tono" is off, pitch follows playback rate like vinyl
+  _effectiveSemitones() {
+    const drift = this.preservePitch ? 0 : 12 * Math.log2(this._rate());
+    return Math.min(24, Math.max(-24, this._pitch + drift));
   }
 
-  pause() { this.audio.pause(); }
+  _schedule(active = true) {
+    if (!this.stretch) return;
+    this.stretch.schedule({
+      input: this._position,
+      rate: this._rate(),
+      semitones: this._effectiveSemitones(),
+      active,
+    });
+  }
+
+  async play() {
+    if (!this.stretch || !this.currentSong) return;
+    this._ensureGraph();
+    if (this.ctx.state === 'suspended') await this.ctx.resume();
+    if (this._status === 'playing') return;
+
+    const song = this.currentSong;
+    if ((song.fadeIn ?? 0) > 0 && this._position <= (song.startAt ?? 0) + 0.1) {
+      this._fade(0, this._songGainTarget(), song.fadeIn);
+    } else if (!this._fadeOutScheduled) {
+      this.songGain.gain.setValueAtTime(this._songGainTarget(), this.ctx.currentTime);
+    }
+    this._schedule(true);
+    this._status = 'playing';
+    this._emit('play');
+  }
+
+  pause() {
+    if (this._status !== 'playing') return;
+    this.stretch?.schedule({ active: false });
+    this._status = 'paused';
+    this._emit('pause');
+  }
 
   stop() {
-    this.audio.pause();
-    if (this.currentSong) this.audio.currentTime = this.currentSong.startAt ?? 0;
+    this.stretch?.schedule({ active: false });
+    if (this.currentSong) this._position = this.currentSong.startAt ?? 0;
+    this._status = 'idle';
     this._fadeOutScheduled = false;
+    this._emit('pause');
     this._emit('stopped');
   }
 
-  get isPlaying() { return !this.audio.paused && !this.audio.ended; }
-  get currentTime() { return this.audio.currentTime; }
-  get duration() { return this.audio.duration || (this.currentSong ? this.currentSong.duration : 0); }
+  get isPlaying() { return this._status === 'playing'; }
+  get currentTime() { return this._position; }
+  get duration() { return this._duration || (this.currentSong ? this.currentSong.duration : 0); }
 
   seek(seconds) {
     const song = this.currentSong;
     if (!song) return;
     const start = song.startAt ?? 0;
-    const end = song.endAt ?? this.duration;
-    this.audio.currentTime = Math.min(Math.max(seconds, start), end);
+    const end = song.endAt && song.endAt > 0 ? Math.min(song.endAt, this._duration) : this._duration;
+    this._position = Math.min(Math.max(seconds, start), end);
     this._fadeOutScheduled = false;
+    if (this._status === 'playing') {
+      this.songGain.gain.setValueAtTime(this._songGainTarget(), this.ctx.currentTime);
+      this._schedule(true);
+    }
+    this._emit('timeupdate', { time: this._position, duration: this._duration });
   }
 
-  // Tempo 50..200 (%) — preserves pitch natively
+  // Tempo 50..200 (%) — true time-stretch, pitch untouched
   setTempo(pct) {
-    const rate = Math.min(200, Math.max(50, pct)) / 100;
-    this.audio.preservesPitch = this.preservePitch;
-    if ('mozPreservesPitch' in this.audio) this.audio.mozPreservesPitch = this.preservePitch;
-    this.audio.playbackRate = rate;
-    if (this.currentSong) this.currentSong.tempo = pct;
+    this._tempoPct = Math.min(200, Math.max(50, pct));
+    if (this.currentSong) this.currentSong.tempo = this._tempoPct;
+    if (this._status === 'playing') this._schedule(true);
   }
 
   // Pitch -12..+12 semitones — independent of tempo
   setPitch(semitones) {
-    this._ensureGraph();
-    const st = Math.min(12, Math.max(-12, semitones));
-    if (st === 0) {
-      this.dryGain.gain.setTargetAtTime(1, this.ctx.currentTime, 0.02);
-      this.wetGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.02);
-    } else {
-      this.jungle.setPitchOffset(st);
-      this.dryGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.02);
-      this.wetGain.gain.setTargetAtTime(1, this.ctx.currentTime, 0.02);
-    }
-    if (this.currentSong) this.currentSong.pitch = st;
+    this._pitch = Math.min(12, Math.max(-12, semitones));
+    if (this.currentSong) this.currentSong.pitch = this._pitch;
+    if (this._status === 'playing') this._schedule(true);
   }
 
   // Song volume 0..100
   setSongVolume(vol) {
     this._ensureGraph();
     if (this.currentSong) this.currentSong.volume = vol;
-    if (!this.isPlaying || !this._fadeOutScheduled) {
+    if (!this._fadeOutScheduled) {
       this.songGain.gain.setTargetAtTime(this._songGainTarget(), this.ctx.currentTime, 0.02);
     }
   }
@@ -153,25 +202,6 @@ export class AudioEngine extends EventTarget {
     g.cancelScheduledValues(this.ctx.currentTime);
     g.setValueAtTime(from, this.ctx.currentTime);
     g.linearRampToValueAtTime(to, this.ctx.currentTime + seconds);
-  }
-
-  _onTimeUpdate() {
-    const song = this.currentSong;
-    if (!song) return;
-    const t = this.audio.currentTime;
-    const end = song.endAt && song.endAt > 0 ? Math.min(song.endAt, this.duration) : this.duration;
-    const fadeOut = song.fadeOut ?? 0;
-
-    if (fadeOut > 0 && !this._fadeOutScheduled && t >= end - fadeOut) {
-      this._fadeOutScheduled = true;
-      this._fade(this._songGainTarget(), 0, Math.max(0.05, end - t));
-    }
-    if (t >= end - 0.05 && end < this.duration - 0.1) {
-      // custom end reached: behave like natural end
-      this.audio.pause();
-      this._emit('ended');
-    }
-    this._emit('timeupdate', { time: t, duration: this.duration });
   }
 }
 
