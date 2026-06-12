@@ -103,6 +103,22 @@ export async function addTrackToPlaylist(playlistId: string, trackId: string): P
   useCollectionStore.getState().setPlaylists(allPlaylists)
 }
 
+export async function removeTrackFromPlaylist(playlistId: string, trackId: string): Promise<void> {
+  await playlistRepo.removeTrack(playlistId, trackId)
+  const allPlaylists = await playlistRepo.getAll()
+  useCollectionStore.getState().setPlaylists(allPlaylists)
+}
+
+export async function renamePlaylist(id: string, name: string): Promise<void> {
+  const store = useCollectionStore.getState()
+  const playlist = store.playlists.find(p => p.id === id)
+  if (!playlist) return
+  const now = new Date()
+  await playlistRepo.upsert({ ...playlist, name, updatedAt: now } as any)
+  const allPlaylists = await playlistRepo.getAll()
+  store.setPlaylists(allPlaylists)
+}
+
 export async function createSet(name: string, targetDurationMinutes: number, trackIds: string[] = []): Promise<void> {
   const now = new Date()
   const set: PersistedSet = {
@@ -122,4 +138,26 @@ export async function deleteSet(id: string): Promise<void> {
   await setRepo.delete(id)
   const allSets = await setRepo.getAll()
   useCollectionStore.getState().setSets(allSets)
+}
+
+export async function addTrackToSet(setId: string, trackId: string): Promise<void> {
+  await setRepo.addTrack(setId, trackId)
+  const allSets = await setRepo.getAll()
+  useCollectionStore.getState().setSets(allSets)
+}
+
+export async function removeTrackFromSet(setId: string, trackId: string): Promise<void> {
+  await setRepo.removeTrack(setId, trackId)
+  const allSets = await setRepo.getAll()
+  useCollectionStore.getState().setSets(allSets)
+}
+
+export async function renameSet(id: string, name: string): Promise<void> {
+  const store = useCollectionStore.getState()
+  const set = store.sets.find(s => s.id === id)
+  if (!set) return
+  const now = new Date()
+  await setRepo.upsert({ ...set, name, updatedAt: now } as any)
+  const allSets = await setRepo.getAll()
+  store.setSets(allSets)
 }

@@ -118,6 +118,16 @@ export const setRepo = {
   async delete(id: string): Promise<void> {
     await db.sets.delete(id)
   },
+  async addTrack(setId: string, trackId: string): Promise<void> {
+    await db.sets.where('id').equals(setId).modify((s) => {
+      s.trackIds.push(trackId)
+    })
+  },
+  async removeTrack(setId: string, trackId: string): Promise<void> {
+    await db.sets.where('id').equals(setId).modify((s) => {
+      s.trackIds = s.trackIds.filter((id) => id !== trackId)
+    })
+  },
 }
 
 export const settingsRepo = {

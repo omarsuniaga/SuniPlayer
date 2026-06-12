@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FileDropzone } from '../atoms/FileDropzone'
 import { importAudioFiles } from '../../application/importActions'
-import { createPlaylist, createSet, loadCollections, addTrackToPlaylist, deletePlaylist, deleteSet, playCollection } from '../../application/collectionActions'
+import { createPlaylist, createSet, loadCollections, addTrackToPlaylist, addTrackToSet, deletePlaylist, deleteSet, playCollection } from '../../application/collectionActions'
 import { useCollectionStore } from '../../application/collectionStore'
 import { usePlayerStore } from '../../application/playerStore'
 import { useAudioEngine } from '../hooks/useAudioEngine'
@@ -178,6 +178,7 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
   
   const [activeTab, setActiveTab] = useState<'tracks' | 'playlists' | 'sets'>('tracks')
   const [openMenuTrackId, setOpenMenuTrackId] = useState<string | null>(null)
+  const [submenuTarget, setSubmenuTarget] = useState<'playlist' | 'set' | null>(null)
   const [importing, setImporting] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
 
@@ -238,15 +239,25 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
       { label: 'Add to queue', run: () => addToQueue({ id: track.id }) },
     ]
 
-    // Simplified: add to first playlist if exists, or show alert
-    // In a real app we'd show a nested menu or modal
-    if (playlists.length > 0) {
-      actions.push({ 
-        label: `Add to ${playlists[0]!.name}`, 
-        run: () => void addTrackToPlaylist(playlists[0]!.id, track.id) 
+    const hasPlaylists = playlists.length > 0
+    const hasSets = sets.length > 0
+
+    if (hasPlaylists) {
+      actions.push({
+        label: 'Add to playlist...',
+        run: () => setSubmenuTarget('playlist'),
       })
     } else {
       actions.push({ label: 'Add to playlist', disabled: true })
+    }
+
+    if (hasSets) {
+      actions.push({
+        label: 'Add to set...',
+        run: () => setSubmenuTarget('set'),
+      })
+    } else {
+      actions.push({ label: 'Add to set', disabled: true })
     }
 
     actions.push({ label: 'Link score', disabled: true })
@@ -320,32 +331,62 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
                     <button
                       type="button"
                       style={menuButtonStyle}
-                      onClick={() => setOpenMenuTrackId(isMenuOpen ? null : track.id)}
+                      onClick={() => { setOpenMenuTrackId(isMenuOpen ? null : track.id); setSubmenuTarget(null) }}
                       aria-label={`More actions for ${title}`}
                     >
                       ...
                     </button>
                     {isMenuOpen && (
                       <div className="context-menu" role="menu" aria-label={`Actions for ${title}`} style={contextMenuStyle}>
-                        {actionsFor(track).map((action) => (
-                          <button
-                            key={action.label}
-                            type="button"
-                            role="menuitem"
-                            disabled={action.disabled}
-                            aria-disabled={action.disabled || undefined}
-                            title={action.disabled ? 'Próximamente' : undefined}
-                            style={{ ...menuItemStyle, opacity: action.disabled ? 0.55 : 1, cursor: action.disabled ? 'not-allowed' : 'pointer' }}
-                            onClick={() => {
-                              if (!action.disabled) {
-                                action.run?.()
-                                setOpenMenuTrackId(null)
-                              }
-                            }}
-                          >
-                            <span>{action.label}</span>
-                          </button>
-                        ))}
+                        {submenuTarget === null ? (
+                          actionsFor(track).map((action) => (
+                            <button
+                              key={action.label}
+                              type="button"
+                              role="menuitem"
+                              disabled={action.disabled}
+                              aria-disabled={action.disabled || undefined}
+                              title={action.disabled ? 'Próximamente' : undefined}
+                              style={{ ...menuItemStyle, opacity: action.disabled ? 0.55 : 1, cursor: action.disabled ? 'not-allowed' : 'pointer' }}
+                              onClick={() => {
+                                if (!action.disabled) {
+                                  action.run?.()
+                                  if (!submenuTarget) setOpenMenuTrackId(null)
+                                }
+                              }}
+                            >
+                              <span>{action.label}</span>
+                            </button>
+                          ))
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              style={menuItemStyle}
+                              onClick={() => setSubmenuTarget(null)}
+                            >
+                              <span>← Back</span>
+                            </button>
+                            {(submenuTarget === 'playlist' ? playlists : sets).map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                style={menuItemStyle}
+                                onClick={() => {
+                                  if (submenuTarget === 'playlist') {
+                                    void addTrackToPlaylist(item.id, track.id)
+                                  } else {
+                                    void addTrackToSet(item.id, track.id)
+                                  }
+                                  setOpenMenuTrackId(null)
+                                  setSubmenuTarget(null)
+                                }}
+                              >
+                                <span>{item.name}</span>
+                              </button>
+                            ))}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
