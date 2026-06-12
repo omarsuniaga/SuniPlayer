@@ -31,6 +31,8 @@ export class AudioEngine {
   private _pitch = 0
   private _tempo = 1
   private _volume = 1
+  private _savedVolume = 1
+  private _muted = false
   private gain: GainNode
   private onStateChange?: (state: EngineState) => void
   private _hasBuffer = false
@@ -144,8 +146,39 @@ export class AudioEngine {
 
   setVolume(v: number): void {
     this._volume = Math.max(0, Math.min(1, v))
-    this.gain.gain.value = this._volume
+    if (!this._muted) {
+      this.gain.gain.value = this._volume
+    }
     this.emit()
+  }
+
+  mute(): void {
+    if (this._muted) return
+    this._savedVolume = this._volume
+    this._muted = true
+    this._volume = 0
+    this.gain.gain.value = 0
+    this.emit()
+  }
+
+  unmute(): void {
+    if (!this._muted) return
+    this._muted = false
+    this._volume = this._savedVolume
+    this.gain.gain.value = this._savedVolume
+    this.emit()
+  }
+
+  toggleMute(): void {
+    if (this._muted) {
+      this.unmute()
+    } else {
+      this.mute()
+    }
+  }
+
+  get isMuted(): boolean {
+    return this._muted
   }
 
   setPitch(semitones: number): void {

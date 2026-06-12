@@ -233,4 +233,66 @@ describe('AudioEngine', () => {
     )
     engine.destroy()
   })
+
+  describe('mute', () => {
+    it('mute saves snapshot and sets gain to 0', () => {
+      const engine = new AudioEngine()
+      engine.setVolume(0.7)
+      engine.mute()
+      expect(engine.state.volume).toBe(0)
+      expect(engine.isMuted).toBe(true)
+      engine.destroy()
+    })
+
+    it('unmute restores the saved volume', () => {
+      const engine = new AudioEngine()
+      engine.setVolume(0.7)
+      engine.mute()
+      expect(engine.state.volume).toBe(0)
+      engine.unmute()
+      expect(engine.state.volume).toBe(0.7)
+      expect(engine.isMuted).toBe(false)
+      engine.destroy()
+    })
+
+    it('toggleMute alternates between mute and unmute', () => {
+      const engine = new AudioEngine()
+      engine.setVolume(0.5)
+      engine.toggleMute()
+      expect(engine.isMuted).toBe(true)
+      expect(engine.state.volume).toBe(0)
+      engine.toggleMute()
+      expect(engine.isMuted).toBe(false)
+      expect(engine.state.volume).toBe(0.5)
+      engine.destroy()
+    })
+
+    it('isMuted is false when volume is normally 0 (not muted)', () => {
+      const engine = new AudioEngine()
+      engine.setVolume(0)
+      expect(engine.isMuted).toBe(false)
+      engine.destroy()
+    })
+
+    it('double mute is safe', () => {
+      const engine = new AudioEngine()
+      engine.setVolume(0.3)
+      engine.mute()
+      expect(engine.isMuted).toBe(true)
+      // Second mute: snapshot updates but stays at 0
+      engine.mute()
+      expect(engine.isMuted).toBe(true)
+      expect(engine.state.volume).toBe(0)
+      engine.unmute()
+      expect(engine.state.volume).toBe(0.3)
+      engine.destroy()
+    })
+
+    it('unmute without prior mute restores default', () => {
+      const engine = new AudioEngine()
+      engine.unmute()
+      expect(engine.state.volume).toBe(1)
+      engine.destroy()
+    })
+  })
 })
