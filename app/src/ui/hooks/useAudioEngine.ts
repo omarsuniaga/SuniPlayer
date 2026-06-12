@@ -211,6 +211,21 @@ export function useAudioEngine() {
     usePlayerStore.getState().setVolume(v)
   }, [])
 
+  const mute = useCallback(() => {
+    engineRef.current?.mute()
+  }, [])
+
+  const unmute = useCallback(() => {
+    engineRef.current?.unmute()
+  }, [])
+
+  const toggleMute = useCallback(() => {
+    engineRef.current?.toggleMute()
+  }, [])
+
+  const playerVolume = usePlayerStore((s) => s.volume)
+  const isMuted = playerVolume === 0 && !loadingRef.current
+
   return {
     playTrack,
     play,
@@ -220,6 +235,10 @@ export function useAudioEngine() {
     setPitch,
     setTempo,
     setVolume,
+    mute,
+    unmute,
+    toggleMute,
+    isMuted,
     loading,
     error,
   }
