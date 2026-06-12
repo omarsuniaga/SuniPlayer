@@ -1,5 +1,5 @@
 // Service worker: cache-first shell so the app works fully offline.
-const CACHE = 'suniplayer-v1';
+const CACHE = 'suniplayer-v2';
 const ASSETS = [
   './',
   './index.html',
