@@ -373,6 +373,10 @@ button { font: inherit; }
 }
 .song-row:hover { background: var(--bg-elev2); border-color: var(--border-strong); }
 .song-row.selected { border-color: var(--accent); background: var(--accent-soft); }
+.song-row.dragging { opacity: 0.45; }
+.song-row.drop-target { border-color: var(--accent); box-shadow: 0 -2px 0 var(--accent); }
+.drag-grip { color: var(--text-faint); cursor: grab; font-size: var(--fs-md); user-select: none; }
+.drag-grip:active { cursor: grabbing; }
 .song-row-main { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; flex: 1; }
 .song-icon { color: var(--accent); font-size: var(--fs-base); }
 .order-num {

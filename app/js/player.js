@@ -201,6 +201,47 @@ export function setMode(mode) {
   notify('mode');
 }
 
+// ---- Media Session: lockscreen / hardware / bluetooth controls ----
+function updateMediaSession(song) {
+  if (!('mediaSession' in navigator) || !song) return;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: song.name,
+    artist: state.source ? state.source.name : 'Suniplayer',
+    album: 'Suniplayer',
+    artwork: song.imageData ? [{ src: song.imageData, sizes: '512x512' }] : [],
+  });
+}
+
+if ('mediaSession' in navigator) {
+  navigator.mediaSession.setActionHandler('play', () => engine.play());
+  navigator.mediaSession.setActionHandler('pause', () => engine.pause());
+  navigator.mediaSession.setActionHandler('previoustrack', () => previous());
+  navigator.mediaSession.setActionHandler('nexttrack', () => next());
+  try {
+    navigator.mediaSession.setActionHandler('seekto', (e) => {
+      if (e.seekTime != null) engine.seek(e.seekTime);
+    });
+  } catch { /* seekto optional */ }
+}
+
+let _lastPositionUpdate = 0;
+engine.addEventListener('timeupdate', () => {
+  if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+  const now = Date.now();
+  if (now - _lastPositionUpdate < 1000) return;
+  _lastPositionUpdate = now;
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: engine.duration || 0,
+      playbackRate: (state.currentSong?.tempo ?? 100) / 100,
+      position: Math.min(engine.currentTime, engine.duration || 0),
+    });
+  } catch { /* invalid state mid-load */ }
+});
+engine.addEventListener('play', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; });
+engine.addEventListener('pause', () => { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; });
+engine.addEventListener('songchange', () => updateMediaSession(state.currentSong));
+
 // auto-advance on song end (gap handled here: 1s default between songs)
 engine.addEventListener('ended', async () => {
   const gap = state.currentSong?.gap ?? 1;

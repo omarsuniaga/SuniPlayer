@@ -97,6 +97,21 @@ async function init() {
     if (event === 'mode' && state.show.active) navigate('show');
   });
 
+  // keyboard shortcuts: space = play/pause, ←/→ = seek ±5s
+  document.addEventListener('keydown', async (e) => {
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (!state.currentSong) return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (engine.isPlaying) engine.pause(); else await engine.play();
+    } else if (e.code === 'ArrowRight') {
+      engine.seek(engine.currentTime + 5);
+    } else if (e.code === 'ArrowLeft') {
+      engine.seek(engine.currentTime - 5);
+    }
+  });
+
   await refreshSmartCollections();
 
   // PWA service worker

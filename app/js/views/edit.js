@@ -106,8 +106,9 @@ export async function renderEdit(container) {
       }, '⏱ Tiempo'),
     )));
 
-  // --- set order (drag via buttons for MVP reliability) ---
+  // --- set order: drag & drop + fallback arrows ---
   const orderEl = h('div', { class: 'set-order' });
+  let dragFrom = null;
   songs.forEach((s, i) => {
     const icons = [
       (s.pitch || 0) !== 0 ? '🎵' : '',
@@ -115,9 +116,21 @@ export async function renderEdit(container) {
     ].join('');
     orderEl.append(h('div', {
       class: `song-row ${selectedSongId === s.id ? 'selected' : ''}`,
+      draggable: 'true',
+      ondragstart: (e) => { dragFrom = i; e.dataTransfer.effectAllowed = 'move'; e.currentTarget.classList.add('dragging'); },
+      ondragend: (e) => e.currentTarget.classList.remove('dragging'),
+      ondragover: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; e.currentTarget.classList.add('drop-target'); },
+      ondragleave: (e) => e.currentTarget.classList.remove('drop-target'),
+      ondrop: async (e) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drop-target');
+        if (dragFrom !== null && dragFrom !== i) await move(dragFrom, i);
+        dragFrom = null;
+      },
       onclick: () => { selectedSongId = s.id; renderEdit(container); },
     },
       h('div', { class: 'song-row-main' },
+        h('span', { class: 'drag-grip', title: 'Arrastrar para reordenar' }, '≣'),
         h('span', { class: 'order-num' }, `${i + 1}.`),
         h('div', { class: 'song-row-text' },
           h('div', { class: 'song-row-title' }, `♫ ${s.name} ${icons}`),
