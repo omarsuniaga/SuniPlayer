@@ -3,6 +3,7 @@ import { trackRepo } from '../infrastructure/dexie'
 import { useCollectionStore } from './collectionStore'
 import { useWaveformStore } from './waveformStore'
 import { extractPeaks } from './waveform/extractPeaks'
+import { analyzeBpm } from '../infrastructure/bpmAnalyzer'
 import type { PersistedTrack } from '../infrastructure/dexie'
 
 // ---- Lazy AudioContext for file decoding ----
@@ -50,6 +51,10 @@ export async function importAudioFiles(files: File[]): Promise<ImportBatchResult
     try {
       const result = await importFile(file, ctx)
       const peaks = extractPeaks(result.audioBuffer, 160)
+      
+      // Analizar BPM y energía
+      const analysis = await analyzeBpm(result.audioBuffer)
+      
       const now = new Date()
       const track: PersistedTrack = {
         id: result.id,
@@ -58,6 +63,9 @@ export async function importAudioFiles(files: File[]): Promise<ImportBatchResult
         durationSeconds: result.durationSeconds,
         filePath: result.filePath,
         fileBlob: file, // raw File/Blob for later AudioBuffer reconstruction
+        bpm: analysis.bpm > 0 ? analysis.bpm : undefined,
+        energy: analysis.bpm > 0 ? analysis.energy : undefined,
+        confidence: analysis.bpm > 0 ? analysis.confidence : 0,
         playCount: 0,
         createdAt: now,
         updatedAt: now,

@@ -72,6 +72,13 @@ const trackMetaStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
+const energyColors: Record<string, string> = {
+  suave: '#4CAF50',
+  media: '#FFEB3B',
+  alta: '#FF9800',
+  'muy-alta': '#F44336',
+}
+
 const errorStyle: React.CSSProperties = {
   color: '#f55',
   fontSize: 13,
@@ -220,6 +227,23 @@ export function FileImportView({ onTrackSelected }: FileImportViewProps = {}) {
                 <div style={trackTitleStyle}>
                   <div>{track.title}</div>
                   <div style={{ color: '#888', fontSize: 12 }}>{track.artist}</div>
+                </div>
+                <div style={{ ...trackMetaStyle, marginRight: 8 }}>
+                  {track.bpm ? (
+                    <span style={{ 
+                      color: energyColors[track.energy || ''] || '#aaa',
+                      fontWeight: 600,
+                      background: 'rgba(255,255,255,0.05)',
+                      padding: '2px 6px',
+                      borderRadius: 4
+                    }}>
+                      {track.bpm} BPM
+                    </span>
+                  ) : track.confidence === 0 ? (
+                    <span style={{ color: '#555' }}>— BPM</span>
+                  ) : (
+                    <span style={{ color: '#aaa', fontSize: 10 }}>Analizando...</span>
+                  )}
                 </div>
                 <div style={trackMetaStyle}>
                   {formatDuration(track.durationSeconds)}

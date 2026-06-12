@@ -12,7 +12,7 @@
 retrofit-arquitectura-documental
 ```
 
-Último commit: `9b36e04` — fix(player): handle async play() rejection
+Último commit: `32ddb9a` — feat(set): set completer suggestions UI
 Anterior: `3479c2d` — feat: library view with track list, context menu and bulk import
 Base: `master`
 
@@ -173,14 +173,14 @@ src/
 - [x] @zen #review-play-async-fix needs:#play-async-fix engram:workflow/review-criteria - review con el checklist de 7 puntos ✅ APROBADO (Engram #2265)
 - [x] @claude #arch-review-play-async-fix needs:#review-play-async-fix engram:handoff/claude - pasada final de arquitecto ✅ APROBADO sin observaciones (Engram #2267)
 - [x] @antigravity #collections-ui needs:#arch-review-play-async-fix engram:sdd/collections-ui/tasks - FASE 2.1: gestion Playlist/Set/QuouList segun spec 02 (contrato #2260)
-- [~] @zen #review-collections-ui needs:#collections-ui engram:workflow/review-criteria - review con el checklist de 7 puntos
-- [ ] @claude #arch-review-collections-ui needs:#review-collections-ui engram:handoff/claude - pasada final de arquitecto
-- [ ] @antigravity #set-completer-ui needs:#arch-review-collections-ui engram:sdd/set-completer-ui/tasks - FASE 2.2: UI del completador de set sobre dominio existente (contrato #2261)
-- [ ] @zen #review-set-completer-ui needs:#set-completer-ui engram:workflow/review-criteria - review con el checklist de 7 puntos
-- [ ] @claude #arch-review-set-completer-ui needs:#review-set-completer-ui engram:handoff/claude - pasada final de arquitecto
-- [ ] @antigravity #bpm-mood needs:#arch-review-set-completer-ui engram:sdd/bpm-mood/tasks - FASE 2.3: BPM analyzer + mood + colecciones inteligentes (contrato #2262)
-- [ ] @zen #review-bpm-mood needs:#bpm-mood engram:workflow/review-criteria - review con el checklist de 7 puntos
-- [ ] @claude #arch-review-bpm-mood needs:#review-bpm-mood engram:handoff/claude - pasada final de arquitecto
+- [x] @zen #review-collections-ui needs:#collections-ui engram:workflow/review-criteria - review con el checklist de 7 puntos ✅ APROBADO (Engram #2271)
+- [x] @claude #arch-review-collections-ui needs:#review-collections-ui engram:handoff/claude - pasada final de arquitecto ✅ APROBADO sin observaciones bloqueantes (Engram #2274)
+- [x] @antigravity #set-completer-ui needs:#arch-review-collections-ui engram:sdd/set-completer-ui/tasks - FASE 2.2: UI del completador de set sobre dominio existente (contrato #2261)
+- [x] @zen #review-set-completer-ui needs:#set-completer-ui engram:workflow/review-criteria - review con el checklist de 7 puntos ✅ (veredicto inline en arch review)
+- [x] @claude #arch-review-set-completer-ui needs:#review-set-completer-ui engram:handoff/claude - pasada final de arquitecto ✅ APROBADO sin observaciones (Engram #2279)
+- [x] @antigravity #bpm-mood needs:#arch-review-set-completer-ui engram:sdd/bpm-mood/tasks - FASE 2.3: BPM analyzer + mood + colecciones inteligentes (contrato #2262) ✅ implementado (sin commitear)
+- [x] @zen #review-bpm-mood needs:#bpm-mood engram:workflow/review-criteria - review con el checklist de 7 puntos ✅ APROBADO (Engram #2282)
+- [x] @claude #arch-review-bpm-mood needs:#review-bpm-mood engram:handoff/claude - pasada final de arquitecto ✅ APROBADO (Engram #2283)
 - [ ] @antigravity #fase2-e2e needs:#arch-review-bpm-mood engram:product/roadmap - FASE 2 CIERRE: validacion e2e en navegador (colecciones CRUD, quoulist, set completer, smart collections en Home), reporta a validation/fase2-e2e
 
 ---

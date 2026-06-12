@@ -5,6 +5,7 @@ import { useNavigationStore } from '../../application/navigationStore'
 import { useAudioEngine } from '../hooks/useAudioEngine'
 import { loadCollections } from '../../application/collectionActions'
 import { filterTracks, type FilterCriteria, type EnergyLevel, getEnergyLevel } from '../../application/filters'
+import { generateSmartCollections, type SmartCollection } from '../../application/moodAlgorithm'
 import { Slider } from '../atoms/Slider'
 import type { PersistedTrack } from '../../infrastructure/dexie'
 
@@ -182,6 +183,10 @@ export function HomeView() {
 
   const isFiltering = !!search || selectedEnergies.length > 0 || durationMax < 60
 
+  const smartCollections = useMemo(() => {
+    return generateSmartCollections(tracks)
+  }, [tracks])
+
   const toggleEnergy = (level: EnergyLevel) => {
     setSelectedEnergies((prev) =>
       prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level]
@@ -324,18 +329,27 @@ export function HomeView() {
           <section>
             <div style={sectionTitleStyle}>Smart Collections</div>
             <div style={cardGridStyle}>
-              <div style={cardStyle} title="Próximamente (Fase 2.3)">
-                <div style={{ fontSize: 20 }}>📋</div>
-                <div style={cardTitleStyle}>CURVA #3</div>
-                <div style={cardMetaStyle}>12 tracks</div>
-                <div style={{ ...cardMetaStyle, marginTop: 'auto', fontSize: 10 }}>Próximamente</div>
-              </div>
-              <div style={cardStyle} title="Próximamente (Fase 2.3)">
-                <div style={{ fontSize: 20 }}>📋</div>
-                <div style={cardTitleStyle}>LINEAL 120</div>
-                <div style={cardMetaStyle}>8 tracks</div>
-                <div style={{ ...cardMetaStyle, marginTop: 'auto', fontSize: 10 }}>Próximamente</div>
-              </div>
+              {smartCollections.length > 0 ? (
+                smartCollections.map((col) => (
+                  <div 
+                    key={col.id} 
+                    style={cardStyle} 
+                    onClick={() => navigate('libreria')}
+                  >
+                    <div style={{ fontSize: 20 }}>
+                      {col.type === 'LINEAL' ? '📏' : 
+                       col.type === 'CURVA' ? '⛰️' : 
+                       col.type === 'EXPONENCIAL' ? '📈' : '🔥'}
+                    </div>
+                    <div style={cardTitleStyle}>{col.name}</div>
+                    <div style={cardMetaStyle}>{col.trackIds.length} tracks</div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ ...cardMetaStyle, gridColumn: '1 / -1', padding: '20px 0' }}>
+                  Aún no hay suficientes tracks analizados para generar colecciones.
+                </div>
+              )}
             </div>
           </section>
 

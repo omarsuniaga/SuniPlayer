@@ -1,0 +1,11 @@
+Sesi+¶n completada. Resumen:
+
+**Revisi+¶n final de Waveform: ‘£‡ APROBADO**
+
+- **Implementaci+¶n:** S+¶lida. Canvas render + seek interactivo + bloqueo en Show.
+- **Tests:** 191 verdes (incluyendo 5 Waveform + 4 extractPeaks).
+- **Downsampling:** Correcto. extractPeaks() normaliza amplitudes, 160 buckets ‘Â∆ balance quality/perf.
+- **Integraci+¶n:** PlayerView pasa `disabled={isLocked}` correctamente para bloquear seek en Show.
+- **Observaciones menores:** 2 mejoras visuales para P2 (transici+¶n CSS del cabezal, tooltip de seek).
+
+**Status:** #arch-review-waveform marcado [x]. Pr+¶xima: @antigravity con #waveform-e2e (validaci+¶n e2e en navegador).

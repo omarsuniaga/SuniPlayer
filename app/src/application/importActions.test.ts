@@ -3,10 +3,11 @@ import { importAudioFiles, resetImportAudioContext } from './importActions'
 import { useCollectionStore } from './collectionStore'
 import { useWaveformStore } from './waveformStore'
 
-const { importFileMock, bulkUpsertMock, getAllMock } = vi.hoisted(() => ({
+const { importFileMock, bulkUpsertMock, getAllMock, analyzeBpmMock } = vi.hoisted(() => ({
   importFileMock: vi.fn(),
   bulkUpsertMock: vi.fn(),
   getAllMock: vi.fn(),
+  analyzeBpmMock: vi.fn(),
 }))
 
 vi.mock('../infrastructure/fileSystem', () => ({
@@ -18,6 +19,10 @@ vi.mock('../infrastructure/dexie', () => ({
     bulkUpsert: bulkUpsertMock,
     getAll: getAllMock,
   },
+}))
+
+vi.mock('../infrastructure/bpmAnalyzer', () => ({
+  analyzeBpm: analyzeBpmMock,
 }))
 
 function makeAudioBuffer(samples: number[]): AudioBuffer {
@@ -36,6 +41,7 @@ describe('importAudioFiles waveform peaks', () => {
     useWaveformStore.getState().clear()
     resetImportAudioContext()
     vi.stubGlobal('AudioContext', vi.fn(() => ({ close: vi.fn() })))
+    analyzeBpmMock.mockResolvedValue({ bpm: 120, energy: 'alta', confidence: 0.9 })
   })
 
   it('stores waveform peaks keyed by imported track id', async () => {

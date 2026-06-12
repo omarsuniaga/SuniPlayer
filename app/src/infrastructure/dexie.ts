@@ -8,6 +8,8 @@ export interface PersistedTrack {
   filePath: string
   fileBlob?: Blob
   bpm?: number
+  energy?: 'suave' | 'media' | 'alta' | 'muy-alta'
+  confidence?: number
   playCount: number
   customStartSeconds?: number
   customEndSeconds?: number
@@ -53,6 +55,9 @@ class SuniplayerDB extends Dexie {
     })
     this.version(2).stores({
       sets: 'id, name, createdAt',
+    })
+    this.version(3).stores({
+      tracks: 'id, title, artist, bpm, energy, playCount, createdAt',
     })
   }
 }
