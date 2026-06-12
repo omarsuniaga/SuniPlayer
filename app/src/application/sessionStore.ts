@@ -11,6 +11,13 @@ export type SessionState = {
   mode: SessionMode
   timer: TimerState
   interruptionStack: InterruptionEvent[]
+  showActive: boolean
+  showStartAt: number | null
+  showDuration: number // seconds, 0 = ascending
+  showSetName: string | null
+  elapsedSeconds: number
+  remainingSeconds: number
+  isCountdown: boolean
 }
 
 export type SessionActions = {
@@ -20,6 +27,8 @@ export type SessionActions = {
   tickTimer: () => void
   pushInterruption: (event: InterruptionEvent) => void
   popInterruption: () => InterruptionEvent | undefined
+  startShow: (duration?: number, setName?: string) => void
+  stopShow: () => void
   reset: () => void
 }
 
@@ -27,6 +36,13 @@ const initialState: SessionState = {
   mode: 'listen',
   timer: { running: false, elapsed: 0 },
   interruptionStack: [],
+  showActive: false,
+  showStartAt: null,
+  showDuration: 0,
+  showSetName: null,
+  elapsedSeconds: 0,
+  remainingSeconds: 0,
+  isCountdown: false,
 }
 
 export const useSessionStore = create<SessionState & SessionActions>((set, get) => ({
@@ -38,12 +54,20 @@ export const useSessionStore = create<SessionState & SessionActions>((set, get) 
     set((s) => ({ timer: { ...s.timer, running: !s.timer.running } })),
 
   resetTimer: () =>
-    set({ timer: { running: false, elapsed: 0 } }),
+    set({ timer: { running: false, elapsed: 0 }, elapsedSeconds: 0, remainingSeconds: 0, isCountdown: false }),
 
   tickTimer: () =>
     set((s) => {
       if (!s.timer.running) return s
-      return { timer: { ...s.timer, elapsed: s.timer.elapsed + 1 } }
+      const newElapsed = s.timer.elapsed + 1
+      const isCountdown = s.showActive && s.showDuration > 0
+      const remaining = isCountdown ? Math.max(0, s.showDuration - newElapsed) : 0
+      return {
+        timer: { ...s.timer, elapsed: newElapsed },
+        elapsedSeconds: newElapsed,
+        remainingSeconds: remaining,
+        isCountdown,
+      }
     }),
 
   pushInterruption: (event) =>
@@ -56,6 +80,30 @@ export const useSessionStore = create<SessionState & SessionActions>((set, get) 
     set({ interruptionStack: interruptionStack.slice(0, -1) })
     return event
   },
+
+  startShow: (duration, setName) =>
+    set({
+      showActive: true,
+      showStartAt: Date.now(),
+      showDuration: duration ?? 0,
+      showSetName: setName ?? null,
+      mode: 'show',
+      elapsedSeconds: 0,
+      remainingSeconds: duration ?? 0,
+      isCountdown: duration ? duration > 0 : false,
+    }),
+
+  stopShow: () =>
+    set({
+      showActive: false,
+      showStartAt: null,
+      showDuration: 0,
+      showSetName: null,
+      mode: 'listen',
+      elapsedSeconds: 0,
+      remainingSeconds: 0,
+      isCountdown: false,
+    }),
 
   reset: () => set(initialState),
 }))
