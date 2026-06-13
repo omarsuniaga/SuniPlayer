@@ -35,14 +35,32 @@ type SignalsmithStretchFactory = (
 const SIGNALSMITH_URL = "/vendor/signalsmith-stretch.mjs";
 let _factoryPromise: Promise<SignalsmithStretchFactory> | null = null;
 
+/**
+ * Loads the vendored library as a real ES module without going through any
+ * bundler transform. We fetch the source and import it from a Blob URL — the
+ * same technique the library itself uses for its worklet, so it is guaranteed
+ * available. A direct `import('/vendor/...')` does NOT work: Vite's dev server
+ * rewrites the request (appends `?import`) and fails to serve the public asset
+ * as a module, while Rollup would try to bundle it. The Blob route sidesteps
+ * both and behaves identically in dev and production.
+ */
 function loadSignalsmith(): Promise<SignalsmithStretchFactory> {
     if (!_factoryPromise) {
-        _factoryPromise = import(/* @vite-ignore */ SIGNALSMITH_URL)
-            .then((mod: { default: SignalsmithStretchFactory }) => mod.default)
-            .catch((err) => {
-                _factoryPromise = null;
-                throw err;
-            });
+        _factoryPromise = (async () => {
+            const res = await fetch(SIGNALSMITH_URL);
+            if (!res.ok) throw new Error(`No se pudo cargar el motor de audio (${res.status})`);
+            const code = await res.text();
+            const blobUrl = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
+            try {
+                const mod: { default: SignalsmithStretchFactory } = await import(/* @vite-ignore */ blobUrl);
+                return mod.default;
+            } finally {
+                URL.revokeObjectURL(blobUrl);
+            }
+        })().catch((err) => {
+            _factoryPromise = null;
+            throw err;
+        });
     }
     return _factoryPromise;
 }
