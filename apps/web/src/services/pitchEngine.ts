@@ -47,6 +47,12 @@ function loadSignalsmith(): Promise<SignalsmithStretchFactory> {
     return _factoryPromise;
 }
 
+// Dev-only diagnostics: keep the console clean in production builds while
+// preserving full tracing during development. Real errors always log.
+const dlog: (...args: unknown[]) => void = import.meta.env.DEV
+    ? (...args) => console.log(...args)
+    : () => { };
+
 let sharedAudioCtx: AudioContext | null = null;
 function getSharedContext(): AudioContext {
     if (!sharedAudioCtx) {
@@ -125,7 +131,7 @@ export class PitchEngine {
     async load(url: string): Promise<boolean> {
         const loadId = ++this._lastLoadId;
         try {
-            console.log(`[PitchEngine] load(${loadId}) →`, url);
+            dlog(`[PitchEngine] load(${loadId}) →`, url);
             this._cleanup();
 
             this._loadAbortController = new AbortController();
@@ -147,7 +153,7 @@ export class PitchEngine {
 
             // Si mientras decodificamos se inició otra carga, abortamos esta.
             if (loadId !== this._lastLoadId) {
-                console.log(`[PitchEngine] load(${loadId}) descartado: una carga más nueva (${this._lastLoadId}) está en curso.`);
+                dlog(`[PitchEngine] load(${loadId}) descartado: carga más nueva (${this._lastLoadId}) en curso.`);
                 return false;
             }
 
@@ -197,11 +203,11 @@ export class PitchEngine {
             });
 
             this._isReady = true;
-            console.log(`[PitchEngine] load(${loadId}) completo.`);
+            dlog(`[PitchEngine] load(${loadId}) completo.`);
             return true;
         } catch (err: unknown) {
             if (err instanceof Error && err.name === 'AbortError') {
-                console.log(`[PitchEngine] load(${loadId}) abortado correctamente.`);
+                dlog(`[PitchEngine] load(${loadId}) abortado.`);
             } else {
                 console.error(`[PitchEngine] Error cargando audio (${loadId}):`, err);
             }
@@ -211,7 +217,7 @@ export class PitchEngine {
 
     async play(atCtxTime: number = 0) {
         if (!this.audioBuffer || !this._isReady || !this.stretchNode) {
-            console.warn("[PitchEngine] play() ABORTED — missing requirements");
+            dlog("[PitchEngine] play() abortado — sin buffer/worklet listos");
             return;
         }
         if (this.audioCtx.state === "suspended") {
@@ -256,7 +262,7 @@ export class PitchEngine {
     }
 
     stop() {
-        console.log("[PitchEngine] stop() called");
+        dlog("[PitchEngine] stop()");
         this.pause();
         this._startTime = 0;
         this._positionSec = 0;

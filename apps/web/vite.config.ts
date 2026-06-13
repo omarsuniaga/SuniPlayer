@@ -37,4 +37,20 @@ export default defineConfig({
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'manifest.webmanifest'],
         })
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                // Split heavy, rarely-changing third-party families into their own
+                // chunks so the browser parses less up front and caches them across
+                // deploys (app code changes far more often than these vendors).
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return;
+                    if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react';
+                    if (id.includes('node_modules/firebase') || id.includes('@firebase')) return 'firebase';
+                    if (/node_modules[\\/](simple-peer|socket\.io-client|engine\.io|ws)[\\/]/.test(id)) return 'sync';
+                    return 'vendor';
+                },
+            },
+        },
+    },
 })
