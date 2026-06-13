@@ -13,8 +13,39 @@
  * The public API is identical to the previous SoundTouchJS edition, so
  * BrowserAudioEngine and SyncEnsemble consumers need no changes.
  */
-import SignalsmithStretch from "signalsmith-stretch";
 import type { SignalsmithStretchNode } from "signalsmith-stretch";
+
+/**
+ * signalsmith-stretch builds its AudioWorklet by stringifying its WASM Module +
+ * processor into a Blob (`Module.toString()` / `registerWorkletProcessor.toString()`).
+ * Any bundler transform — Vite's esbuild dep pre-bundle in dev, Rollup minify in
+ * prod — rewrites those closures and silently breaks the worklet (it never signals
+ * ready and `addBuffers()` hangs forever).
+ *
+ * To stay correct in every mode we load the library as a STATIC asset from
+ * `public/vendor/` via a bundler-ignored dynamic import, so the original source
+ * reaches `.toString()` untouched. Update the vendored copy by re-copying
+ * `node_modules/signalsmith-stretch/SignalsmithStretch.mjs`.
+ */
+type SignalsmithStretchFactory = (
+    context: BaseAudioContext,
+    channelOptions?: Partial<AudioWorkletNodeOptions>,
+) => Promise<SignalsmithStretchNode>;
+
+const SIGNALSMITH_URL = "/vendor/signalsmith-stretch.mjs";
+let _factoryPromise: Promise<SignalsmithStretchFactory> | null = null;
+
+function loadSignalsmith(): Promise<SignalsmithStretchFactory> {
+    if (!_factoryPromise) {
+        _factoryPromise = import(/* @vite-ignore */ SIGNALSMITH_URL)
+            .then((mod: { default: SignalsmithStretchFactory }) => mod.default)
+            .catch((err) => {
+                _factoryPromise = null;
+                throw err;
+            });
+    }
+    return _factoryPromise;
+}
 
 let sharedAudioCtx: AudioContext | null = null;
 function getSharedContext(): AudioContext {
@@ -131,7 +162,8 @@ export class PitchEngine {
             for (let c = 0; c < this.audioBuffer.numberOfChannels; c++) {
                 channels.push(this.audioBuffer.getChannelData(c));
             }
-            this.stretchNode = await SignalsmithStretch(this.audioCtx, {
+            const createStretch = await loadSignalsmith();
+            this.stretchNode = await createStretch(this.audioCtx, {
                 outputChannelCount: [this.audioBuffer.numberOfChannels],
             });
             await this.stretchNode.addBuffers(channels);

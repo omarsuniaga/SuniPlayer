@@ -31,6 +31,8 @@ export default defineConfig({
                 cleanupOutdatedCaches: true,
                 clientsClaim: true,
                 skipWaiting: true,
+                // include the vendored signalsmith worklet so playback works offline
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,mjs}'],
             },
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'manifest.webmanifest'],
         })
