@@ -2,12 +2,13 @@
  * useAudio — Master Performance Engine v4.3.0 (Singleton Context & Auto-Resume)
  */
 import { useEffect, useRef } from "react";
-import { 
-    usePlayerStore, 
-    useSettingsStore, 
-    Track, 
+import {
+    usePlayerStore,
+    useSettingsStore,
+    Track,
     getTrackUrl,
-    IAudioEngine
+    IAudioEngine,
+    clockSyncService
 } from "@suniplayer/core";
 import { useDownloadStore } from "../store/useDownloadStore";
 import { updateTrackMetadata } from "../store/useProjectStore";
@@ -131,7 +132,13 @@ export function useAudio() {
         const currentTrack = pQueue[ci];
         if (!currentTrack || currentTrack.id !== scheduledPlay.trackId) return;
 
-        const delayMs = scheduledPlay.targetWallMs - Date.now();
+        // Use the NTP-corrected perf-domain delay when the clock is SYNCED; otherwise
+        // fall back to the epoch-aligned wall clock. This is what turns the measured
+        // offset into actual sub-ms start alignment instead of leaving it unused.
+        const syncedDelay = scheduledPlay.targetPerfMs != null
+            ? clockSyncService.leaderPerfToLocalDelay(scheduledPlay.targetPerfMs)
+            : null;
+        const delayMs = syncedDelay != null ? syncedDelay : (scheduledPlay.targetWallMs - Date.now());
 
         if (delayMs < -2000) {
             console.warn(`[useAudio] Scheduled play arrived ${Math.abs(delayMs).toFixed(0)}ms late. Playing immediately.`);

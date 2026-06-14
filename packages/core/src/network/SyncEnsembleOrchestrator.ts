@@ -77,11 +77,14 @@ export class SyncEnsembleOrchestrator {
                     // Sanitization and validation
                     const safePositionMs = Math.max(0, Number(msg.payload.positionMs) || 0);
                     const safeTargetWallMs = Math.max(Date.now(), Number(msg.payload.targetWallMs) || Date.now());
-                    
+                    const rawTargetPerfMs = Number(msg.payload.targetPerfMs);
+                    const safeTargetPerfMs = Number.isFinite(rawTargetPerfMs) ? rawTargetPerfMs : undefined;
+
                     this.handleRemotePlay(
                         safeTargetWallMs,
                         safePositionMs,
-                        msg.payload.trackId
+                        msg.payload.trackId,
+                        safeTargetPerfMs
                     );
                     break;
 
@@ -229,6 +232,10 @@ export class SyncEnsembleOrchestrator {
         const resolvedTrackId = trackId ?? currentTrack.id;
         const resolvedPositionMs = positionMs ?? 0;
         const targetWallMs = Date.now() + countdownSeconds * 1000;
+        // Same instant in the leader's performance.now() domain — this is what the
+        // NTP offset can convert precisely on each follower (sub-ms), while
+        // targetWallMs stays as the epoch-aligned fallback.
+        const targetPerfMs = performance.now() + countdownSeconds * 1000;
 
         console.log(`[SYNC:LEADER→] Broadcasting PLAY | track: ${resolvedTrackId} | countdown: ${countdownSeconds}s | targetWallMs: ${targetWallMs}`);
 
@@ -239,6 +246,7 @@ export class SyncEnsembleOrchestrator {
             sessionId: this.sessionManager.getSessionId()!,
             payload: {
                 targetWallMs,
+                targetPerfMs,
                 positionMs: resolvedPositionMs,
                 trackId: resolvedTrackId
             }
@@ -251,6 +259,7 @@ export class SyncEnsembleOrchestrator {
         usePlayerStore.setState({
             scheduledPlay: {
                 targetWallMs,
+                targetPerfMs,
                 positionMs: resolvedPositionMs,
                 trackId: resolvedTrackId
             }
@@ -277,12 +286,16 @@ export class SyncEnsembleOrchestrator {
     public async handleRemotePlay(
         targetWallMs: number,
         audioPositionMs: number,
-        trackId: string
+        trackId: string,
+        targetPerfMs?: number
     ): Promise<void> {
         if (this.sessionManager.getIsLeader()) return;
 
-        const delayMs = targetWallMs - Date.now();
-        console.log(`[SYNC:FOLLOWER←] PLAY received | track: ${trackId} | delayMs: ${delayMs.toFixed(0)}ms`);
+        // Prefer the NTP-corrected perf-domain delay; fall back to wall clock when
+        // the clock isn't SYNCED yet (perf clocks aren't comparable without offset).
+        const syncedDelay = targetPerfMs != null ? this.clockSync.leaderPerfToLocalDelay(targetPerfMs) : null;
+        const delayMs = syncedDelay != null ? syncedDelay : (targetWallMs - Date.now());
+        console.log(`[SYNC:FOLLOWER←] PLAY received | track: ${trackId} | delayMs: ${delayMs.toFixed(0)}ms | source: ${syncedDelay != null ? 'NTP-perf' : 'wall-fallback'}`);
 
         if (delayMs > 500) {
             this.startLocalCountdown(Math.round(delayMs / 1000));
@@ -291,6 +304,7 @@ export class SyncEnsembleOrchestrator {
         usePlayerStore.setState({
             scheduledPlay: {
                 targetWallMs,
+                targetPerfMs,
                 positionMs: audioPositionMs,
                 trackId
             }

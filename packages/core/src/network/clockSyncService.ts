@@ -99,6 +99,19 @@ export class ClockSyncService {
         return localTimestampMs + this.currentOffset.offsetMs;
     }
 
+    /**
+     * Dado un instante objetivo expresado en el dominio performance.now() DEL LÍDER,
+     * devuelve cuántos ms faltan (en reloj local) hasta ese instante, aplicando el
+     * offset NTP medido. Devuelve null si todavía no estamos SYNCED — en ese caso el
+     * llamador debe caer al reloj de pared (Date.now), ya que los relojes
+     * performance.now() de dos dispositivos no son comparables sin el offset.
+     */
+    public leaderPerfToLocalDelay(leaderPerfMs: number): number | null {
+        if (!this.currentOffset || this.status !== 'SYNCED') return null;
+        const localPerfTarget = this.leaderToLocal(leaderPerfMs);
+        return localPerfTarget - this.now();
+    }
+
     public getOffset(): ClockOffset | null {
         return this.currentOffset;
     }

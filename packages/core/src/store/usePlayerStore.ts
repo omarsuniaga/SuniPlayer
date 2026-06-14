@@ -11,7 +11,8 @@ import { TRACKS } from "../data/constants";
 import { SyncStatus, ClockOffset } from "../network/types";
 
 export interface ScheduledPlay {
-    targetWallMs: number;  // Date.now() at scheduled play time — cross-device comparable
+    targetWallMs: number;  // Date.now() at scheduled play time — wall-clock fallback (epoch-aligned, ±device skew)
+    targetPerfMs?: number; // Leader performance.now() at scheduled play time — used with the NTP offset for sub-ms sync
     positionMs: number;    // Audio position to seek to (ms)
     trackId: string;       // Track ID to verify correct track is loaded
 }

@@ -143,6 +143,26 @@ describe('ClockSyncService', () => {
         expect(service.localToLeader(1000)).toBe(1037.5);
     });
 
+    it('leaderPerfToLocalDelay returns the NTP-corrected delay when SYNCED', () => {
+        // Leader is 50ms ahead: localPerf = leaderPerf - 50.
+        (service as any).currentOffset = { offsetMs: 50 };
+        (service as any).status = 'SYNCED';
+        vi.spyOn(performance, 'now').mockReturnValue(1000);
+
+        // Leader scheduled the start at leaderPerf = 3050 → localPerf target = 3000,
+        // so from local-now (1000) there are 2000ms to wait.
+        expect(service.leaderPerfToLocalDelay(3050)).toBeCloseTo(2000, 6);
+    });
+
+    it('leaderPerfToLocalDelay returns null when not SYNCED (caller must use wall fallback)', () => {
+        expect(service.getStatus()).toBe('UNCALIBRATED');
+        expect(service.leaderPerfToLocalDelay(3050)).toBeNull();
+
+        (service as any).currentOffset = { offsetMs: 50 };
+        (service as any).status = 'DRIFTING';
+        expect(service.leaderPerfToLocalDelay(3050)).toBeNull();
+    });
+
     it('should fully reset calibration state', () => {
         (service as any).currentOffset = { offsetMs: 50 };
         (service as any).status = 'SYNCED';
