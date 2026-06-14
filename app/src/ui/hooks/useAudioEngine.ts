@@ -191,6 +191,23 @@ export function useAudioEngine() {
     usePlayerStore.getState().stop()
   }, [])
 
+  /**
+   * Global kill switch: stops every audio source in the app.
+   *
+   * 1. Main engine (signalsmith-stretch AudioWorklet)
+   * 2. Player store state → paused, position zero
+   * 3. DOM safety net: pauses every <audio>/<video> element so no stray
+   *    HTMLMediaElement can keep playing (covers previews, future features).
+   */
+  const stopAll = useCallback(() => {
+    stop()
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('audio, video').forEach((el) => {
+        try { (el as HTMLMediaElement).pause() } catch { /* ignore */ }
+      })
+    }
+  }, [stop])
+
   const seek = useCallback((position: number) => {
     engineRef.current?.seek(position)
     usePlayerStore.getState().seek(position)
@@ -306,6 +323,7 @@ export function useAudioEngine() {
     play,
     pause,
     stop,
+    stopAll,
     seek,
     setPitch,
     setTempo,

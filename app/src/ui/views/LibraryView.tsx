@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { FileDropzone } from '../atoms/FileDropzone'
+import { TrackProfileModal } from '../atoms/TrackProfileModal'
 import { importAudioFiles } from '../../application/importActions'
 import { createPlaylist, createSet, loadCollections, addTrackToPlaylist, addTrackToSet, deletePlaylist, deleteSet, playCollection } from '../../application/collectionActions'
 import { useCollectionStore } from '../../application/collectionStore'
@@ -183,6 +184,8 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
   const [importing, setImporting] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
   const [selectedSetId, setSelectedSetId] = useState<string | null>(null)
+  const [editingTrack, setEditingTrack] = useState<PersistedTrack | null>(null)
+  const updateTrack = useCollectionStore((s) => s.updateTrack)
 
   useEffect(() => {
     let cancelled = false
@@ -262,6 +265,10 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
       actions.push({ label: 'Add to set', disabled: true })
     }
 
+    actions.push({
+      label: 'Edit metadata',
+      run: () => setEditingTrack(track),
+    })
     actions.push({ label: 'Link score', disabled: true })
     actions.push({ label: 'Adjust pitch/tempo', disabled: true })
     actions.push({ label: 'Save in app', disabled: true })
@@ -466,6 +473,14 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
         <div role="alert" style={alertStyle}>
           {errors.map((error) => <div key={error}>{error}</div>)}
         </div>
+      )}
+
+      {editingTrack && (
+        <TrackProfileModal
+          track={editingTrack}
+          onSave={(updates) => updateTrack(editingTrack.id, updates)}
+          onClose={() => setEditingTrack(null)}
+        />
       )}
     </section>
   )

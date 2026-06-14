@@ -55,7 +55,7 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
   const shuffle = usePlayerStore((s) => s.shuffle)
   const peaks = useWaveformStore((s) => (trackId ? s.peaksByTrackId[trackId] : undefined))
 
-  const { play, pause, stop, seek, setPitch, setTempo, setVolume } = useAudioEngine()
+  const { play, pause, stopAll, seek, setPitch, setTempo, setVolume } = useAudioEngine()
   const setRepeat = usePlayerStore((s) => s.setRepeat)
 
   const mode = useSessionStore((s) => s.mode)
@@ -78,6 +78,12 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
 
   const isLocked = mode === 'show'
 
+  // Modified-state chip: shows when pitch or tempo deviate from default
+  const isModified = pitch !== 0 || tempo !== 1
+  const modifiedLabel = isModified
+    ? `${pitch > 0 ? '+' : ''}${pitch} st / ${(tempo * 100).toFixed(0)}%`
+    : ''
+
   return (
     <div style={containerStyle}>
       {/* Track info */}
@@ -87,7 +93,28 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
             ← Volver
           </Button>
         )}
-        <div style={titleStyle}>{displayName ?? trackId}</div>
+        <div style={{ ...titleStyle, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+          {displayName ?? trackId}
+          {isModified && (
+            <span
+              onClick={() => { setPitch(0); setTempo(1); }}
+              title="Restaurar pitch y tempo originales"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 10,
+                background: 'rgba(255, 152, 0, 0.2)',
+                color: '#ff9800',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                lineHeight: '20px',
+              }}
+            >
+              {modifiedLabel}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Seek bar */}
@@ -100,7 +127,7 @@ export function PlayerView({ onBack }: PlayerViewProps = {}) {
 
       {/* Transport controls */}
       <div style={controlsRow}>
-        <Button variant="icon" size="sm" onClick={stop} aria-label="Stop">
+        <Button variant="icon" size="sm" onClick={stopAll} aria-label="Stop">
           ⏹
         </Button>
         <Button variant="primary" size="md" onClick={playing ? pause : play} aria-label={playing ? 'Pause' : 'Play'}>

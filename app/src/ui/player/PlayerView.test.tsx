@@ -12,6 +12,7 @@ const { mockEngine } = vi.hoisted(() => ({
     play: vi.fn(),
     pause: vi.fn(),
     stop: vi.fn(),
+    stopAll: vi.fn(),
     seek: vi.fn(),
     setPitch: vi.fn(),
     setTempo: vi.fn(),
@@ -110,7 +111,7 @@ describe('PlayerView', () => {
     expect(mockEngine.pause).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
-    expect(mockEngine.stop).toHaveBeenCalledTimes(1)
+    expect(mockEngine.stopAll).toHaveBeenCalledTimes(1)
   })
 
   it('calls engine.seek when the progress bar changes', () => {
@@ -221,7 +222,7 @@ describe('PlayerView', () => {
     fireEvent.click(playButton)
     fireEvent.click(stopButton)
     expect(mockEngine.play).toHaveBeenCalledTimes(1)
-    expect(mockEngine.stop).toHaveBeenCalledTimes(1)
+    expect(mockEngine.stopAll).toHaveBeenCalledTimes(1)
   })
 
   it('keeps seek, pitch, and tempo disabled in show mode', () => {

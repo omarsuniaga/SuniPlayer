@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AppView, useNavigationStore } from '../../application/navigationStore'
 import { useSessionStore } from '../../application/sessionStore'
+import { InstallButton } from '../atoms/InstallButton'
 
 const DOUBLE_TAP_MS = 650
 
@@ -117,6 +118,7 @@ export function BottomNav() {
             {item.label}
           </button>
         ))}
+        <InstallButton />
       </nav>
 
       {pendingView && (

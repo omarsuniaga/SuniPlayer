@@ -31,6 +31,7 @@ export type CollectionActions = {
   setTracks: (tracks: PersistedTrack[]) => void
   addTrack: (track: PersistedTrack) => void
   removeTrack: (id: string) => void
+  updateTrack: (id: string, updates: Partial<PersistedTrack>) => void
   setPlaylists: (playlists: Playlist[]) => void
   addPlaylist: (playlist: Playlist) => void
   removePlaylist: (id: string) => void
@@ -71,6 +72,17 @@ export const useCollectionStore = create<CollectionState & CollectionActions>((s
 
   removeTrack: (id) =>
     set((s) => ({ tracks: s.tracks.filter((t) => t.id !== id) })),
+
+  updateTrack: (id, updates) => {
+    set((s) => ({
+      tracks: s.tracks.map((t) => {
+        if (t.id !== id) return t
+        const updated = { ...t, ...updates, updatedAt: new Date() }
+        trackRepo.upsert(updated).catch(console.error)
+        return updated
+      }),
+    }))
+  },
 
   setPlaylists: (playlists) => set({ playlists }),
 
