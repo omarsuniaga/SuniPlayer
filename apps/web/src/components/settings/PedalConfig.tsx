@@ -1,0 +1,221 @@
+import React from "react";
+import { useSettingsStore, PedalAction } from "../../store/useSettingsStore";
+import { useDebugStore } from "../../store/useDebugStore";
+import { THEME } from "../../data/theme";
+
+// ── Action definitions ────────────────────────────────────────────────────────
+const PEDAL_ACTIONS: { action: PedalAction; label: string }[] = [
+    { action: "next",       label: "Siguiente canción" },
+    { action: "prev",       label: "Canción anterior" },
+    { action: "play_pause", label: "Play / Pause" },
+    { action: "stop",       label: "Detener audio" },
+    { action: "vol_up",     label: "Volumen +" },
+    { action: "vol_down",   label: "Volumen −" },
+];
+
+export const PedalConfig: React.FC = () => {
+    const pedalBindings = useSettingsStore((s) => s.pedalBindings);
+    const learningAction = useSettingsStore((s) => s.learningAction);
+    const setLearningAction = useSettingsStore((s) => s.setLearningAction);
+    const clearPedalBindings = useSettingsStore((s) => s.clearPedalBindings);
+    
+    const isFocused = useDebugStore(s => s.isFocused);
+    const addLog = useDebugStore(s => s.addLog);
+
+    // Activity flash
+    const [activityFlash, setActivityFlash] = React.useState(false);
+    const flashTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    
+    React.useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            const match = Object.values(pedalBindings).some((b) => b?.key === e.key);
+            if (match) {
+                if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+                setActivityFlash(true);
+                flashTimerRef.current = setTimeout(() => setActivityFlash(false), 300);
+            }
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => {
+            window.removeEventListener("keydown", handleKey);
+            if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+        };
+    }, [pedalBindings]);
+
+    const forceiPadFocus = (fromAction?: string) => {
+        if (fromAction) {
+            addLog(`Botón pulsado: ${fromAction}`);
+        }
+        const el = document.getElementById("suni-pedal-focus") as HTMLInputElement;
+        if (el) {
+            el.focus();
+        }
+    };
+
+    return (
+        <div style={{ position: "relative", zIndex: 10 }}>
+            {/* Input invisible para iPad (Requerido para capturar teclado) */}
+            <input 
+                id="suni-pedal-focus"
+                type="text"
+                style={{ position: "absolute", opacity: 0, pointerEvents: "none", zIndex: -1 }}
+                readOnly
+            />
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "20px 0 8px" }}>
+                <span style={{ fontSize: 18 }}>📱</span>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.colors.text.muted, flex: 1 }}>
+                    Bluetooth
+                </span>
+                {activityFlash && (
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: THEME.colors.brand.cyan, boxShadow: `0 0 6px ${THEME.colors.brand.cyan}`, display: "inline-block" }} />
+                )}
+            </div>
+
+            {/* Listening banner */}
+            {learningAction && (
+                <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "16px", backgroundColor: "rgba(239, 68, 68, 0.2)",
+                    border: "2px solid #EF4444", borderRadius: THEME.radius.md,
+                    marginBottom: 16
+                }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#EF4444", boxShadow: "0 0 10px #EF4444", animation: "pedalPulse 1s infinite" }} />
+                        <span style={{ fontSize: 14, color: "white", fontWeight: 700 }}>Asignando <strong>{learningAction.toUpperCase()}</strong>... Pisa el pedal</span>
+                    </div>
+                    <button onClick={() => setLearningAction(null)} style={{ background: "white", border: "none", color: "black", padding: "4px 12px", borderRadius: 4, fontSize: 12, fontWeight: 800, cursor: "pointer" }}>CANCELAR</button>
+                </div>
+            )}
+
+            <p style={{ fontSize: 12, color: THEME.colors.text.muted, margin: "0 0 12px" }}>
+                Conecta tu pedalera y asigna cada pedal. Si usas iPad, asegúrate de que el estado sea <strong>LISTO</strong>.
+            </p>
+
+            {PEDAL_ACTIONS.map(({ action, label }) => {
+                const binding = pedalBindings[action];
+                const isLearning = learningAction === action;
+
+                return (
+                    <div key={action} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0", borderBottom: `1px solid ${THEME.colors.border}` }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: "white", flex: 1 }}>{label}</span>
+                        <div style={{ padding: "6px 12px", backgroundColor: binding ? `${THEME.colors.brand.cyan}25` : "rgba(255,255,255,0.05)", border: `1px solid ${binding ? THEME.colors.brand.cyan : THEME.colors.border}`, borderRadius: THEME.radius.sm, fontSize: 13, fontFamily: THEME.fonts.mono, color: binding ? THEME.colors.brand.cyan : "rgba(255,255,255,0.3)", minWidth: 100, textAlign: "center", marginRight: 12 }}>
+                            {binding ? binding.label : "sin asignar"}
+                        </div>
+                        <button 
+                            onClick={() => { setLearningAction(action); forceiPadFocus(label); }} 
+                            onPointerDown={() => { setLearningAction(action); forceiPadFocus(label); }}
+                            style={{ 
+                                padding: "10px 16px", borderRadius: THEME.radius.sm, 
+                                border: `2px solid ${isLearning ? THEME.colors.brand.cyan : "rgba(255,255,255,0.3)"}`, 
+                                backgroundColor: isLearning ? `${THEME.colors.brand.cyan}30` : "rgba(255,255,255,0.05)", 
+                                color: "white", // Forzado a blanco para que no parezca inactivo
+                                cursor: "pointer", fontSize: 12, fontWeight: 900, minWidth: 85,
+                                textTransform: "uppercase"
+                            }}
+                        >
+                            {isLearning ? "Oído..." : (binding ? "Cambiar" : "Aprender")}
+                        </button>
+                    </div>
+                );
+            })}
+
+            <div style={{ paddingTop: 24, display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={() => { clearPedalBindings(); addLog("Reset completo"); }} style={{ padding: "10px 20px", borderRadius: THEME.radius.sm, border: `1px solid ${THEME.colors.status.error}`, backgroundColor: "transparent", color: THEME.colors.status.error, cursor: "pointer", fontSize: 12, fontWeight: 800 }}>
+                    BORRAR TODO
+                </button>
+            </div>
+
+            {/* ── Gesture / Ring Config ── */}
+            <GestureConfig />
+
+            <style>{`
+                @keyframes pedalPulse {
+                    0%, 100% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.2); opacity: 0.5; }
+                }
+            `}</style>
+        </div>
+    );
+};
+
+const GestureConfig: React.FC = () => {
+    const gestureBindings = useSettingsStore(s => s.gestureBindings);
+    const setGestureBinding = useSettingsStore(s => s.setGestureBinding);
+    const ringControlEnabled = useSettingsStore(s => s.ringControlEnabled);
+    const setRingControlEnabled = useSettingsStore(s => s.setRingControlEnabled);
+
+    const directions: { dir: 'up' | 'down' | 'left' | 'right', label: string, icon: string }[] = [
+        { dir: 'up',       label: 'Presionar y Arrastrar Arriba', icon: '↑' },
+        { dir: 'down',     label: 'Presionar y Arrastrar Abajo',  icon: '↓' },
+        { dir: 'left',     label: 'Presionar y Arrastrar Izq.',   icon: '←' },
+        { dir: 'right',    label: 'Presionar y Arrastrar Der.',   icon: '→' },
+    ];
+
+    return (
+        <div style={{ marginTop: 40, borderTop: `2px solid ${THEME.colors.border}40`, paddingTop: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: 18 }}>💍</span>
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: THEME.colors.text.muted, flex: 1 }}>
+                    Control por Anillo (Drag)
+                </span>
+            </div>
+
+            <div style={{ 
+                backgroundColor: ringControlEnabled ? `${THEME.colors.brand.cyan}10` : "rgba(255,255,255,0.03)", 
+                padding: "16px", borderRadius: THEME.radius.md, border: `1px solid ${ringControlEnabled ? THEME.colors.brand.cyan : THEME.colors.border}`,
+                marginBottom: 20, cursor: "pointer"
+            }} onClick={() => setRingControlEnabled(!ringControlEnabled)}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: ringControlEnabled ? THEME.colors.brand.cyan : "white" }}>MODO ANILLO</span>
+                    <div style={{ 
+                        width: 40, height: 20, borderRadius: 10, backgroundColor: ringControlEnabled ? THEME.colors.brand.cyan : THEME.colors.border,
+                        position: "relative", transition: "all 0.2s"
+                    }}>
+                        <div style={{ 
+                            width: 16, height: 16, borderRadius: "50%", backgroundColor: "white",
+                            position: "absolute", top: 2, left: ringControlEnabled ? 22 : 2, transition: "all 0.2s"
+                        }} />
+                    </div>
+                </div>
+                <p style={{ fontSize: 11, color: THEME.colors.text.muted, margin: 0, lineHeight: 1.4 }}>
+                    {ringControlEnabled 
+                        ? "Activado: Mantén presionado un botón del anillo y arrastra en una dirección para disparar acciones." 
+                        : "Desactivado: El anillo se comporta como un mouse normal (sin gestos)."}
+                </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {directions.map(({ dir, label, icon }) => (
+                    <div key={dir} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", backgroundColor: "rgba(255,255,255,0.02)", border: `1px solid ${THEME.colors.border}40`, borderRadius: THEME.radius.sm }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ fontSize: 14, color: THEME.colors.brand.cyan, fontWeight: 900, width: 20, textAlign: "center" }}>{icon}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>{label}</span>
+                        </div>
+                        
+                        <select 
+                            value={gestureBindings[dir]} 
+                            onChange={(e) => setGestureBinding(dir, e.target.value as PedalAction | "none")}
+                            style={{ 
+                                background: THEME.colors.surface, 
+                                color: "white", 
+                                border: `1px solid ${THEME.colors.border}`, 
+                                borderRadius: 4, 
+                                padding: "4px 8px",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                outline: "none",
+                                cursor: "pointer"
+                            }}
+                        >
+                            <option value="none">— Ninguna —</option>
+                            {PEDAL_ACTIONS.map(a => (
+                                <option key={a.action} value={a.action}>{a.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
