@@ -156,30 +156,29 @@ describe('SyncEnsemble E2E (Core)', () => {
         usePlayerStore.setState(usePlayerStore.getInitialState(), true);
     });
 
-    it('schedules global playback 8 seconds ahead (default for peers) and dispatches to store', async () => {
+    it('starts on early quorum with a tight 3s window, preserving the requested position', async () => {
         leaderSession.createSession('session1', 'Tutti');
         followerSession.joinSession('session1');
 
-        // Note: With 1 peer and 0 readyMembers, countdown is 8s
-        const now = Date.now();
-        const expectedTarget = now + 8000;
-
+        // Arms the quorum wait and broadcasts TRACK_CHANGE so followers load.
         await leaderOrch.startGlobalPlayback(5000);
 
-        // Check Leader Store
-        const leaderScheduled = usePlayerStore.getState().scheduledPlay;
-        expect(leaderScheduled?.targetWallMs).toBe(expectedTarget);
-        expect(leaderScheduled?.positionMs).toBe(5000);
+        // The follower reports it has decoded the track → leader reaches full quorum
+        // and starts immediately with a tight 3s countdown.
+        const now = Date.now();
+        const expectedTarget = now + 3000;
+        followerOrch.sendReadySignal();
 
-        // Check Follower Store (received via P2P)
-        const followerScheduled = usePlayerStore.getState().scheduledPlay;
-        expect(followerScheduled?.targetWallMs).toBe(expectedTarget);
-        expect(followerScheduled?.positionMs).toBe(5000);
+        // The requested position (5000) must survive the early-quorum path.
+        const scheduled = usePlayerStore.getState().scheduledPlay;
+        expect(scheduled?.targetWallMs).toBe(expectedTarget);
+        expect(scheduled?.positionMs).toBe(5000);
 
         const playCalls = (transports.leaderTransport.broadcast as any).mock.calls;
         const playMessage = playCalls.find(([msg]: [P2PMessage]) => msg.type === 'PLAY')?.[0] as P2PMessage | undefined;
         expect(playMessage?.payload.trackId).toBe(TRACKS[0].id);
         expect(playMessage?.payload.targetWallMs).toBe(expectedTarget);
+        expect(playMessage?.payload.positionMs).toBe(5000);
     });
 
     it('sends CLOCK_PING while calibrating and promotes the leader/member state in the store', async () => {

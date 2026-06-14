@@ -36,6 +36,10 @@ export class SyncEnsembleOrchestrator {
     /** Timeout used for quorum fallback when not all peers respond */
     private quorumTimeout: ReturnType<typeof setTimeout> | null = null;
 
+    /** Start parameters captured while waiting for quorum, so the early-quorum
+     *  path preserves the requested position/track instead of resetting to 0. */
+    private pendingPlay: { positionMs: number; trackId: string } | null = null;
+
     /** How long to wait for all members before starting with partial quorum (ms) */
     private static readonly QUORUM_WAIT_MS = 6000;
 
@@ -169,7 +173,10 @@ export class SyncEnsembleOrchestrator {
         if (this.readyMembers.size >= activePeers) {
             console.log(`[SYNC:LEADER] Full quorum reached (${this.readyMembers.size}/${activePeers}) — starting playback now`);
             this.clearQuorumTimeout();
-            this.triggerCountdownPlayback(3); // Tight 3s window — all members are ready
+            // Tight 3s window — all members are ready. Preserve the requested start
+            // position/track captured in startGlobalPlayback (don't reset to 0).
+            this.triggerCountdownPlayback(3, this.pendingPlay?.positionMs, this.pendingPlay?.trackId);
+            this.pendingPlay = null;
         }
     }
 
@@ -207,10 +214,14 @@ export class SyncEnsembleOrchestrator {
         // checkQuorum() will fire early. Otherwise, we start after QUORUM_WAIT_MS.
         console.log(`[SYNC:LEADER] Waiting for quorum | peers: ${activePeers} | timeout: ${SyncEnsembleOrchestrator.QUORUM_WAIT_MS}ms`);
 
+        // Remember the requested start so the early-quorum path keeps it.
+        this.pendingPlay = { positionMs, trackId: currentTrack.id };
+
         this.quorumTimeout = setTimeout(() => {
             const ready = this.readyMembers.size;
             console.log(`[SYNC:LEADER] Quorum timeout — ${ready}/${activePeers} ready. Starting anyway.`);
             this.triggerCountdownPlayback(4, positionMs, currentTrack.id);
+            this.pendingPlay = null;
         }, SyncEnsembleOrchestrator.QUORUM_WAIT_MS);
 
         // Also broadcast TRACK_CHANGE so followers start loading
