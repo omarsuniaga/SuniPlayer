@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flutter Widget Previewer"
+  short_description: "Preview Flutter widgets in isolation with real-time rendering"
+  default_prompt: "Help me set up and use the Flutter Widget Previewer to preview widgets in isolation"

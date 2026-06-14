@@ -1,0 +1,12 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Only need the ws package
+RUN npm init -y && npm install ws
+
+COPY lan-server.mjs .
+
+EXPOSE 8765
+
+CMD ["node", "lan-server.mjs"]

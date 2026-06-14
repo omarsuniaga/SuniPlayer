@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "SuniPlayer",
+    "slug": "suniplayer",
+    "version": "1.0.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.suniplayer.app",
+      "requireFullScreen": false,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ],
+        "NSMicrophoneUsageDescription": "SuniPlayer does not use the microphone.",
+        "NSAppleMusicUsageDescription": "SuniPlayer accesses your audio files for playback.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.suniplayer.app",
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WAKE_LOCK",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_AUDIO_PLAYBACK"
+      ],
+      "newArchEnabled": false
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-router",
+      "./plugins/withGradleWrapper",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": false,
+            "bridgeless": false
+          },
+          "ios": {
+            "newArchEnabled": false,
+            "bridgeless": false
+          }
+        }
+      ]
+    ],
+    "newArchEnabled": false,
+    "scheme": "suniplayer",
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9a231871-9483-453e-aee2-200fd18f25fb"
+      }
+    },
+    "owner": "omar_violin"
+  }
+}

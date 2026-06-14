@@ -1,105 +1,113 @@
-# CLAUDE — Alineación para Suniplayer (actualizado Jun 2026)
+# SuniPlayer — Claude Code Context
 
-Leé esto COMPLETO al inicio de cada sesión. Es tu brújula.
+## Project
+Monorepo music player for live musicians/DJs.
+- **Web**: React 18 + Zustand 4 + Vite + Vitest 4 + TypeScript 5 (`apps/web`)
+- **Native**: React Native + Expo (`apps/native`)
+- **Shared core**: `packages/core` — types, stores, services, platform interfaces
 
----
+Audio files live in `apps/web/public/audio/`. Built-in catalog: `apps/web/src/data/tracks.json`.
 
-## 1. Estado actual del proyecto
+## Architecture
 
-### Branch activa: `main`
-La app estable está deployada en main (commit `5712d9f` → Netlify). Tu código anterior está en `retrofit-arquitectura-documental`.
+### Stores (packages/core/src/store/)
+- **5 domain stores**: `useBuilderStore`, `usePlayerStore`, `useSettingsStore`, `useHistoryStore`, `useLibraryStore`
+- **`useProjectStore`**: Composite API — combines all stores; use domain stores directly in perf-critical code
+- **`usePedalBindings`**: Global keydown hook — mount once in `AppViewport`, reads state via `.getState()` to avoid stale closures
 
-### Stack confirmado (NO cambiar, NO cuestionar)
-| Capa | Decisión | 
-|------|----------|
-| UI | **React 18** |
-| Estado | **Zustand 4** |
-| Tests | **Vitest + RTL + jsdom** |
-| Audio | Web Audio API + AudioWorklet |
-| DSP | **signalsmith-stretch** (WASM) |
-| Persistencia | **Dexie** (IndexedDB) |
-| Build | Vite 5 |
+### Platform Interfaces (packages/core/src/platform/interfaces/)
+- **`IAudioEngine`**: Contract all audio engine implementations must fulfill (web + native)
+- Web implements via `useAudio.ts` hooks; native implements via `ExpoAudioEngine.ts`
 
-### Tests: 317 tests, 35 files, todo verde ✅
-```bash
-cd app && npx vitest run
-```
+### Audio Engine — Web (`apps/web/src/services/useAudio.ts`)
+- **Dual-channel A/B**: Two HTMLAudioElement instances for seamless crossfade
+- **Fade in/out**: `fadeEnabled`, `fadeInMs`, `fadeOutMs` settings; `fadeTimersRef` is a per-channel `Map` (NOT a single ref)
+- **Crossfade mode**: Canal A fade-out while canal B fade-in; controlled by `crossfadeMs`
+- **Volume + autoGain**: Per-track `gainOffset` applied on top of master volume
+- **Analytics hooks**: `trackStart`, `trackEnd`, `trackSkip` fired from `useAudio`
 
-### Tu código anterior
-Implementaste sobre `retrofit-arquitectura-documental`, se mergeó a `main` en `5712d9f`:
-- **ErrorBoundary** (`ui/atoms/ErrorBoundary.tsx`)
-- **InstallButton** (PWA, `ui/atoms/InstallButton.tsx`)
-- **TrackProfileModal** (`ui/atoms/TrackProfileModal.tsx`)
-- **TrackProfile hook** (`ui/hooks/useTrackProfileModal.ts`)
-- **stopAll** (global kill switch en `useAudioEngine.ts`)
-- **updateTrack** (Dexie)
-- **Pitch/tempo chip** + varios test fixes
+### Audio Engine — Native (`apps/native/src/platform/ExpoAudioEngine.ts`)
+- Implements: `load`, `play`, `pause`, `seek`, `fadeVolume`, `setVolume`, `getPosition`
+- **`fadeVolume`**: fully functional — smooth volume transitions via interval-based stepping
+- Callbacks: `onPositionUpdate`, `onBufferUpdate`, `onBufferingChange`, `onEnded`, `onError`
+- Analytics at engine level: `trackStart`, `trackEnd`, `trackSkip` (30% rule for skip detection)
+- **Pitch shift**: explicit no-op with `console.warn` — RNTP v4 does not support pitch shift; requires external library (e.g. soundtouchjs-rn)
 
-Está TODO commit, nada se perdió. ✅
+### AudioStreamerService (`apps/web/src/services/AudioStreamerService.ts`)
+- Fetch with progress tracking for loading bars
+- **Blob short-circuit**: if blob URL already loaded for a track, skips re-fetch immediately
+- **IndexedDB recovery**: if fetch fails, attempts to recover audio from local IndexedDB
 
----
+### Blob URL Policy
+- `blob_url` on `Track` is EPHEMERAL — created at runtime, NEVER persisted to localStorage
+- `partialize` in stores explicitly excludes `blob_url`
 
-## 2. Lo que pasó mientras dormías
+### Analytics (`packages/core/src/services/AnalyticsService.ts`)
+- Tracks: `playCount`, `completePlays`, `skips`, `affinityScore`
+- `affinityScore` uses Laplace smoothing to avoid cold-start bias
 
-### Resumen de la sesión de recuperación
-1. Se hiceron deploys incorrectos de versiones draft a main (monorepo, vanilla JS)
-2. Se restauró TU versión estable (standalone rebuild) a main
-3. Se limpió: stashes borrados, PR #5 y #6 cerrados, dispatch.log ignorado
-4. Se investigó multi-device audio sync (ver Engram `handoff/claude` y STATUS.md)
+### SQLiteStorage — Native (`apps/native/src/platform/SQLiteStorage.ts`)
+- Implemented for: track analysis data + waveform data
+- Binary audio storage **fully implemented**: `saveAudioFile`, `getAudioFile`, `deleteAudioFile`, `getAllStoredTrackIds`
+- Audio files stored in `documentDirectory/audio_storage/`; path registered in `audio_files` SQLite table
+- Base64 ↔ Blob conversion for native ↔ web transfer
 
-### 3 backups desaparecieron
-Había directorios con trabajo sin commit de Claude dentro del repo que se perdieron. No hay forma de recuperarlos. Lo que estaba commit se salvó.
+## Testing
+- **Web**: `npm test` — Vitest 4, 25 test files, acceptance tests across areas F1–F9
+- **Native**: Jest, 3 test files (`ExpoAudioEngine`, `LocalFileAccess`, `SQLiteStorage`)
+- `globals: true` in `vitest.config.ts` — required for `@testing-library/react` auto-cleanup (`afterEach`)
+- Reset stores in tests: `localStorage.clear()` + `store.setState(store.getInitialState(), true)`
+- Use `queryAllByText()` not `queryByText()` when multiple elements may match (throws on multiple in v10.4.1)
 
----
+## Zustand Patterns
+- **Stale closure prevention**: Read store state inside event handlers with `useStore.getState()`, not from React closures
+- **`partialize`**: Only persistent _data_ fields — never actions, never ephemeral UI state (e.g. `learningAction`, `blob_url`)
+- **Persist keys**: `suniplayer-builder`, `suniplayer-player`, `suniplayer-settings`, `suniplayer-history`, `suniplayer-library`
 
-## 3. Cómo trabajamos ahora
+## Set Builder
+- Algorithm: Monte Carlo (600 iterations) + Greedy fallback
+- Filters: BPM range, venue energy bias, mood transitions
+- BPM filter has graceful fallback: if filter leaves < 3 tracks, uses full catalog (intentional design)
+- `setTrackTrim()` recalculates `tTarget` from scratch via `getEffectiveDuration()` — not a delta
+- `energy` field is musical energy (0.0–1.0), NOT audio RMS — assign semantically per genre/feel
 
-### VOS (Claude) — Arquitecto + Implementador
-El rol flexible que tenías antes funciona bien. Cuando tengas contexto fresco, implementá directamente. Cuando el cambio es grande (>4 archivos o arquitectónico), pasá por SDD o delegá.
+## Audio Analysis
+- `pip install librosa` — available for BPM/chroma analysis of MP3s in `public/audio/`
+- `pip install mutagen` — for reading MP3 duration/metadata without full decode
+- `librosa.beat.beat_track()` returns ndarray — use `float(np.asarray(tempo).item())` to extract scalar
+- Slow songs (~76 BPM) may be detected at 2x tempo by librosa — divide by 2 if musically implausible
 
-### Gentle AI / OpenCode — Orquestador
-Mantiene STATUS.md, CLAUDE.md, Engram, y ejecuta tareas delegadas / SDD.
+## Key Files
+- `apps/web/src/services/useAudio.ts` — Web audio engine (dual-channel A/B, fade, crossfade, analytics)
+- `apps/web/src/services/AudioStreamerService.ts` — Streaming, blob short-circuit, IndexedDB recovery
+- `apps/native/src/platform/ExpoAudioEngine.ts` — Native audio engine (Expo AV)
+- `apps/native/src/platform/SQLiteStorage.ts` — Native storage (analysis + waveforms; no binary audio)
+- `apps/native/src/screens/PlayerScreen.tsx` — Native player UI
+- `packages/core/src/platform/interfaces/IAudioEngine.ts` — Audio engine contract
+- `packages/core/src/services/setBuilderService.ts` — Monte Carlo set building algorithm
+- `packages/core/src/services/AnalyticsService.ts` — Affinity scoring + play analytics
+- `packages/core/src/store/` — 5 domain stores
+- `packages/core/src/types.ts` — Shared types (Track, Show, SetEntry, TrackMarker)
+- `apps/web/src/data/tracks.json` — Built-in catalog (edit to add/update tracks with real BPM/energy/key)
+- `packages/core/src/store/useSettingsStore.ts` — includes `PedalAction`, `PedalBinding`, `PedalBindings` types
+- `apps/web/src/services/usePedalBindings.ts` — Learn Mode + global keydown dispatch
+- `apps/web/src/components/settings/PedalConfig.tsx` — Bluetooth pedal UI
+- `apps/web/src/__tests__/features.test.ts` — Feature acceptance tests across 9 areas (F1–F9)
+- `docs/superpowers/plans/` — Implementation plans (pedal bindings: done; iOS migration: pending)
 
-### Reglas que aplican
-1. **Commits en inglés, convencionales.** `feat:`, `fix:`, `chore:`.
-2. **Testeá TODO.** Sin test aprobado no hay código.
-3. **Engram es el bus.** Todo discovery, decisión o bugfix va a Engram vía `mem_save`.
-4. **NUNCA toques docs/ sin permiso.** Lo maneja el orquestador.
-5. **NUNCA inventes stack decisions.** Lo que está arriba es ley.
-6. **Ahorrá tokens.** Usá `grep`/`glob` quirúrgico, no leas archivos enteros al pedo.
+## Feature Status
 
----
-
-## 4. Feature investigado: Multi-device audio sync
-
-Se investigó a fondo (ver STATUS.md y Engram `handoff/claude`).
-
-**Recomendación: WebSocket server + NTP sync**
-- Server Bun liviano
-- Master (DJ) controla, slaves siguen
-- No transmitir audio (ya está en cada dispositivo vía IndexedDB)
-- Sync de: play, pause, seek, loadTrack, **tempo**, **pitch**
-
-**Alternativa estudiada:** Beatsync (github.com/freeman-jiang/beatsync) — 3k estrellas, MIT, open source, hace exactamente esto. Vale la pena estudiar su approach.
-
----
-
-## 5. STARTUP RÁPIDO (cada sesión nueva)
-
-Para arrancar sin inflar contexto:
-
-```
-1. mem_search(topic_key: "handoff/claude", project: "suniplayer_v2")
-   → handoffs pendientes
-
-2. cat STATUS.md | head -60
-   → estado actual del proyecto
-
-3. cat AGENTS.md | head -40
-   → reglas cross-agent
-
-4. cd app && npx vitest run
-   → verificar que todo está verde antes de arrancar
-
-5. Si hay "handoff/claude" en Engram → prioridad #1
-```
+| Feature | Web | Native |
+|---------|-----|--------|
+| Reproducción básica | ✅ | ✅ |
+| Fade In/Out | ✅ | ✅ |
+| Crossfade | ✅ | N/A |
+| Set Builder Monte Carlo | ✅ | ✅ core |
+| Analytics (affinityScore) | ✅ | ✅ |
+| Pedal Bluetooth | ✅ | N/A |
+| Background audio | ✅ | ✅ |
+| Pitch shift | ✅ web | ❌ native stub |
+| Waveform | ✅ | ⚠️ parcial |
+| Multi-set Shows | ✅ | ✅ core |
+| Buffering bar | ✅ | ✅ |
+| Blob URL fix (ERR_FILE_NOT_FOUND) | ✅ | N/A |
