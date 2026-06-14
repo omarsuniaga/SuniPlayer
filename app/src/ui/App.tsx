@@ -4,6 +4,7 @@ import { Miniplayer } from './miniplayer/Miniplayer'
 import { BottomNav } from './nav/BottomNav'
 import { PlayerView } from './player/PlayerView'
 import { LibraryView } from './views/LibraryView'
+import { ShowView } from './show/ShowView'
 import { useMediaSession } from './hooks/useMediaSession'
 import { usePlayerStore } from '../application/playerStore'
 import { useNavigationStore } from '../application/navigationStore'
@@ -39,6 +40,12 @@ function App() {
     }
   }, [currentTrackId, hasTrack, mode, navigate])
 
+  useEffect(() => {
+    if (showActive && mode === 'show' && currentView !== 'show') {
+      navigate('show')
+    }
+  }, [showActive, mode, currentView, navigate])
+
   const renderView = () => {
     switch (currentView) {
       case 'inicio':
@@ -48,7 +55,7 @@ function App() {
       case 'libreria':
         return <LibraryView onTrackSelected={() => navigate('reproductor')} />
       case 'show':
-        return <PlaceholderView title="Show" />
+        return <ShowView onClose={() => navigate('libreria')} />
       case 'edit':
         return <PlaceholderView title="Edit" />
       case 'perfil':
