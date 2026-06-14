@@ -83,6 +83,9 @@ export function useAudio() {
 
     // Track the intended playback state to resolve race conditions during fades
     const playbackIntent = useRef<"play" | "pause">(playing ? "play" : "pause");
+    // Tracks which track id is currently loaded in the engine, so we can tell a
+    // genuine track change (start from 0) from a reload of the same track (resume).
+    const lastLoadedTrackIdRef = useRef<string | null>(null);
 
     useEffect(() => {
         engine.onPositionUpdate((posMs: number) => {
@@ -143,8 +146,10 @@ export function useAudio() {
                 setPlaying(!isPlaying);
             },
             stopAllAudio: () => {
-                // Main engine
+                // Main engine: STOP is a full stop, not a pause — reset the playhead to
+                // 0 so the next Play starts from the beginning (not where it stopped).
                 engine.pause();
+                engine.seek(0);
                 playbackIntent.current = "pause";
                 // Any pending sync-scheduled start must not fire after a STOP
                 usePlayerStore.setState({ playing: false, countdown: null, scheduledPlay: null });
@@ -225,20 +230,28 @@ export function useAudio() {
         let cancelled = false;
         const url = getTrackUrl(ct);
 
+        // Decide the start position NOW, synchronously, before the async fetch.
+        // A genuine track change always starts from the track's own start (0 or its
+        // trim point) — never the outgoing track's position. We only resume from the
+        // live position when reloading the SAME track. Capturing here also prevents a
+        // late time-update from the previous track leaking into the new one.
+        const isSameTrack = lastLoadedTrackIdRef.current === ct.id;
+        const startMs = isSameTrack
+            ? (usePlayerStore.getState().pos || ct.startTime || 0)
+            : (ct.startTime || 0);
+
         AudioStreamerService.fetchWithProgress(url, (p) => updateDownload(ct.id, p), ct.id)
             .then(async (objectUrl) => {
                 if (cancelled) return;
 
                 if (engine.currentUrl !== objectUrl) {
-                    const currentPos = usePlayerStore.getState().pos;
-                    const startMs = (currentPos > 0) ? currentPos : (ct.startTime || 0);
-
                     await engine.load(objectUrl);
                     if (cancelled) return;
 
                     if (ct.transposeSemitones !== undefined) engine.setPitch(ct.transposeSemitones);
                     if (ct.playbackTempo !== undefined) engine.setTempo(ct.playbackTempo);
                     engine.seek(startMs);
+                    lastLoadedTrackIdRef.current = ct.id;
 
                     const state = usePlayerStore.getState();
                     if (state.sessionId && !state.isLeader) {
@@ -299,6 +312,20 @@ export function useAudio() {
         return () => { cancelled = true; };
 
     }, [ci, engine, pQueue, updateDownload]);
+
+    // ── PREFETCH NEXT QUEUED TRACK ──
+    // Warm the cache for the upcoming track so switching is instant and, in a
+    // SyncEnsemble session, the next song is already local on every device.
+    useEffect(() => {
+        const next = pQueue[ci + 1];
+        if (!next || next.sourceMissing) return;
+        AudioStreamerService.fetchWithProgress(getTrackUrl(next), () => {}, next.id)
+            .then((objUrl) => {
+                // We only wanted the caching side-effect; release the extra blob URL.
+                if (objUrl && objUrl.startsWith("blob:")) URL.revokeObjectURL(objUrl);
+            })
+            .catch(() => { /* prefetch is best-effort */ });
+    }, [ci, pQueue]);
 
     // ── PLAY / PAUSE TOGGLE (With Race Condition Protection) ──
     useEffect(() => {
