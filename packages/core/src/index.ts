@@ -20,6 +20,8 @@ export { SessionManager } from './network/SessionManager';
 export type { SessionMember } from './network/SessionManager';
 export { SyncEnsembleOrchestrator } from './network/SyncEnsembleOrchestrator';
 export { YjsStore } from './network/crdt/YjsStore';
+export { CollaborativeQueue, queueItemFromTrack } from './network/crdt/CollaborativeQueue';
+export type { QueueItem } from './network/crdt/CollaborativeQueue';
 
 // Services
 export { buildSet, genWave, findSmartReplacement, getCamelotDistance } from './services/setBuilderService';
