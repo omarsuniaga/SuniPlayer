@@ -20,6 +20,39 @@ import {
 import { syncEnsemble } from "./network/SyncEnsembleOrchestrator";
 import { usePreviewStore } from "../store/usePreviewStore";
 
+/**
+ * Fires `onFire` after `delayMs`, but resistant to timer drift. A single long
+ * setTimeout can fire 10-100ms late under timer coalescing/throttling, which would
+ * waste the NTP-corrected delay. Instead we wake early and re-check performance.now()
+ * against an absolute target, converging with progressively shorter timers and a
+ * bounded (<3ms) final spin so the start lands within ~1ms of the target.
+ * Returns a cancel function.
+ */
+function schedulePreciseStart(delayMs: number, onFire: () => void): () => void {
+    if (delayMs <= 0) { onFire(); return () => { }; }
+    const target = performance.now() + delayMs;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+
+    const tick = () => {
+        if (cancelled) return;
+        const remaining = target - performance.now();
+        if (remaining > 16) {
+            timer = setTimeout(tick, remaining - 12); // coarse approach, leave margin
+        } else if (remaining > 2) {
+            timer = setTimeout(tick, 0); // fine approach via clamped ~4ms timers
+        } else {
+            // Final <2ms: brief bounded spin to land precisely on the target instant.
+            const spinCap = performance.now() + 3;
+            while (performance.now() < target && performance.now() < spinCap) { /* spin */ }
+            onFire();
+        }
+    };
+    tick();
+
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+}
+
 export function useAudio() {
     const pQueue = usePlayerStore(s => s.pQueue);
     const ci = usePlayerStore(s => s.ci);
@@ -150,18 +183,13 @@ export function useAudio() {
             return;
         }
 
-        const waitMs = Math.max(0, delayMs);
-        const timer = setTimeout(() => {
+        return schedulePreciseStart(delayMs, () => {
             engine.seek(scheduledPlay.positionMs);
             engine.play();
             playbackIntent.current = "play";
             usePlayerStore.setState({ playing: true });
             clearScheduledPlay();
-        }, waitMs);
-
-        return () => {
-            clearTimeout(timer);
-        };
+        });
     }, [scheduledPlay, ci, pQueue, engine, clearScheduledPlay]);
 
     // ── PITCH/TEMPO SYNC ──
@@ -210,7 +238,12 @@ export function useAudio() {
 
                 const pendingPlay = usePlayerStore.getState().scheduledPlay;
                 if (pendingPlay && pendingPlay.trackId === ct.id) {
-                    const delayMs = pendingPlay.targetWallMs - Date.now();
+                    // Same NTP-corrected delay as the SCHEDULED PLAY effect: this path
+                    // runs when the PLAY arrived before the track finished decoding.
+                    const pendingSyncedDelay = pendingPlay.targetPerfMs != null
+                        ? clockSyncService.leaderPerfToLocalDelay(pendingPlay.targetPerfMs)
+                        : null;
+                    const delayMs = pendingSyncedDelay != null ? pendingSyncedDelay : (pendingPlay.targetWallMs - Date.now());
                     if (delayMs < -2000) {
                         engine.seek(pendingPlay.positionMs);
                         engine.play();
@@ -218,14 +251,14 @@ export function useAudio() {
                         usePlayerStore.setState({ playing: true });
                         usePlayerStore.getState().clearScheduledPlay();
                     } else {
-                        setTimeout(() => {
+                        schedulePreciseStart(delayMs, () => {
                             if (cancelled) return;
                             engine.seek(pendingPlay.positionMs);
                             engine.play();
                             playbackIntent.current = "play";
                             usePlayerStore.setState({ playing: true });
                             usePlayerStore.getState().clearScheduledPlay();
-                        }, Math.max(0, delayMs));
+                        });
                     }
                     return;
                 }
