@@ -4,6 +4,7 @@ import {
     SessionManager,
     SyncEnsembleOrchestrator as CoreOrchestrator,
     YjsStore,
+    CollaborativeQueue,
     usePlayerStore,
     TRACKS
 } from "@suniplayer/core";
@@ -34,6 +35,8 @@ class WebSyncEnsembleOrchestrator {
     public readonly sessionManager: SessionManager;
     public readonly orchestrator: CoreOrchestrator;
     public readonly yjsStore: YjsStore;
+    /** Shared, conflict-free setlist queue (phase 1). Syncs over the same transport. */
+    public readonly collaborativeQueue: CollaborativeQueue;
     public readonly audioEngine: BrowserAudioEngine;
 
     // Active transport (swappable at runtime)
@@ -48,6 +51,7 @@ class WebSyncEnsembleOrchestrator {
     private constructor() {
         this.audioEngine = new BrowserAudioEngine();
         this.yjsStore = new YjsStore();
+        this.collaborativeQueue = new CollaborativeQueue(this.yjsStore);
         this.sessionManager = new SessionManager(clockSyncService, this.yjsStore);
         this.activeTransport = new FirestoreTransport();
         this.orchestrator = new CoreOrchestrator(this.audioEngine, this.sessionManager, clockSyncService);
