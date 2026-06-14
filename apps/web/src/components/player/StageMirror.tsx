@@ -26,18 +26,26 @@ export const StageMirror: React.FC = () => {
     const [dragging, setDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const [stream, setStream] = useState<MediaStream | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [retryTick, setRetryTick] = useState(0);
 
     useEffect(() => {
         let activeStream: MediaStream | null = null;
-        
+
         async function startCamera() {
+            setError(null);
+            // Some browsers (older iOS, insecure contexts) don't expose the API at all.
+            if (!navigator.mediaDevices?.getUserMedia) {
+                setError("Este navegador no permite la cámara. Probá en Safari (no la app agregada a inicio).");
+                return;
+            }
             try {
-                const s = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
+                const s = await navigator.mediaDevices.getUserMedia({
+                    video: {
                         width: { ideal: 720 },
                         height: { ideal: 1280 },
                         facingMode: "user"
-                    } 
+                    }
                 });
                 activeStream = s;
                 setStream(s);
@@ -45,8 +53,20 @@ export const StageMirror: React.FC = () => {
                     videoRef.current.srcObject = s;
                 }
             } catch (err) {
+                // Don't silently close — surface WHY so the user can act (and so we
+                // can see the real cause on iPad). iOS is strict about permission and
+                // about the secure/standalone context.
                 console.error("Error accessing camera:", err);
-                toggleMirror(); // Auto-close if no permission or error
+                const name = (err as { name?: string })?.name || "";
+                if (name === "NotAllowedError" || name === "SecurityError") {
+                    setError("Permiso de cámara denegado. Activalo en Ajustes › Safari › Cámara y reintentá.");
+                } else if (name === "NotFoundError" || name === "OverconstrainedError" || name === "DevicesNotFoundError") {
+                    setError("No se encontró una cámara disponible.");
+                } else if (name === "NotReadableError" || name === "TrackStartError") {
+                    setError("La cámara está siendo usada por otra app. Cerrala y reintentá.");
+                } else {
+                    setError("No se pudo abrir la cámara. Si agregaste la app a inicio, probá abrirla en Safari.");
+                }
             }
         }
 
@@ -59,7 +79,7 @@ export const StageMirror: React.FC = () => {
                 activeStream.getTracks().forEach(track => track.stop());
             }
         };
-    }, [isMirrorOpen, toggleMirror]);
+    }, [isMirrorOpen, retryTick]);
 
     // Re-attach stream if video element re-renders
     useEffect(() => {
@@ -181,6 +201,26 @@ export const StageMirror: React.FC = () => {
                 background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 50%)",
                 pointerEvents: "none"
             }} />
+
+            {/* Camera error overlay — keeps the mirror open and explains the failure */}
+            {error && (
+                <div style={{
+                    position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+                    alignItems: "center", justifyContent: "center", gap: 12, padding: 16,
+                    textAlign: "center", background: "rgba(0,0,0,0.82)", pointerEvents: "auto"
+                }}>
+                    <div style={{ fontSize: 26 }}>📷</div>
+                    <div style={{ fontSize: 12, lineHeight: 1.4, color: "#eee", fontWeight: 600 }}>{error}</div>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setRetryTick(t => t + 1); }}
+                        style={{
+                            marginTop: 4, padding: "8px 16px", borderRadius: 8, border: "none",
+                            background: THEME.colors.brand.cyan, color: "black", fontWeight: 900,
+                            fontSize: 11, cursor: "pointer"
+                        }}
+                    >REINTENTAR</button>
+                </div>
+            )}
 
             {/* ── Controls Overlay ── */}
             <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
