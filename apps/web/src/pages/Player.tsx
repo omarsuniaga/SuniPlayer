@@ -26,7 +26,6 @@ import { PlaybackControls } from "../features/player/components/PlaybackControls
 import { VolumeControl } from "../features/player/components/VolumeControl";
 import { SetlistSidebar } from "../features/player/components/SetlistSidebar";
 import { useUIStore } from "../store/useUIStore";
-import { ShowControl } from "../features/player/components/ShowControl";
 
 interface PlayerProps {
     onModeToggle: () => void;
@@ -47,9 +46,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const mode = useProjectStore(s => s.mode);
     const elapsed = useProjectStore(s => s.elapsed);
     const fadeEnabled = useProjectStore(s => s.fadeEnabled);
-    const setFadeEnabled = useProjectStore(s => s.setFadeEnabled);
     const crossfade = useProjectStore(s => s.crossfade);
-    const setCrossfade = useProjectStore(s => s.setCrossfade);
     const crossfadeMs = useProjectStore(s => s.crossfadeMs);
     const setCrossfadeMs = useProjectStore(s => s.setCrossfadeMs);
     const fadeInMs = useProjectStore(s => s.fadeInMs);
@@ -57,7 +54,6 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const fadeOutMs = useSettingsStore(s => s.fadeOutMs);
     const setFadeOutMs = useProjectStore(s => s.setFadeOutMs);
     const splMeterEnabled = useProjectStore(s => s.splMeterEnabled);
-    const setSplMeterEnabled = useProjectStore(s => s.setSplMeterEnabled);
     const splMeterTarget = useProjectStore(s => s.splMeterTarget);
     const splMeterExpanded = useProjectStore(s => s.splMeterExpanded);
     const setSplMeterExpanded = useProjectStore(s => s.setSplMeterExpanded);
@@ -66,17 +62,14 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const crossExpanded = useProjectStore(s => s.crossExpanded);
     const setCrossExpanded = useProjectStore(s => s.setCrossExpanded);
     const showMarkers = useProjectStore(s => s.showMarkers);
-    const setShowMarkers = useProjectStore(s => s.setShowMarkers);
     const isSimulating = useProjectStore(s => s.isSimulating);
     const stackOrder = useProjectStore(s => s.stackOrder);
     const setStackOrder = useProjectStore(s => s.setStackOrder);
     const performanceMode = useSettingsStore(s => s.performanceMode);
     const autoNext = useSettingsStore(s => s.autoNext);
-    const setAutoNext = useSettingsStore(s => s.setAutoNext);
     const playbackGapMs = useSettingsStore(s => s.playbackGapMs);
     const setPlaybackGapMs = useSettingsStore(s => s.setPlaybackGapMs);
     const curveVisible = useSettingsStore(s => s.curveVisible);
-    const setCurveVisible = useSettingsStore(s => s.setCurveVisible);
     const curveExpanded = useSettingsStore(s => s.curveExpanded);
     const setCurveExpanded = useSettingsStore(s => s.setCurveExpanded);
     const playbackGapRemainingMs = usePlayerStore(s => s.playbackGapRemainingMs);
@@ -85,7 +78,6 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const isMirrorOpen = usePlayerStore(s => s.isMirrorOpen);
     const mirrorMode = usePlayerStore(s => s.mirrorMode);
     const toggleMirror = usePlayerStore(s => s.toggleMirror);
-    const setMirrorMode = usePlayerStore(s => s.setMirrorMode);
 
     // ── UI State ──
     const [flowExpanded, setFlowExpanded] = useState(true);
@@ -294,30 +286,10 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
 
                     <VolumeControl vol={vol} mCol={mCol} performanceMode={performanceMode} onVolumeChange={setVol} />
 
-                    {/* ⚙️ CONTROLES DE EFECTOS (Debajo de los controles principales) */}
+                    {/* Effect panels live below; each is self-contained (minimized by
+                        default) and enabled from Player Settings. The old toggle grid
+                        (ShowControl) was removed; the camera/mirror moved to the header. */}
                     <div style={{ marginTop: 16 }}>
-                        <div style={{ fontSize: 10, fontWeight: 800, color: THEME.colors.text.muted, letterSpacing: 1.5, marginBottom: 12, paddingLeft: 4 }}>CONTROLES DE EFECTOS </div>
-                        <ShowControl 
-                            autoNext={autoNext} setAutoNext={setAutoNext}
-                            crossfade={crossfade} setCrossfade={setCrossfade} 
-                            fadeEnabled={fadeEnabled} setFadeEnabled={setFadeEnabled} 
-                            splMeterEnabled={splMeterEnabled} setSplMeterEnabled={setSplMeterEnabled} 
-                            curveVisible={curveVisible} setCurveVisible={setCurveVisible} 
-                            showMarkers={showMarkers} setShowMarkers={setShowMarkers}
-                            hasCurve={Boolean(curve)} 
-                            isMirrorOpen={isMirrorOpen}
-                            onToggleMirror={toggleMirror}
-                            mirrorMode={mirrorMode}
-                            onToggleMirrorMode={() => {
-                                if (!isMirrorOpen) {
-                                    setMirrorMode('floating');
-                                    toggleMirror();
-                                } else {
-                                    setMirrorMode(mirrorMode === 'docked' ? 'floating' : 'docked');
-                                }
-                            }}
-                        />
-
                         {/* DOCKED STAGE MIRROR */}
                         {isMirrorOpen && mirrorMode === 'docked' && (
                             <div style={{ marginTop: 24, display: "flex", justifyContent: "center" }}>

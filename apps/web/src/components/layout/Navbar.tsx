@@ -188,25 +188,23 @@ export const Navbar: React.FC = () => {
                     <span>{isShowMode ? (isMobile ? "LIVE" : "MODO SHOW") : "SHOW"}</span>
                 </button>
 
-                {!isMobile && (
-                    <button
-                        onClick={toggleMirror}
-                        title="Espejo de Escenario"
-                        style={{
-                            background: isMirrorOpen ? "rgba(6, 182, 212, 0.2)" : "rgba(255,255,255,0.02)",
-                            border: isMirrorOpen ? `1px solid ${THEME.colors.brand.cyan}` : `1px solid rgba(255,255,255,0.1)`,
-                            borderRadius: "10px",
-                            cursor: "pointer",
-                            color: isMirrorOpen ? THEME.colors.brand.cyan : THEME.colors.text.muted,
-                            width: "38px", height: "38px",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            boxShadow: isMirrorOpen ? `0 0 15px ${THEME.colors.brand.cyan}40` : "none",
-                            transition: "all 0.3s ease"
-                        }}
-                    >
-                        <span style={{ fontSize: 18 }}>📸</span>
-                    </button>
-                )}
+                <button
+                    onClick={toggleMirror}
+                    title="Espejo de Escenario (cámara)"
+                    style={{
+                        background: isMirrorOpen ? "rgba(6, 182, 212, 0.2)" : "rgba(255,255,255,0.02)",
+                        border: isMirrorOpen ? `1px solid ${THEME.colors.brand.cyan}` : `1px solid rgba(255,255,255,0.1)`,
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        color: isMirrorOpen ? THEME.colors.brand.cyan : THEME.colors.text.muted,
+                        width: "38px", height: "38px",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: isMirrorOpen ? `0 0 15px ${THEME.colors.brand.cyan}40` : "none",
+                        transition: "all 0.3s ease"
+                    }}
+                >
+                    <span style={{ fontSize: 18 }}>📸</span>
+                </button>
 
                 <button
                     className="sync-btn"

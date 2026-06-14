@@ -208,6 +208,10 @@ export const SettingsPanel: React.FC = () => {
     const setFadeOutMs = useProjectStore(s => s.setFadeOutMs);
     const splMeterEnabled = useProjectStore(s => s.splMeterEnabled);
     const setSplMeterEnabled = useProjectStore(s => s.setSplMeterEnabled);
+    const curveVisible = useSettingsStore(s => s.curveVisible);
+    const setCurveVisible = useSettingsStore(s => s.setCurveVisible);
+    const showMarkers = useSettingsStore(s => s.showMarkers);
+    const setShowMarkers = useSettingsStore(s => s.setShowMarkers);
     const resetApp = useProjectStore(s => s.resetApp);
     const performanceMode = useSettingsStore(s => s.performanceMode);
     const setPerformanceMode = useSettingsStore(s => s.setPerformanceMode);
@@ -331,6 +335,8 @@ export const SettingsPanel: React.FC = () => {
                             </>
                         )}
                         <Toggle label="Sonómetro (dB SPL)" checked={splMeterEnabled} onChange={setSplMeterEnabled} />
+                        <Toggle label="Curva de energía" description="Muestra el panel de la curva de energía del set." checked={curveVisible} onChange={setCurveVisible} />
+                        <Toggle label="Marcas" description="Muestra las marcas (cue points) sobre la forma de onda." checked={showMarkers} onChange={setShowMarkers} />
                         <Toggle label="Modo Tablet" checked={performanceMode} onChange={setPerformanceMode} />
                     </AccordionSection>
 
