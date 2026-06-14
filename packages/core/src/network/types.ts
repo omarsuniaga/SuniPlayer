@@ -4,6 +4,7 @@ export type P2PMessageType =
     | 'CLOCK_PING'
     | 'CLOCK_PONG'
     | 'PLAY'
+    | 'PLAY_REQUEST'
     | 'PAUSE'
     | 'SEEK'
     | 'STOP'

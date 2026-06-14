@@ -5,9 +5,12 @@ import {
     SyncEnsembleOrchestrator as CoreOrchestrator,
     YjsStore,
     CollaborativeQueue,
+    queueItemFromTrack,
+    getTrackUrl,
     usePlayerStore,
     TRACKS
 } from "@suniplayer/core";
+import type { Track } from "@suniplayer/core";
 import { BrowserAudioEngine } from "../../platform/browser/BrowserAudioEngine";
 import { FirestoreTransport } from "./FirestoreTransport";
 import { LanWebSocketTransport } from "./LanWebSocketTransport";
@@ -64,6 +67,32 @@ class WebSyncEnsembleOrchestrator {
             WebSyncEnsembleOrchestrator.instance = new WebSyncEnsembleOrchestrator();
         }
         return WebSyncEnsembleOrchestrator.instance;
+    }
+
+    /**
+     * Phase 2 — contribute one of my tracks to the shared queue. Adds the entry
+     * (owner = me) so it appears on every device, then uploads the audio and
+     * publishes its CDN URL so others can fetch it (and it survives me leaving).
+     */
+    public async contributeTrack(track: Track): Promise<void> {
+        const item = queueItemFromTrack(track, this.userId);
+        this.collaborativeQueue.add(item);
+
+        const sessionId = this.sessionManager.getSessionId();
+        if (!sessionId) return; // local-only queue (no session) — nothing to upload
+
+        try {
+            const localUrl = getTrackUrl(track);
+            const transport = this.sessionManager.getTransport() as unknown as {
+                uploadAudioForSession?: (s: string, t: string, u: string) => Promise<string>;
+            };
+            if (transport?.uploadAudioForSession) {
+                const url = await transport.uploadAudioForSession(sessionId, track.id, localUrl);
+                if (url) this.collaborativeQueue.setSourceUrl(item.uid, url);
+            }
+        } catch (err) {
+            console.error("[SyncEnsemble] contributeTrack: audio upload failed", err);
+        }
     }
 
     private async initialize() {
