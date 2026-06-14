@@ -58,7 +58,9 @@ export function parseMusicalKey(key?: string | null): ParsedKey | null {
 export function getTransposeSemitones(sourceKey?: string | null, targetKey?: string | null): number {
     const source = parseMusicalKey(sourceKey);
     const target = parseMusicalKey(targetKey);
-    if (!source || !target || source.mode !== target.mode) return 0;
+    // A pitch shift only depends on pitch class, not on the Major/Minor mode:
+    // shifting C → D is +2 semitones regardless of how either key is labelled.
+    if (!source || !target) return 0;
 
     const upwardDistance = (target.index - source.index + 12) % 12;
     return upwardDistance > 6 ? upwardDistance - 12 : upwardDistance;

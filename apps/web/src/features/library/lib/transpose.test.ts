@@ -14,6 +14,13 @@ describe("transpose helpers", () => {
         expect(getTransposeSemitones("A Minor", "C Minor")).toBe(3);
     });
 
+    it("shifts pitch regardless of Major/Minor mode (pitch class only)", () => {
+        // A pitch shift depends only on pitch class, so cross-mode targets must
+        // still produce a non-zero shift instead of silently returning 0.
+        expect(getTransposeSemitones("C Major", "D Minor")).toBe(2);
+        expect(getTransposeSemitones("C", "D Major")).toBe(2);
+    });
+
     it("builds target keys from source and semitone offset", () => {
         expect(buildTargetKey("C# Major", 1)).toBe("D Major");
         expect(describeTranspose(0)).toBe("Original");

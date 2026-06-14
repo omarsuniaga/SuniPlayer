@@ -9,6 +9,7 @@ import { analyzeAudio } from "../../services/analysisService.ts";
 import { saveAsset, deleteAsset } from "../../services/assetStorage.ts";
 import { KEY_OPTIONS, buildTargetKey, describeTranspose, getTransposeSemitones, parseMusicalKey } from "../../features/library/lib/transpose";
 import { getPitchEngine } from "../../services/pitchEngine";
+import { usePlayerStore } from "../../store/usePlayerStore.ts";
 import { getWaveformData } from "../../services/waveformService.ts";
 import { Wave } from "./Wave.tsx";
 
@@ -27,7 +28,7 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
     const [waveData, setWaveData] = useState<number[]>([]);
 
-    const sourceKey = edit.key || track.key || "12B";
+    const sourceKey = edit.key || track.key || "C Major";
     const targetKey = edit.targetKey || sourceKey;
     const transposeSemitones = getTransposeSemitones(sourceKey, targetKey);
     const playbackTempo = edit.playbackTempo ?? 1.0;
@@ -46,6 +47,8 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
 
     const handlePreview = async () => {
         if (isPreviewPlaying) return;
+        // Stop the main player first so the preview never stacks on top of it.
+        usePlayerStore.getState().setPlaying(false);
         const engine = getPitchEngine();
         setIsLoadingPreview(true);
         try {
@@ -168,13 +171,13 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                     <span style={{ fontSize: 9, fontWeight: 900, color: THEME.colors.brand.violet }}>NORMALIZACIÓN (dB)</span>
                                     <span style={{ fontSize: 11, fontWeight: 900 }}>{(edit.gainOffset ?? 0) > 0 ? "+" : ""}{edit.gainOffset || 0}dB</span>
                                 </div>
-                                <input type="range" min={-6} max={6} step={0.5} value={edit.gainOffset || 0} onChange={e => setEdit({...edit, gainOffset: parseFloat(e.target.value)})} style={{ width: "100%", accentColor: THEME.colors.brand.violet }} />
+                                <input type="range" className="tech-slider" min={-6} max={6} step={0.5} value={edit.gainOffset || 0} onChange={e => setEdit({...edit, gainOffset: parseFloat(e.target.value)})} style={{ width: "100%", ["--track-accent" as string]: THEME.colors.brand.violet }} />
                                 
                                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, marginBottom: 8 }}>
                                     <span style={{ fontSize: 9, fontWeight: 900, color: THEME.colors.brand.cyan }}>VELOCIDAD (TEMPO)</span>
                                     <span style={{ fontSize: 11, fontWeight: 900 }}>{Math.round(((edit.playbackTempo || 1.0) - 1.0) * 100)}%</span>
                                 </div>
-                                <input type="range" min={0.8} max={1.2} step={0.01} value={edit.playbackTempo || 1.0} onChange={e => setEdit({...edit, playbackTempo: parseFloat(e.target.value)})} style={{ width: "100%", accentColor: THEME.colors.brand.cyan }} />
+                                <input type="range" className="tech-slider" min={0.8} max={1.2} step={0.01} value={edit.playbackTempo || 1.0} onChange={e => setEdit({...edit, playbackTempo: parseFloat(e.target.value)})} style={{ width: "100%", ["--track-accent" as string]: THEME.colors.brand.cyan }} />
                             </div>
                         </div>
                     )}
@@ -213,6 +216,13 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
             <style>{`
                 .range-slider { appearance: none; background: transparent; pointer-events: none; }
                 .range-slider::-webkit-slider-thumb { appearance: none; pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: white; border: 2px solid currentColor; cursor: pointer; }
+
+                /* Dark-theme range sliders (normalization / tempo) */
+                .tech-slider { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); outline: none; cursor: pointer; }
+                .tech-slider::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); }
+                .tech-slider::-moz-range-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); }
+                .tech-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -5px; width: 16px; height: 16px; border-radius: 50%; background: var(--track-accent, #00E5FF); border: 2px solid #0A0E14; box-shadow: 0 0 8px var(--track-accent, #00E5FF); cursor: pointer; }
+                .tech-slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--track-accent, #00E5FF); border: 2px solid #0A0E14; box-shadow: 0 0 8px var(--track-accent, #00E5FF); cursor: pointer; }
             `}</style>
         </div>,
         document.body
