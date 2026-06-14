@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { ErrorBoundary } from './atoms/ErrorBoundary'
 import { HomeView } from './views/HomeView'
 import { Miniplayer } from './miniplayer/Miniplayer'
 import { BottomNav } from './nav/BottomNav'
@@ -77,9 +76,7 @@ function App() {
         fontFamily: 'system-ui, sans-serif',
       }}
     >
-      <ErrorBoundary>
-        <main style={{ paddingBottom: 160 }}>{renderView()}</main>
-      </ErrorBoundary>
+      <main style={{ paddingBottom: 160 }}>{renderView()}</main>
       <Miniplayer />
       <BottomNav />
     </div>
