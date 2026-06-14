@@ -5,3 +5,4 @@ docs/.obsidian/workspace*.json
 app/node_modules/
 app/dist/
 Suniplayer/
+tools/dispatch.log
