@@ -1,4 +1,38 @@
+---
+ruta: docs/especificaciones/05-telemetria.md
+tipo: especificacion
+origen: "[[00-vision-general]]"
+estado: estable
+---
+
 # Telemetría y Datos de Uso
+
+## Función
+
+Definir qué métricas de uso registra Suniplayer localmente, con qué propósito y bajo qué principios de privacidad.
+
+## Entrada
+
+- Marco de referencia del sistema ← [[00-vision-general]]
+- Datos locales de uso persistidos ← [[04-almacenamiento]]
+- Tiempos acumulados por modo ← [[12-cronometro]]
+
+## Proceso
+
+La telemetría de Suniplayer es completamente local: no hay servidor receptor ni transmisión de datos. El sistema registra métricas de uso y rendimiento en la base de datos del dispositivo. Esos datos se presentan al usuario en su vista de Perfil y pueden exportarse voluntariamente de forma anónima.
+
+## Salida
+
+- Estadísticas para mostrar al usuario → [[06-vista-perfil]]
+
+## Errores
+
+- **Lógico:** el registro de una métrica falla porque la base de datos local no está disponible (ej.: corrupción del almacenamiento) — la telemetría se pierde para esa sesión pero no interrumpe la reproducción; la app registra el fallo en un log interno.
+- **Semántico:** el "tiempo total acumulado en shows" se confunde con el "cronómetro de sesión actual" en la presentación al usuario — son métricas distintas (una persiste, la otra es volátil); la UI debe distinguirlas con etiquetas claras.
+
+Catálogo global: [[07-modelo-errores]]
+
+---
 
 ## ¿Qué queremos saber?
 
@@ -24,7 +58,7 @@ El objetivo no es espiar al usuario — es **entender cómo se usa Suniplayer** 
 | Cantidad de canciones importadas | Entender el tamaño típico de librería |
 | Tipos de archivo más usados (mp3 vs wav vs flac) | Priorizar soporte de formatos |
 | Features más usados (pitch shift, tempo, fade, etc.) | Saber qué mejorar y qué mantener |
-| Tiempo en Modo Escucha vs Modo Edit vs Modo Show | Entender cómo se usa realmente la app (dato del tiempo total acumulado, persistido en DB; no confundir con el Cronómetro de Sesión que es volátil) |
+| Tiempo en Modo Escucha vs Modo Edit vs Modo Show | Entender cómo se usa realmente la app (dato del tiempo total acumulado, persistido en DB; no confundir con el Cronómetro de Sesión que es volátil — los origina [[12-cronometro]]; ver la distinción sesión volátil vs acumulado ahí) |
 | Tema más usado (dark vs light) | Decidir defaults en futuras versiones |
 | Cantidad de marcadores por canción | Evaluar si el feature de marcadores se usa |
 | Tamaño de playlists y sets creados | Guiar decisiones de UI |

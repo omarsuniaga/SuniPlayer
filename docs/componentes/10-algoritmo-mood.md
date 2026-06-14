@@ -1,39 +1,125 @@
+---
+ruta: docs/componentes/10-algoritmo-mood.md
+tipo: componente
+origen: "[[02-modelo-colecciones]]"
+estado: estable
+---
+
 # Algoritmo de Ánimo (Mood/Energy Algorithm)
 
-## ¿Qué es?
+## Función
 
-El cerebro detrás de las **Colecciones Inteligentes de curva de BPM**. Toma todas las canciones analizadas y las agrupa según su **energía rítmica** para crear experiencias musicales coherentes.
+Clasificar y agrupar canciones de forma automatizada según su BPM y niveles de energía estimados; calcular progresiones de tempo (curvas lineal, campana y exponencial); y generar Colecciones Inteligentes coherentes rítmicamente para el usuario.
 
-> **Alcance de este algoritmo:** este componente es EXCLUSIVO para las colecciones basadas en curva de BPM (Lineal, Curva, Exponencial). No tiene ninguna relación con la Colección Inteligente: Más Reproducidas, que es una colección separada basada en el contador de reproducciones de cada canción — no en ánimo ni en BPM. Las dos lógicas son completamente independientes.
+## Entrada
 
----
+- BPM y clasificación de energía estimadas por track ← [[04-bpm-analyzer]]
 
-## ¿Cómo funciona en lenguaje natural?
+## Proceso
 
-El algoritmo recibe una lista de canciones con sus BPM y las organiza en grupos que **funcionan bien juntos**.
+1. **Recolección de Datos:** Lee los metadatos físicos y analizados de todas las canciones registradas en la librería. Descarta tracks que no posean un BPM válido (confianza < 50%).
+2. **Criterios de Agrupación (Progresiones):**
+   - **Lineal (BPM Constante):** Agrupa canciones cuyo BPM varía en un rango de ±5. Crea bloques uniformes de tempo constante.
+   - **Curva (Campana):** Ordena un conjunto de canciones comenzando por tempo lento, ascendiendo paulatinamente hasta un clímax (BPM máximo) y descendiendo simétricamente hacia el final.
+   - **Exponencial (Escalada):** Ordena las canciones en una secuencia estrictamente ascendente de BPM.
+3. **Validación de Criterios Mínimos:**
+   - Cada colección debe contener un mínimo de 4 canciones.
+   - La duración total acumulada de la colección debe superar los 10 minutos.
+   - Si no se cumplen estos requisitos, la colección no se expone a la UI.
+4. **Regeneración:** El algoritmo se vuelve a disparar ante importación de tracks, reanálisis de BPM, gestos de pull-to-refresh en la UI o borrado de tracks.
 
-Pensalo como un DJ organizando su set:
-- No pondría una balada lenta después de un tema de drum & bass.
-- Buscaría canciones que fluyan naturalmente de una a otra.
-- Querría saber cómo sería un set que sube gradualmente de intensidad.
-
-El algoritmo hace exactamente eso, pero automático.
-
----
-
-## Entrada del algoritmo
+### Diagrama de flujo
 
 ```text
-Lista de canciones con BPM analizado:
-[
-  { nombre: "Balada Triste.mp3",  bpm: 72,  duracion: 210 },
-  { nombre: "Salsa Brava.mp3",    bpm: 128, duracion: 225 },
-  { nombre: "Merengón.wav",       bpm: 135, duracion: 241 },
-  { nombre: "Rock Pesado.ogg",    bpm: 145, duracion: 201 },
-  { nombre: "Bachata Rosa.flac",  bpm: 118, duracion: 214 },
-  { nombre: "Jazz Suave.mp3",     bpm: 85,  duracion: 310 },
-]
+  ┌──────────────────┐
+  │  EVENTO          │
+  │  (importación,   │
+  │  reanálisis,     │
+  │  pull-to-refresh,│
+  │  borrado)        │
+  └────────┬─────────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  LEER ALL    │
+    │  TRACKS      │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  DESCARTAR   │
+    │  BPM < 50%   │
+    │  confianza   │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  ¿QUÉDAN ≥4  │
+    │  CANCIONES?  │
+    └──────┬───────┘
+           │
+     ┌─────┴─────┐
+     │           │
+  [SÍ]▼           ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ GENERAR│ │ ABORTAR      │
+ │ COLECC.│ │ estado       │
+ │ según  │ │ SIN_DATOS    │
+ │ tipo   │ └──────────────┘
+ └───┬────┘
+     │
+     ▼
+  ┌──────────────────┐
+  │  GENERAR LINEAL  │
+  │  (BPM ±5)        │
+  │  SIEMPRE         │
+  └────────┬─────────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  ¿HAY DATOS  │
+    │  PARA CURVA? │
+    └──────┬───────┘
+           │
+     ┌─────┴─────┐
+     │           │
+  [SÍ]▼           ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ GENERAR│ │ SOLO LINEALES│
+ │ CURVA  │ │ reportar     │
+ │ +      │ │ SÓLO_LINEALES│
+ │ ESCAL. │ └──────────────┘
+ └───┬────┘
+     │
+     ▼
+    ┌──────────────┐
+    │  VALIDAR     │
+    │  DURACIÓN ≥  │
+    │  10 min      │
+    └──────┬───────┘
+           │
+     ┌─────┴─────┐
+     │           │
+  [SÍ]▼           ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ EXPONER│ │ NO EXPONER   │
+ │ EN UI  │ │ EN UI        │
+ └────────┘ └──────────────┘
 ```
+
+## Salida
+
+- Estructura y tracks de las Colecciones Inteligentes generadas → [[02-modelo-colecciones]]
+- Tarjetas de colecciones auto-generadas a renderizar → [[01-vista-inicio]]
+
+## Errores
+
+- **Lógico:** el número de canciones analizadas en la librería es inferior a 4
+  - *Resolución:* el algoritmo aborta la ejecución de forma limpia y reporta estado `SIN_DATOS`.
+- **Semántico:** todas las canciones de la librería tienen el mismo BPM exacto
+  - *Resolución:* el algoritmo no puede calcular curvas de progresión (Campana o Escalada); únicamente genera colecciones de tipo Lineal y reporta estado `SÓLO_LINEALES`.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
@@ -50,7 +136,6 @@ Resultado: Colección "120 BPM Lineal" — todas suenan a tempo parecido
 
 **Para qué sirve:**
 - Un set de música bailable constante.
-- Una playlist para estudiar/trabajar sin cambios bruscos.
 - Mezcla continua sin sobresaltos.
 
 ### 2. Curva (Campana)
@@ -65,7 +150,6 @@ BPM:  72 → 85 → 118 → 135 → 145 → 128 → 85 → 72
 **Para qué sirve:**
 - Un show con apertura, clímax y cierre.
 - Una experiencia musical narrativa (como un concierto tradicional).
-- Cuando querés llevar al oyente de un estado de ánimo a otro y volver.
 
 ### 3. Exponencial (Escalada)
 
@@ -77,40 +161,8 @@ BPM: 72 → 85 → 100 → 118 → 128 → 135 → 145
 ```
 
 **Para qué sirve:**
-- Sets que van de lo suave a lo intenso.
-- Calentamiento musical (empezás relajado y terminás agitado).
-- Sesiones de ejercicio o baile.
-
----
-
-## Salida del algoritmo
-
-```text
-Colecciones Inteligentes generadas:
-[
-  {
-    nombre: "120 BPM Lineal #1",
-    tipo: "lineal",
-    canciones: 8,
-    duracion: "28:34",
-    rango_bpm: "118-123"
-  },
-  {
-    nombre: "Curva de Energía #3",
-    tipo: "curva",
-    canciones: 12,
-    duracion: "41:12",
-    rango_bpm: "72-145"
-  },
-  {
-    nombre: "Escalada Exponencial #1",
-    tipo: "exponencial",
-    canciones: 6,
-    duracion: "21:05",
-    rango_bpm: "72-145"
-  }
-]
-```
+- Sets que va de lo suave a lo intenso.
+- Calentamiento musical.
 
 ---
 
@@ -125,42 +177,75 @@ Colecciones Inteligentes generadas:
 
 ---
 
-## Regeneración
+## Estrategia
 
-Las colecciones inteligentes se regeneran cuando:
+### Algoritmo propuesto para Curva (Campana)
+Algoritmo de "mountain sorting": ordenar canciones por BPM, subir desde el mínimo hasta el máximo (pendiente positiva), luego bajar desde el máximo hasta el mínimo original (pendiente negativa). Esto produce una forma de campana perfecta.
 
-1. **Se importan canciones nuevas** → el algoritmo se ejecuta de nuevo.
-2. **El usuario hace pull-to-refresh** → fuerza regeneración.
-3. **Se elimina una canción** → la colección se actualiza.
-4. **El usuario re-analiza el BPM de una canción** → el BPM cambia, la colección puede cambiar.
+### Algoritmo propuesto para Exponencial (Escalada)
+Ordenar canciones por BPM ascendente con una restricción: diferencia mínima de ≥3 BPM entre adyacentes para evitar saltos imperceptibles.
 
----
+### Algoritmo para Lineal
+Agrupar por BPM ±5, ordenar las canciones internamente por duración (más corta a más larga) para calentamiento progresivo.
 
-## Limitaciones
+### Selección óptima
+Para cada tipo de colección, seleccionar las N canciones que mejor se ajusten al perfil. Si hay ≥4 tracks disponibles, generar todas las colecciones posibles. Si una canción califica para múltiples colecciones, priorizar siempre Lineal > Curva > Exponencial (de más útil a menos útil).
 
-- Una canción sin BPM analizado (confianza < 50%) no entra en ninguna colección inteligente.
-- Si hay menos de 4 canciones analizadas, no se generan colecciones (la app muestra "Importá más canciones para generar colecciones").
-- El algoritmo no considera género musical (solo BPM). Dos canciones de distinto género pueden terminar juntas si tienen BPM similar.
-- El algoritmo no considera clave musical. Futura mejora posible.
-
----
-
-## Relación con otros componentes
-
-| Componente | Relación |
-|-----------|----------|
-| BPM Analyzer | El algoritmo consume el BPM de cada canción |
-| Colecciones (modelo) | Las colecciones inteligentes son un tipo de colección |
-| Vista Inicio | Las colecciones inteligentes se muestran en la sección principal de inicio |
+### Dependencias técnicas
+- Los tracks deben tener BPM y confianza calculados por [[04-bpm-analyzer]]
+- Se descartan tracks con confianza < 50%
+- Mínimo 4 tracks por colección
+- Duración total mínima: 10 minutos
 
 ---
 
-## Estados
+## Pseudocódigo
 
-| Estado | Comportamiento |
-|--------|---------------|
-| Sin datos | Menos de 4 canciones analizadas → no se generan colecciones |
-| Generando | Procesando agrupaciones (rápido, < 1 segundo) |
-| Generado | Colecciones disponibles y visibles |
-| Actualizado | Se agregaron/quitaron canciones → colecciones recalculadas |
-| Vacío | Hay canciones pero ninguna cumple los criterios mínimos |
+### Generación de Colección Lineal
+```
+function generarLineal(tracks):
+    agrupados = agruparPorBPM(tracks, tolerancia=5)
+    for grupo in agrupados:
+        if len(grupo) >= 4 and duracionTotal(grupo) >= 600:
+            ordenarPorDuracionAsc(grupo)
+            crearColeccion("LINEAL", grupo, BPM_promedio=promedio(grupo.bpm))
+```
+
+### Generación de Colección Curva (Campana)
+```
+function generarCurva(tracks):
+    ordenados = ordenarPorBPMAsc(tracks)
+    if len(ordenados) < 4: return
+    pico = len(ordenados) - 1  // índice del BPM máximo
+    subida = ordenados[0:pico+1]
+    bajada = reversed(ordenados[0:pico])
+    curva = concatenar(subida, bajada)
+    if len(curva) >= 4 and duracionTotal(curva) >= 600:
+        crearColeccion("CURVA", curva)
+```
+
+### Generación de Colección Exponencial (Escalada)
+```
+function generarEscalada(tracks):
+    ordenados = ordenarPorBPMAsc(tracks)
+    escalada = []
+    for track in ordenados:
+        if escalada is empty:
+            escalada.append(track)
+        else:
+            diff = track.bpm - escalada[-1].bpm
+            if diff >= 3:
+                escalada.append(track)
+    if len(escalada) >= 4 and duracionTotal(escalada) >= 600:
+        crearColeccion("EXPONENCIAL", escalada)
+```
+
+### Generación de Colección "Más Reproducidas"
+```
+function generarMasReproducidas(tracks):
+    con_contador = [t for t in tracks if t.contador > 0]
+    ordenados = ordenarPorContadorDesc(con_contador)
+    top = ordenados[:limite_sugerido=20]
+    if len(top) >= 4:
+        crearColeccion("MAS_REPRODUCIDAS", top, criterio="contador")
+```

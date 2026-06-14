@@ -1,139 +1,239 @@
-# Cronómetros
+---
+ruta: docs/componentes/12-cronometro.md
+tipo: componente
+origen: "[[03-modelo-sesion]]"
+estado: estable
+---
 
-## ¿Qué es?
+# Cronómetros de Sesión y Show
 
-Un sistema de **medición de tiempo** que funciona en tres niveles distintos según el contexto.
+## Función
+
+Registrar de forma precisa la duración de la sesión actual; gestionar el cronómetro ascendente y la cuenta regresiva del show en vivo; disparar alertas visuales de hito de tiempo; y reportar las duraciones acumuladas al cerrarse.
+
+## Entrada
+
+- Señales de cambio de modo de sesión (inicio/fin de Modo Show/Edit) ← [[03-modelo-sesion]]
+- Duración objetivo del Set activo ← [[02-modelo-colecciones]]
+
+## Proceso
+
+1. **Cronómetro de Sesión (Volátil):**
+   - Inicia de forma automática al abrir la aplicación.
+   - Incrementa un contador en milisegundos en segundo plano.
+   - Al cerrar la app, reporta la duración a [[05-telemetria]] para sumarse al total histórico, y se destruye en memoria.
+2. **Cronómetro de Show (Vivo):**
+   - Se activa únicamente al entrar a Modo Show.
+   - **Modo Ascendente:** Registra el tiempo transcurrido desde el inicio de la presentación en vivo.
+   - **Modo Cuenta Regresiva (Countdown):**
+     - Toma la `duración objetivo` del Set (ej: 45 minutos) o la ingresada al arrancar el show.
+     - Decrementa el tiempo restante de forma precisa.
+     - **Alertas Visuales de Hitos:** Cuando el tiempo restante cruza marcas críticas, el componente envía eventos visuales a [[04-vista-show]]:
+       - Faltan 10 minutos (clase CSS `.alert-time-warning`, texto en amarillo).
+       - Faltan 5 minutos (clase CSS `.alert-time-danger`, texto en rojo).
+       - Tiempo cumplido (clase CSS `.alert-time-overrun`, parpadeo de seguridad).
+       - *REGLA DE SEGURIDAD:* Las alertas son 100% visuales. Está estrictamente prohibido emitir pitidos o sonidos de sistema durante el Modo Show.
+3. **Cronómetro de Set (Edit):**
+   - Suma estática de la duración efectiva de todos los tracks asignados al Set para validación del músico.
+
+### Diagrama de flujo
+
+```text
+           ┌──────────────────┐
+           │  INICIO APP      │
+           └────────┬─────────┘
+                    │
+                    ▼
+           ┌──────────────────┐
+           │  INICIAR         │
+           │  CRONÓMETRO      │
+           │  SESIÓN          │
+           │  (background)    │
+           └────────┬─────────┘
+                    │
+                    ▼
+            ┌──────────────┐
+            │  ¿MODO SHOW  │
+            │  ACTIVO?     │
+            └──────┬───────┘
+                   │
+             ┌─────┴─────┐
+             │           │
+          [SÍ]▼           ▼[NO]
+         ┌────────┐ ┌──────────────┐
+         │ INICIAR│ │ SEGUIR SOLO  │
+         │ CRONO  │ │ CRONO SESIÓN │
+         │ SHOW   │ └──────────────┘
+         └───┬────┘
+             │
+             ▼
+      ┌──────────────┐
+      │  ¿COUNTDOWN  │
+      │  O ASCEND.   │
+      └──────┬───────┘
+             │
+        ┌────┴────┐
+        │         │
+     [SÍ]▼         ▼[NO]
+   ┌────────┐ ┌──────────┐
+   │ACTIVAR │ │ CONTADOR │
+   │COUNTDWN│ │ ASCENDENT│
+   │CON DURA│ │ (tiempo  │
+   │OBJETIVO│ │ transcur.)│
+   └───┬────┘ └────┬─────┘
+       │           │
+       ▼           │
+  ┌──────────┐     │
+  │ MONITOREAR│     │
+  │ HITOS    │     │
+  └────┬─────┘     │
+       │           │
+  ┌────┴─────┐     │
+  │          │     │
+  ▼          ▼     │
+ ┌────┐ ┌────────┐ │
+ │10m │ │5m rest │ │
+ │rest│ │→ danger│ │
+ │→ wa│ └────────┘ │
+ │rning│    │      │
+ └─────┘    ▼      │
+       ┌────────┐  │
+       │TIEMPO  │  │
+       │CUMPLIDO│  │
+       │(flash) │  │
+       └────────┘  │
+           │       │
+           └───┬───┘
+               │
+               ▼
+    ┌─────────────────────────┐
+    │  FIN SHOW               │
+    │  REPORTAR               │
+    │  DURACIÓN →             │
+    │  [[04-almacenamiento]]  │
+    │  + telemetría           │
+    └─────────────────────────┘
+```
+
+## Salida
+
+- Tiempos de ejecución y alertas visuales de hitos → [[04-vista-show]]
+- Tiempo restante del show para cálculos → [[18-completador-set]]
+- Duración de show completado para persistir en `historial_shows` → [[04-almacenamiento]]
+- Duraciones acumuladas para telemetría → [[05-telemetria]]
+- Estadísticas temporales para visualizar → [[06-vista-perfil]]
+
+## Errores
+
+- **Lógico:** el temporizador intenta ejecutarse mientras la sesión del dispositivo está suspendida (ej. pantalla apagada o cambio de app en segundo plano).
+  - *Resolución:* El componente calcula la diferencia de tiempo real utilizando marcas de tiempo de Unix del sistema (`Date.now()`) al reactivarse, en lugar de confiar únicamente en loops de JS (`setInterval`), evitando pérdidas de sincronía.
+- **Semántico:** la duración del set es de 0 y el músico inicia la cuenta regresiva en el show
+  - *Resolución:* la operación se bloquea y se reporta error.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
-## Los tres cronómetros
+## Tipos de cronómetro
 
 ### 1. Cronómetro de Sesión
+- Cuenta el tiempo total que el usuario lleva usando la app desde que la abrió.
+- Es volátil: se reinicia al cerrar la app.
 
-Existen DOS métricas relacionadas con el tiempo de uso de la app. Son cosas distintas y no deben confundirse:
+### 2. Cronómetro de Show
+- Arranca cuando se inicia el modo Show.
+- Se muestra SIEMPRE en grande durante el show en vivo.
+- Muestra: `[tiempo transcurrido] + [tiempo de cola] = [tiempo total estimado]`.
 
-**(a) Cronómetro de Sesión — volátil:**
-```text
-  ¿Cuándo arranca?    →  Al abrir la app
-  ¿Cuándo se detiene? →  Al cerrar la app
-  ¿Se persiste?       →  NO — se reinicia en cada apertura
-  ¿Dónde se ve?       →  Perfil → Estadísticas (sesión actual)
-  ¿Para qué sirve?    →  Ver cuánto lleva activa la sesión actual
-```
-
-**(b) Tiempo total acumulado — persistido:**
-```text
-  ¿Cuándo se actualiza? →  Al cerrar la app (se suma la sesión actual al total)
-  ¿Se persiste?         →  SÍ — guardado en la DB local
-  ¿Dónde se ve?         →  Perfil → Estadísticas (el número grande)
-  ¿Para qué sirve?      →  Historial de uso total del usuario
-
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │     ⏱  Tiempo total de uso:  124h 32m    ← persistido  │
-  │     📊  Promedio diario:      2h 15m                    │
-  │                                                          │
-  └──────────────────────────────────────────────────────────┘
-```
-
-El valor "124h 32m" que aparece en el Perfil es el **tiempo total acumulado** (persistido). El Cronómetro de Sesión solo mide la apertura actual.
-
-### 2. Cronómetro de Show (Presentación en vivo)
-
-```text
-  ¿Cuándo arranca?    →  Al iniciar el modo Show
-  ¿Cuándo se detiene? →  Al terminar el modo Show
-  ¿Se pausa?          →  NO — ni aunque la música esté en pausa
-  ¿Se reinicia?       →  Manualmente desde Perfil
-  ¿Dónde se ve?       →  En la vista Show, SIEMPRE visible
-
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │              ╔══════════════════════════╗                │
-  │              ║      ⏱  43:21           ║                │
-  │              ║      ─────────           ║                │
-  │              ║      + Cola: 10:47       ║                │
-  │              ║      ─────────           ║                │
-  │              ║      = Total: 54:08      ║                │
-  │              ╚══════════════════════════╝                │
-  │                                                          │
-  └──────────────────────────────────────────────────────────┘
-
-  ⏱  El "+ Cola" es la función estrella:
-      "Llevo 32 min. Agregué 3 canciones = 12 min más.
-       Estimo terminar en 44 min total."
-```
-
-### 3. Cronómetro de Set (Preparación)
-
-```text
-  ¿Cuándo se calcula? →  Cada vez que se modifica el set
-  ¿Cómo funciona?     →  Suma la duración de todas las canciones
-  ¿Se pausa?          →  No aplica (es una suma, no un contador)
-  ¿Dónde se ve?       →  En la vista Edit, cabecera del set
-
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │   Set: Show Sábado 15                                    │
-  │                                                          │
-  │   12 canciones  |  Duración: 34:21                      │
-  │                                                          │
-  │   🟢  Entra en 40 min  (sobran 5:39)                    │
-  │                                                          │
-  │   [🎯 Iniciar Show]                                     │
-  │                                                          │
-  └──────────────────────────────────────────────────────────┘
-
-  Colores de advertencia:
-    🟢  El set entra en el tiempo disponible
-    🟡  El set está al 90%+
-    🔴  El set EXCEDE el tiempo disponible
-```
+### 3. Cronómetro de Set (en Edit)
+- Muestra la duración total de las canciones del set de forma estática.
+- Ayuda al músico a saber si su set entra en el tiempo asignado.
 
 ---
 
-## Historial de shows
+## Interacción
 
-Cada vez que se completa un show, se guarda:
+**Tipo:** display (cronómetros de solo lectura) + toggle (countdown/ascendente) + progress-bar (visualización de tiempo restante) + alert (notificación visual de hitos)
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                                                              │
-│   📊  HISTORIAL DE SHOWS  (últimos 30 días)                  │
-│                                                              │
-│   ┌──────┬────────────┬──────────┬──────────┬────────────┐  │
-│   │ Fecha│  Set       │  Duración│ Canciones│ Cola extra │  │
-│   ├──────┼────────────┼──────────┼──────────┼────────────┤  │
-│   │10/06 │ Sábado 15  │  43:21  │   12    │     3      │  │
-│   │ 8/06 │ Show Viern.│  38:10  │   10    │     1      │  │
-│   │ 1/06 │ Ensayo Gral│  52:00  │   15    │     0      │  │
-│   └──────┴────────────┴──────────┴──────────┴────────────┘  │
-│                                                              │
-│   Promedio: 44:43  |  Total shows: 8  |  18h 45m            │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
+**Estados y transiciones:**
+- Sesión activa → [abrir app] → Crono sesión corriendo
+- Show inactivo → [entrar a modo show] → Crono show iniciado
+- Show activo → [togle countdown ON] → Countdown con duración objetivo
+- Show activo → [toggle countdown OFF] → Ascendente (tiempo transcurrido)
+- Countdown → [quedan 10 min] → Alerta warning (amarillo)
+- Countdown → [quedan 5 min] → Alerta danger (rojo)
+- Countdown → [tiempo = 0] → Alerta overrun (parpadeo)
+- Show activo → [salir de modo show] → Crono show detenido + reporte
+
+**Comportamiento por estado:**
+- **Sesión corriendo:** Display pequeño en barra de estado. Formato «HH:MM:SS». Solo lectura.
+- **Show: ascendente:** Display grande en centro de vista show. Muestra tiempo transcurrido + tiempo de cola + estimado total.
+- **Show: countdown:** Display grande con tiempo restante. Barra de progreso circular o lineal.
+- **Alerta warning (10 min):** Texto en amarillo. Barra de progreso al 75%+.
+- **Alerta danger (5 min):** Texto en rojo. Barra de progreso al 90%+. Sin sonidos (regla de seguridad).
+- **Alerta overrun:** Texto en rojo con parpadeo CSS. Muestra «+XX:XX» de excedente.
+- **Set (Edit):** Display estático. Solo suma de duraciones de tracks.
 
 ---
 
-## Estados
+## Guía de Estilos CSS
 
-```text
-┌─────────────────┬────────────────────────────────────────────┐
-│  Cronómetro     │  Estados                                   │
-├─────────────────┼────────────────────────────────────────────┤
-│  SESIÓN         │  ● Detenido (app cerrada)                  │
-│                 │  ● Corriendo (app abierta)                 │
-├─────────────────┼────────────────────────────────────────────┤
-│  SHOW           │  ● Detenido (show no iniciado)             │
-│                 │  ● Corriendo (show activo)                 │
-│                 │  ● Finalizado (show terminó, datos         │
-│                 │      guardados en historial)                │
-├─────────────────┼────────────────────────────────────────────┤
-│  SET            │  ● No calculado (0 canciones)              │
-│                 │  ● Calculado (duración conocida)           │
-│                 │  ● 🟢 En tiempo                            │
-│                 │  ● 🟡 Cerca del límite                     │
-│                 │  ● 🔴 Excede tiempo                        │
-└─────────────────┴────────────────────────────────────────────┘
-```
+**.ui-timer-session**
+- font-size: 11px; font-variant-numeric: tabular-nums
+- .theme-dark: color: rgba(255,255,255,0.4)
+- .theme-light: color: rgba(0,0,0,0.4)
+
+**.ui-timer-show**
+- font-size: 48px; font-weight: bold; font-variant-numeric: tabular-nums; text-align: center
+- .theme-dark: color: #fff
+- .theme-light: color: #1a1a1a
+
+**.ui-timer-show--ascending**
+- font-size: 56px; letter-spacing: 2px
+
+**.ui-timer-show--countdown**
+- font-size: 64px; letter-spacing: 4px
+
+**.ui-timer-label**
+- font-size: 12px; text-align: center
+- .theme-dark: color: rgba(255,255,255,0.5)
+- .theme-light: color: rgba(0,0,0,0.5)
+
+**.ui-timer-progress-bar**
+- width: 100%; height: 6px; border-radius: 3px; overflow: hidden
+- .theme-dark: background: rgba(255,255,255,0.1)
+- .theme-light: background: rgba(0,0,0,0.08)
+- &::-webkit-progress-value: border-radius: 3px; transition: width 0.5s
+
+**.ui-timer-progress-bar--normal**
+- &::-webkit-progress-value: background: #4CAF50
+
+**.ui-timer-progress-bar--warning**
+- &::-webkit-progress-value: background: #FF9800
+
+**.ui-timer-progress-bar--danger**
+- &::-webkit-progress-value: background: #F44336
+
+**.ui-timer-progress-bar--overrun**
+- &::-webkit-progress-value: background: #F44336; animation: pulse 1s infinite
+
+**.ui-timer-alert--warning**
+- color: #FF9800 !important
+
+**.ui-timer-alert--danger**
+- color: #F44336 !important
+
+**.ui-timer-alert--overrun**
+- color: #F44336 !important; animation: flash 1s infinite
+- @keyframes flash { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+**.ui-timer-toggle**
+- display: flex; gap: 8px; align-items: center; justify-content: center
+- font-size: 13px
+- .theme-dark: color: rgba(255,255,255,0.6)
+- .theme-light: color: rgba(0,0,0,0.6)
+
+**.ui-timer-set**
+- font-size: 16px; font-weight: 500; font-variant-numeric: tabular-nums
+- .theme-dark: color: rgba(255,255,255,0.7)
+- .theme-light: color: rgba(0,0,0,0.7)

@@ -1,0 +1,9 @@
+**Revisi+¦n arquitect+¦nica completada.** 
+
+Encontr+® 2 errores en los tests de LibraryView (bugs en los assertions, no en el c+¦digo):
+- L+¡nea 84: busca `'Cached'` pero componente renderiza `"Added: 06/10"`
+- L+¡nea 202: usa `toHaveTextContent()` que no existe en Vitest
+
+El componente est+í **arquitect+¦nicamente correcto**: separaci+¦n de capas, orchestraci+¦n de stores, boundaries de infraestructura ÔÇö todo OK.
+
+He reabierto la tarea de Codex para que arregle los tests (hallazgos guardados en Engram obs #2234). Session summary guardado.

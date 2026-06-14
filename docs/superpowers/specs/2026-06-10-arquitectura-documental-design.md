@@ -96,6 +96,7 @@ La lógica en lenguaje natural, numerada, paso a paso.
 | `docs/componentes/16-ecualizador.md` | EQ básico de 3-5 bandas como ajuste en tiempo real. Se integra a la cadena del motor de audio (junto a pitch/tempo). Configuración persistente por canción o global (a definir en su spec). |
 | `docs/especificaciones/08-modelo-jam-session.md` | **FASE 2 — borrador.** Modelo de la sesión multi-dispositivo: roles (anfitrión/invitados), código de sala + QR, cola compartida (anfitrión = fuente de verdad, invitados proponen), préstamo efímero de audios (cache de sesión, se borra al cerrar). |
 | `docs/componentes/17-jam-session.md` | **FASE 2 — borrador.** Componente de sincronización: descubrimiento vía señalización (reutiliza el backend opcional de backup), conexión directa entre dispositivos en LAN (WebRTC), sincronización de relojes estilo NTP, arranque programado "reproducí en el instante T" con compensación de latencia de salida (~10-20ms de precisión), precarga de audio antes de sonar. |
+| `docs/componentes/18-completador-set.md` | Completador de tiempo restante: propone combinaciones de canciones cuya duración efectiva (fin − inicio personalizado) suma exactamente el tiempo que falta del show (tolerancia configurable), excluyendo las ya reproducidas. PROPONE, el músico confirma — nada se autoejecuta en vivo. |
 
 `INDEX.md` se actualiza como nodo raíz: todo documento es alcanzable desde ahí.
 El glosario de `INDEX.md` pasa a ser un puntero al diccionario de dominio.
@@ -131,9 +132,23 @@ interrupciones por modo).
 - **Loop A-B entre marcadores (FASE 1)**: repetir el tramo entre dos
   marcadores, combinable con tempo reducido — herramienta de práctica.
   Se incorpora como sección en `07-marcadores.md` durante el retrofit.
-- **Pedalera Bluetooth (FASE 1)**: pedales BT (pasar página de partitura,
-  next, play/pausa) como extensión de los botones físicos del componente
-  `15-sesion-audio.md`.
+- **Pedalera Bluetooth (FASE 1)**: pedales BT como extensión de los botones
+  físicos del componente `15-sesion-audio.md`. Mapeo CONFIGURABLE: el usuario
+  sincroniza la pedalera y asigna a cada pedal (típicamente 2) el comando que
+  quiera de una lista (siguiente, anterior, play/pausa, mute, pasar página,
+  crear marcador). Se configura en la vista Perfil.
+- **Cuenta regresiva de set (FASE 1)**: el cronómetro de Show suma un modo
+  countdown con duración objetivo personalizable (típico 45/90 min) y alertas
+  visuales de hitos (faltan 10, faltan 5, tiempo cumplido). Vive en
+  `12-cronometro.md` y se muestra en la vista Show.
+- **Completador de set (FASE 1)**: nuevo componente `18-completador-set.md` —
+  llena el tiempo restante del show con tracks que suman exactamente ese
+  tiempo (por duración efectiva). Propone; el músico confirma.
+- **Gap con precisión fina**: el tiempo de espera entre canciones (Flujo
+  Automático) es configurable en segundos con precisión de milisegundos.
+- Verificado contra ideas del usuario: el "efecto Mezcla" YA está cubierto por
+  FadeMix (`05-fade-engine.md`) y el visualizador de partituras por
+  `09-partituras.md` — no se duplican.
 
 ## Sección 3 — Reglas de circularidad (cero huecos)
 
@@ -167,7 +182,7 @@ Batches delegados a sub-agentes redactores, en este orden:
 1. Retrofit de `docs/especificaciones/` (6 archivos) al contrato.
 2. Retrofit de `docs/componentes/` (13 archivos) al contrato.
 3. Retrofit de `docs/vistas/` (6 archivos) al contrato.
-4. Creación de los 10 documentos nuevos (Sección 2; los 2 de Jam Session
+4. Creación de los 11 documentos nuevos (Sección 2; los 2 de Jam Session
    nacen con `estado: borrador`) + actualización de `INDEX.md`.
 5. Validación de circularidad + informe de huecos + correcciones hasta cero.
 
@@ -182,7 +197,7 @@ El detalle por batch vive en el plan de implementación (writing-plans).
 
 ## Criterio de éxito
 
-El grafo de Obsidian muestra los ~35 documentos conectados, sin nodos sueltos;
+El grafo de Obsidian muestra los ~36 documentos conectados, sin nodos sueltos;
 el informe de huecos da cero; cualquier persona (o IA) puede recorrer desde
 `INDEX.md` hasta cualquier componente siguiendo entradas y salidas sin
 encontrar una referencia que no exista.

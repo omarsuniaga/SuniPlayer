@@ -1,4 +1,46 @@
+---
+ruta: docs/especificaciones/04-almacenamiento.md
+tipo: especificacion
+origen: "[[00-vision-general]]"
+estado: estable
+---
+
 # Almacenamiento y Persistencia
+
+## Función
+
+Definir qué datos persiste Suniplayer, en qué capa de almacenamiento los guarda y cuál es la estructura de la base de datos local.
+
+## Entrada
+
+- Marco de referencia del sistema ← [[00-vision-general]]
+- Propiedades y ajustes de canciones ← [[01-modelo-audio]]
+- Colecciones, sets y playlists ← [[02-modelo-colecciones]]
+- Estado de la sesión y modos ← [[03-modelo-sesion]]
+- Historial de shows completados ← [[12-cronometro]]
+- Preferencia de tema (dark/light) ← [[13-tema]]
+- Marcadores y su posición en canciones ← [[07-marcadores]]
+- Configuración del ecualizador ← [[16-ecualizador]]
+- Preferencias del perfil del usuario ← [[06-vista-perfil]]
+
+## Proceso
+
+El almacenamiento se organiza en tres capas según el ciclo de vida del dato: la base de datos local persiste datos estructurados consultables; el caché de audio guarda copias opcionales de archivos para independizarse del filesystem; y la memoria mantiene estado efímero de la sesión activa. La base de datos local es la fuente de verdad del sistema.
+
+## Salida
+
+- Datos estructurados para respaldar en la nube → [[14-sync-engine]]
+- Datos locales de uso para estadísticas → [[05-telemetria]]
+- Datos locales a respaldar → [[06-modelo-backup-sync]]
+
+## Errores
+
+- **Lógico:** se intenta escribir en la base de datos cuando el almacenamiento del dispositivo está lleno — la operación falla; la app notifica al usuario y no corrompe el registro parcial.
+- **Semántico:** `fin_personalizado` de una canción es menor que `inicio_personalizado` — los valores son válidos individualmente pero inconsistentes entre sí; el registro se rechaza con aviso de que el punto de fin debe ser posterior al de inicio.
+
+Catálogo global: [[07-modelo-errores]]
+
+---
 
 ## ¿Qué datos maneja Suniplayer?
 
@@ -56,7 +98,7 @@ Para datos que no necesitan sobrevivir al cierre de la app.
 ## Estructura de la base de datos
 
 ### Tabla: canciones
-Una fila por cada canción importada.
+Una fila por cada canción importada. El significado de cada propiedad está definido en [[01-modelo-audio]].
 
 ```text
 id (único)
@@ -141,6 +183,77 @@ valor                 → El valor correspondiente
 
 ---
 
+## Diagrama Entidad-Relación
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                        DIAGRAMA ENTIDAD-RELACIÓN                │
+│                       Fuente de verdad del sistema              │
+└─────────────────────────────────────────────────────────────────┘
+
+                  ┌──────────────────────────┐
+                  │        CONFIGURACIÓN      │
+                  │  ───────────────────────  │
+                  │  clave (PK): string       │
+                  │  valor: string            │
+                  │                           │
+                  │  (key-value, sin FK)      │
+                  └──────────────────────────┘
+
+
+  ┌──────────────────────┐          ┌──────────────────────────┐
+  │       CANCIONES       │          │       MARCADORES         │
+  │  ───────────────────  │          │  ──────────────────────  │
+  │  id (PK): string     │1        N│  id (PK): string         │
+  │  ruta_archivo         │──────────│  cancion_id (FK): string │
+  │  nombre               │          │  timestamp: decimal      │
+  │  duracion: decimal    │          │  texto: string           │
+  │  bpm: integer         │          │  color: string           │
+  │  tono_ajuste: integer │          └──────────────────────────┘
+  │  tempo_ajuste: integer│
+  │  inicio_personalizado │
+  │  fin_personalizado    │
+  │  volumen: integer     │
+  │  ... (19 campos)      │
+  └──────────┬───────────┘
+             │
+             │ 1
+             │
+             ▼
+  ┌──────────────────────┐          ┌──────────────────────────┐
+  │   PLAYLIST_CANCIONES  │          │        PLAYLISTS          │
+  │  ───────────────────  │          │  ──────────────────────  │
+  │  id (PK): string     │N        1│  id (PK): string         │
+  │  playlist_id (FK)    │◄─────────│  nombre: string           │
+  │  cancion_id (FK)     │          │  tipo: string             │
+  │  orden: integer      │          │  tipo_curva: string|null  │
+  │  transicion: string  │          │  duracion_total: decimal  │
+  └──────────────────────┘          │  cantidad_canciones: int  │
+                                    └──────────────────────────┘
+
+  ┌────────────────────────────────────────────┐
+  │           HISTORIAL_SHOWS                   │
+  │  ─────────────────────────────────────────  │
+  │  id (PK): string                            │
+  │  fecha: timestamp                           │
+  │  nombre_set: string                         │
+  │  duracion: decimal                          │
+  │  cantidad_canciones: integer                │
+  │  canciones_cola_extra: integer              │
+  │                                             │
+  │  (standalone: no FK - registro histórico)   │
+  └────────────────────────────────────────────┘
+```
+
+**Notas del modelo:**
+- `canciones` es la tabla central. Casi todo depende de ella.
+- `playlist_canciones` es una tabla puente N:M con orden explícito.
+- `marcadores` dependen de `canciones` (ON DELETE CASCADE).
+- `historial_shows` es independiente (solo lectura histórica).
+- `configuracion` es clave-valor, sin relaciones.
+
+---
+
 ## Flujo de importación de una canción
 
 ```text
@@ -164,3 +277,10 @@ valor                 → El valor correspondiente
 - No se sube nada a la nube.
 - No se comparten datos entre dispositivos.
 - No se envía información personal a ningún servidor (la telemetría es local).
+
+---
+
+## Notas de Implementación
+
+- **Capa 2 (Cache de Audio) - SQLiteStorage en Native**: La persistencia de binarios en Native no guarda los blobs directamente en SQLite debido a limitaciones de rendimiento de base de datos con archivos grandes. El binario se convierte a `base64` y se escribe físicamente en el filesystem en `documentDirectory/audio_storage/` con la extensión `.audio` (para evitar colisión con `LocalFileAccess`). SQLite almacena únicamente el mapeo `trackId -> file_path` en la tabla `audio_files`.
+- **Capa 2 (Cache de Audio) - Dexie en Web**: Se almacena el objeto `File` crudo directamente como un `fileBlob` en IndexedDB (Dexie).

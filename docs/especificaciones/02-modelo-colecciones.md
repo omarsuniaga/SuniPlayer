@@ -1,4 +1,47 @@
+---
+ruta: docs/especificaciones/02-modelo-colecciones.md
+tipo: especificacion
+origen: "[[00-vision-general]]"
+estado: estable
+---
+
 # Modelo de Colecciones
+
+## Función
+
+Definir los cuatro tipos de agrupación de canciones que existen en Suniplayer (Playlist, QuouList, Set y Colección Inteligente), sus reglas de creación, comportamiento y ciclo de vida.
+
+## Entrada
+
+- Marco de referencia del sistema ← [[00-vision-general]]
+- Canciones con sus propiedades ← [[01-modelo-audio]]
+- Colecciones de curva calculadas ← [[10-algoritmo-mood]]
+- Asignación de canciones a colecciones desde la UI ← [[03-vista-libreria]]
+- Items confirmados por el músico hacia la QuouList ← [[18-completador-set]]
+
+## Proceso
+
+El modelo distingue colecciones creadas por el usuario (Playlist, Set, QuouList) de las generadas automáticamente por el sistema (Colección Inteligente). Cada tipo tiene reglas distintas de persistencia, ordenamiento, edición y vida útil. La QuouList es el único tipo efímero; el resto persiste en la base de datos local.
+
+## Salida
+
+- Fuente de reproducción activa → [[01-audio-engine]]
+- Colecciones disponibles para mostrar en pantalla de inicio → [[01-vista-inicio]]
+- Sets para configurar en modo Edit → [[05-vista-edit]]
+- Qué datos de colecciones persistir → [[04-almacenamiento]]
+- Base de la cola compartida en sesión multi-dispositivo → [[08-modelo-jam-session]]
+- Duración objetivo del Set para la cuenta regresiva → [[12-cronometro]]
+- Canciones candidatas con su duración efectiva → [[18-completador-set]]
+- Siguiente track en cola para preview en footer → [[19-minireproductor]]
+
+## Errores
+
+- **Lógico:** se intenta reproducir una colección de tipo Set vacía (sin canciones) en modo Show — la operación se bloquea con aviso porque no hay nada que ejecutar.
+- **Semántico:** se aplica Aleatorio a un Set — está prohibido (el orden en un Set es una decisión deliberada del músico); la operación se rechaza con mensaje explicativo.
+
+Catálogo global: [[07-modelo-errores]]
+
+---
 
 ## ¿Qué es una Colección?
 
@@ -57,6 +100,7 @@ Es una playlist especial que el músico prepara **antes** de un show. Es el puen
 | Canciones | Lista ordenada |
 | Orden definitivo | No se puede aleatorizar — el orden lo decide el músico |
 | Duración total | Suma calculada automáticamente |
+| Duración objetivo | Cuánto debe durar el show (típico: 45 o 90 min) — alimenta la cuenta regresiva de [[12-cronometro]] y el [[18-completador-set]] |
 | Canción de arranque | Por dónde empieza el show |
 
 **Comportamiento en modo Edit:**
@@ -90,7 +134,7 @@ Las Colecciones Inteligentes se dividen en DOS familias de criterios:
 
 #### Familia A: por curva de ánimo/BPM
 
-Estas colecciones agrupan canciones según su progresión de BPM. El algoritmo que las genera se describe en `[[componentes/10-algoritmo-mood]]`.
+Estas colecciones agrupan canciones según su progresión de BPM. El algoritmo que las genera se describe en [[10-algoritmo-mood]].
 
 | Curva | Comportamiento | Ejemplo de uso |
 |-------|---------------|----------------|
@@ -144,7 +188,7 @@ Agrupa automáticamente las N canciones con mayor contador de reproducciones en 
 
 ### Crear una Playlist o Colección manualmente
 
-El usuario puede crear una Playlist de forma manual seleccionando canciones desde la librería. El flujo de UI se describe en `[[vistas/01-vista-inicio]]` (sección "Crear Colección Inteligente o Playlist manualmente"). El modal tiene: cabecera (conteo + duración total), cuerpo (lista con acciones Agregar/Quitar), y pie (paginador + Guardar/Cerrar).
+El usuario puede crear una Playlist de forma manual seleccionando canciones desde la librería. El flujo de UI se describe en [[01-vista-inicio]] (sección "Crear Colección Inteligente o Playlist manualmente"). El modal tiene: cabecera (conteo + duración total), cuerpo (lista con acciones Agregar/Quitar), y pie (paginador + Guardar/Cerrar).
 
 ### Eliminar colecciones
 

@@ -1,10 +1,105 @@
+---
+ruta: docs/componentes/11-filtros.md
+tipo: componente
+origen: "[[01-vista-inicio]]"
+estado: estable
+---
+
 # Sistema de Filtros
 
-## ¿Qué es?
+## Función
 
-Un mecanismo para **filtrar y ordenar** colecciones (playlists, sets, colecciones inteligentes) según criterios definidos por el usuario. Aparece principalmente en la vista Inicio y en la vista Librería.
+Filtrar y ordenar colecciones de canciones y listas de la librería según criterios estructurales (BPM, duración, tipo de curva, formato, cache local); y entregar los conjuntos filtrados resultantes a las vistas correspondientes.
 
-No es un buscador de texto (eso es el Buscador). Es un sistema de **filtros estructurales**.
+## Entrada
+
+- Propiedades físicas y de análisis del modelo de audio ← [[01-modelo-audio]]
+- Criterios de filtrado seleccionados por el usuario desde la pantalla principal ← [[01-vista-inicio]]
+- Criterios de filtrado de canciones seleccionados desde la biblioteca ← [[03-vista-libreria]]
+
+## Proceso
+
+1. **Recopilación:** Recibe el conjunto completo de datos (canciones o colecciones) a procesar.
+2. **Evaluación de Reglas:** Aplica las reglas lógicas seleccionadas mediante evaluación condicional (AND lógico):
+   - **Duración:** Rango min/max en minutos.
+   - **Curva de Energía:** Filtra por lineal, campana o exponencial (sólo para Colecciones Inteligentes).
+   - **BPM/Energía:** Rangos de BPM clasificados (Suave `60-85`, Media `86-115`, Alta `116-140`, Muy Alta `141-200`).
+   - **Formatos y Persistencia:** Filtra canciones según formato de archivo (.mp3, .wav, etc.) o estado de cache local (IndexedDB/física).
+3. **Ordenamiento:** Aplica el criterio de ordenamiento secundario (por fecha, reproducciones, BPM o alfabético).
+4. **Retorno:** Si el conjunto resultante está vacío, notifica un estado sin resultados para renderizar un aviso de limpieza de filtros.
+
+### Diagrama de flujo
+
+```text
+  ┌──────────────────┐
+  │  RECIBIR DATOS   │
+  │  (canciones o    │
+  │   colecciones)   │
+  └────────┬─────────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  EVALUAR      │
+    │  DURACIÓN     │
+    │  ¿rango ok?   │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  EVALUAR      │
+    │  CURVA/ENERGÍA│
+    │  ¿coincide?   │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  EVALUAR      │
+    │  FORMATO/     │
+    │  PERSISTENCIA │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  APLICAR      │
+    │  ORDENAMIENTO │
+    │  (fecha, BPM, │
+    │   reproducc.) │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  ¿RESULTADO  │
+    │  VACÍO?      │
+    └──────┬───────┘
+           │
+     ┌─────┴─────┐
+     │           │
+  [SÍ]▼           ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ NOTIFIC│ │ DEVOLVER      │
+ │AR "SIN │ │ CONJUNTO      │
+ │ COINCI │ │ FILTRADO      │
+ │ DENCIAS│ │               │
+ │" +     │ │               │
+ │ sugerir│ │               │
+ │ limpiar│ │               │
+ │ filtros│ │               │
+ └────────┘ └──────────────┘
+```
+
+## Salida
+
+- Colecciones filtradas y ordenadas para renderizar → [[01-vista-inicio]]
+- Lista de canciones filtradas para la biblioteca → [[03-vista-libreria]]
+
+## Errores
+
+- **Lógico:** se envían criterios de filtrado contradictorios (ej: duración máxima menor que duración mínima)
+  - *Resolución:* el componente corrige el rango forzando a que `max = min` y ejecuta la consulta de forma segura.
+- **Semántico:** la consulta resulta en cero coincidencias
+  - *Resolución:* el componente devuelve un arreglo vacío (`[]`) y activa la bandera visual de error semántico de "Sin Coincidencias" en la UI.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
@@ -26,10 +121,6 @@ Muestra solo colecciones que duran dentro de un rango específico.
 └─────────────────────────────────────┘
 ```
 
-**Casos de uso:**
-- "Mostrame solo los sets que entren en 30 minutos."
-- "Quiero playlists de entre 20 y 40 minutos para mi viaje al trabajo."
-
 ### 2. Filtro por tipo de curva
 
 Muestra solo colecciones que tienen un tipo específico de curva de energía.
@@ -40,59 +131,14 @@ Muestra solo colecciones que tienen un tipo específico de curva de energía.
 [ ] Exponencial
 ```
 
-**Casos de uso:**
-- "Mostrame solo las colecciones lineales (BPM constante)."
-- "Quiero ver las curvas de energía que preparé."
-
 ### 3. Filtro por energía
 
 Muestra colecciones cuyo rango de BPM cae dentro de una categoría de energía.
 
-```text
-[ ] Suave (60-85 BPM)
-[✓] Media (86-115 BPM)
-[✓] Alta (116-140 BPM)
-[ ] Muy Alta (141-200 BPM)
-```
-
-**Casos de uso:**
-- "Mostrame colecciones de música tranquila."
-- "Quiero solo música movida para bailar."
-
-### 4. Filtro por cantidad de canciones
-
-```text
-[ 5 ] a [ 20 ] canciones
-```
-
-### 5. Filtro por estado
-
-```text
-[✓] Playlists
-[✓] Sets
-[✓] Colecciones Inteligentes
-[ ] Vacías (colecciones sin canciones)
-```
-
----
-
-## Cómo se combinan los filtros
-
-Los filtros se combinan con **AND lógico** (todos deben cumplirse):
-
-```text
-Ejemplo:
-  Duración: 20-40 min
-  Tipo: Lineal
-  Energía: Media o Alta
-  → Muestra colecciones que cumplen TODAS las condiciones
-```
-
-Si no hay resultados, se muestra:
-```text
-"Ninguna colección coincide con estos filtros.
-Probá con criterios más amplios."
-```
+- **Suave:** 60-85 BPM
+- **Media:** 86-115 BPM
+- **Alta:** 116-140 BPM
+- **Muy Alta:** 141-200 BPM
 
 ---
 
@@ -103,40 +149,90 @@ Probá con criterios más amplios."
 | Inicio (sección colecciones inteligentes) | Por tipo de curva, por duración, por energía |
 | Inicio (sección playlists) | Por duración, por cantidad de canciones |
 | Librería | Por formato, por energía, por BPM, por estado de cache |
-| Reproductor (cuando se agrega a cola desde librería) | Filtro rápido de búsqueda |
+| Reproductor | Filtro rápido de búsqueda |
 
 ---
 
-## Interfaz de usuario
+## Interacción
 
-Los filtros se activan desde un botón "Filtrar" (icono de embudo) en la barra superior de cada vista.
+**Tipo:** checkbox (filtros booleanos: tipo curva, formato) + range-slider (duración min/max) + chip-selector (energía: 🟢🟡🔶🔴) + dropdown (ordenamiento) + button (limpiar filtros)
 
-```text
-Vista Inicio:
-┌──────────────────────────────────────────┐
-│  [Logo]      [🔍]   [Filtrar 🌀] [Perfil]│
-├──────────────────────────────────────────┤
-```
+**Estados y transiciones:**
+- Sin filtros → [seleccionar criterio] → Filtro activo
+- Filtro activo → [agregar criterio] → Filtro compuesto (AND)
+- Filtro compuesto → [quitar criterio] → Filtro activo (simplificado)
+- Filtro activo → [resultado = 0] → Sin coincidencias
+- Sin coincidencias → [limpiar filtros] → Sin filtros
+- Sin coincidencias → [ajustar criterios] → Filtro activo (nuevos params)
 
-Al tocar "Filtrar", se abre un panel lateral o modal con las opciones de filtro disponibles para esa vista.
-
----
-
-## Persistencia de filtros
-
-| Comportamiento | Default |
-|---------------|---------|
-| ¿Los filtros se recuerdan al cerrar la app? | No |
-| ¿Los filtros persisten al navegar entre vistas? | No (cada vista tiene sus propios filtros) |
-| ¿Se puede guardar un filtro como favorito? | No (futura mejora posible) |
+**Comportamiento por estado:**
+- **Sin filtros:** Todos los checkboxes sin marcar. Sliders en rango completo. Muestra total de elementos sin filtrar.
+- **Filtro activo:** Checkbox marcado. Slider en posición específica. Resultados filtrados. Badge con cantidad: «12 resultados».
+- **Filtro compuesto:** Múltiples criterios activos. Cada criterio tiene un ✕ para quitarlo individualmente.
+- **Sin coincidencias:** Mensaje «No hay resultados con estos filtros». Botón «Limpiar filtros» destacado.
+- **Aplicando:** Los resultados se actualizan en tiempo real mientras se ajustan los sliders (con debounce).
 
 ---
 
-## Estados del filtro
+## Guía de Estilos CSS
 
-| Estado | Comportamiento |
-|--------|---------------|
-| Sin filtros activos | Se muestran todas las colecciones |
-| Filtros activos | Indicador visual en el botón de filtro (ej: "Filtrar • 3") |
-| Sin resultados | Mensaje "No hay coincidencias" + botón "Limpiar filtros" |
-| Limpiando | Al tocar "Limpiar filtros", se restablece la vista completa |
+**.ui-filter-panel**
+- display: flex; flex-direction: column; gap: 12px; padding: 16px
+- border-radius: 12px
+- .theme-dark: background: rgba(255,255,255,0.03)
+- .theme-light: background: rgba(0,0,0,0.02)
+
+**.ui-filter-section-title**
+- font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px
+- .theme-dark: color: rgba(255,255,255,0.4)
+- .theme-light: color: rgba(0,0,0,0.4)
+
+**.ui-filter-checkbox**
+- display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px
+- .theme-dark: color: rgba(255,255,255,0.8)
+- .theme-light: color: rgba(0,0,0,0.8)
+- accent-color: #FF9800
+
+**.ui-filter-range-slider**
+- width: 100%; accent-color: #FF9800
+
+**.ui-filter-chip-group**
+- display: flex; gap: 6px; flex-wrap: wrap
+
+**.ui-filter-chip**
+- padding: 4px 12px; border-radius: 16px; font-size: 12px; cursor: pointer
+- border: 1px solid transparent; transition: all 0.2s
+- .theme-dark: background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.1)
+- .theme-light: background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.6); border-color: rgba(0,0,0,0.1)
+
+**.ui-filter-chip--selected**
+- border-color: #FF9800; color: #FF9800
+- .theme-dark: background: rgba(255,152,0,0.15)
+- .theme-light: background: rgba(255,152,0,0.1)
+
+**.ui-filter-chip--suave**    { &.ui-filter-chip--selected: border-color: #4CAF50; color: #4CAF50 }
+**.ui-filter-chip--media**    { &.ui-filter-chip--selected: border-color: #FFEB3B; color: #FFEB3B }
+**.ui-filter-chip--alta**     { &.ui-filter-chip--selected: border-color: #FF9800; color: #FF9800 }
+**.ui-filter-chip--muy-alta** { &.ui-filter-chip--selected: border-color: #F44336; color: #F44336 }
+
+**.ui-filter-dropdown**
+- padding: 6px 12px; border-radius: 8px; font-size: 13px
+- .theme-dark: background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.15)
+- .theme-light: background: rgba(0,0,0,0.04); color: #333; border: 1px solid rgba(0,0,0,0.12)
+
+**.ui-filter-badge**
+- font-size: 12px; padding: 2px 10px; border-radius: 10px; font-weight: 500
+- .theme-dark: background: rgba(255,152,0,0.15); color: #FF9800
+- .theme-light: background: rgba(255,152,0,0.1); color: #E65100
+
+**.ui-filter-empty**
+- text-align: center; padding: 24px; font-size: 14px
+- .theme-dark: color: rgba(255,255,255,0.4)
+- .theme-light: color: rgba(0,0,0,0.4)
+
+**.ui-filter-clear-btn**
+- padding: 6px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; border: none
+- .theme-dark: background: rgba(244,67,54,0.15); color: #F44336
+- .theme-light: background: rgba(244,67,54,0.1); color: #D32F2F
+- &:hover: background: rgba(244,67,54,0.25)
+- &:active: transform: scale(0.97)

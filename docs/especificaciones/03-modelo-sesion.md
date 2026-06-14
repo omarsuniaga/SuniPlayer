@@ -1,4 +1,46 @@
+---
+ruta: docs/especificaciones/03-modelo-sesion.md
+tipo: especificacion
+origen: "[[00-vision-general]]"
+estado: estable
+---
+
 # Modelo de Sesión
+
+## Función
+
+Definir los tres modos de uso de Suniplayer (Escucha, Edit, Show), las reglas de transición entre ellos, la política de interrupciones por modo y el comportamiento de los cronómetros de sesión.
+
+## Entrada
+
+- Marco de referencia del sistema ← [[00-vision-general]]
+- Eventos del sistema operativo que afectan al modo activo ← [[15-sesion-audio]]
+
+## Proceso
+
+El modelo de sesión determina qué puede hacer el músico en cada momento. El modo activo restringe o habilita controles, define qué se persiste al salir y establece cómo la app reacciona ante interrupciones externas (llamadas, alarmas, desconexión de audio). Las transiciones entre modos son unidireccionales según el flujo Edit → Show → Escucha.
+
+### Política de interrupciones por modo
+
+El comportamiento ante interrupciones externas (llamadas, alarmas, desconexión de audio) varía según el modo activo. En Escucha y Edit la app reanuda automáticamente; en Show el sistema queda pausado y espera orden manual del músico para evitar sorpresas en escenario. La gestión de bajo nivel la ejecuta [[15-sesion-audio]] (ver tabla de política de interrupciones más abajo).
+
+## Salida
+
+- Modo activo y sus restricciones → [[04-vista-show]]
+- Modo activo y sus restricciones → [[05-vista-edit]]
+- Señal de inicio/fin de modos para los cronómetros → [[12-cronometro]]
+- Qué datos de sesión persistir → [[04-almacenamiento]]
+- Política de interrupciones por modo → [[15-sesion-audio]]
+- Estado de modo activo (Escucha/Edit/Show) para UI persistente → [[19-minireproductor]]
+
+## Errores
+
+- **Lógico:** se intenta iniciar el modo Show sin un Set activo (no hay canciones preparadas) — la transición se bloquea con aviso al usuario.
+- **Semántico:** el sistema intenta reanudar automáticamente después de una interrupción mientras el modo activo es Show — la política prohíbe reanudar sin orden manual; se ignora la señal de reanudación y se mantiene el estado pausado.
+
+Catálogo global: [[07-modelo-errores]]
+
+---
 
 ## ¿Qué es una Sesión?
 
@@ -38,7 +80,7 @@ El modo por defecto. Es el reproductor "normal".
 - Se pueden configurar transiciones (fade) entre canciones.
 - Se pueden ensayar canciones sueltas con los ajustes aplicados.
 - Se pueden cargar partituras y ajustar marcadores.
-- La cronómetro del set muestra la duración total planificada.
+- El cronómetro del set muestra la duración total planificada.
 - NO hay restricciones de botones — todo está disponible.
 
 **¿Cuándo se usa?**
@@ -101,6 +143,22 @@ El modo por defecto. Es el reproductor "normal".
 - Desde Edit se puede lanzar Show (el set está listo).
 - Desde Show se vuelve a Escucha (show terminó).
 - **No se puede ir de Show a Edit directamente.** Hay que cerrar el show primero.
+
+---
+
+## Política de interrupciones por modo
+
+El comportamiento ante una interrupción del sistema (llamada entrante, alarma, notificación de audio) depende del modo activo en ese momento:
+
+| Modo | Interrupción transitoria (llamada corta, alarma) | Desconexión de salida de audio (cable / Bluetooth) |
+|------|--------------------------------------------------|-----------------------------------------------------|
+| Escucha | Pausa y **reanuda automáticamente** al terminar la interrupción | Pausa inmediata |
+| Edit | Pausa y **reanuda automáticamente** al terminar la interrupción | Pausa inmediata |
+| Show | Pausa y **queda pausado** esperando orden manual del músico (sin sorpresas en vivo) | Pausa inmediata |
+
+> **Razón del comportamiento Show:** en un escenario, una reanudación automática inesperada puede ser catastrófica. El músico recupera el control y decide cuándo reanudar.
+
+La gestión de bajo nivel de estas interrupciones (detección de eventos del sistema operativo, pausa/reanudación del motor) la ejecuta [[15-sesion-audio]], que devuelve la política al modelo de sesión para que éste la aplique según el modo.
 
 ---
 

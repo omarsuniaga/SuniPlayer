@@ -1,0 +1,752 @@
+[0m
+> build -À deepseek-v4-flash-free
+[0m
+[0mÔåÆ [0mRead STATUS.md
+[0mÔÜÖ [0mengram_mem_search {"query":"workflow/review-criteria","project":"suniplayer_v2"}
+[0mÔÜÖ [0mengram_mem_context {"project":"suniplayer_v2"}
+[0mÔÜÖ [0mengram_mem_get_observation {"id":2166}
+[0mÔÜÖ [0mengram_mem_search {"project":"suniplayer_v2","query":"play-async-fix contract"}
+[0mÔÜÖ [0mengram_mem_search {"project":"suniplayer_v2","query":"play-async-fix"}
+[0mÔÜÖ [0mengram_mem_get_observation {"id":2259}
+[0mÔÜÖ [0mengram_mem_get_observation {"id":2264}
+[0m
+[0mÔåÉ [0mEdit STATUS.md
+Index: C:\Users\omare\OneDrive\Documentos\SUNIPLAYER_V2\STATUS.md
+===================================================================
+--- C:\Users\omare\OneDrive\Documentos\SUNIPLAYER_V2\STATUS.md
++++ C:\Users\omare\OneDrive\Documentos\SUNIPLAYER_V2\STATUS.md
+@@ -169,9 +169,9 @@
+ - [x] @zen #review-home-view needs:#home-view engram:workflow/review-criteria ? review con el checklist de 7 puntos
+ - [x] @claude #arch-review-home-view needs:#review-home-view engram:handoff/claude ? pasada final de arquitecto (APROBADO: Engram #2253)
+ - [x] @antigravity #fase1-e2e needs:#arch-review-home-view engram:product/roadmap ? FASE 1 CIERRE: validaci?n e2e completa en navegador (nav, librer?a, home, show-lock), reporta a validation/fase1-e2e
+ - [x] @antigravity #play-async-fix needs:#fase1-e2e engram:sdd/play-async-fix/tasks - FIX backlog: manejar rechazo de play() async, revertir estado a paused (contrato #2259)
+-- [ ] @zen #review-play-async-fix needs:#play-async-fix engram:workflow/review-criteria - review con el checklist de 7 puntos
++- [~] @zen #review-play-async-fix needs:#play-async-fix engram:workflow/review-criteria - review con el checklist de 7 puntos
+ - [ ] @claude #arch-review-play-async-fix needs:#review-play-async-fix engram:handoff/claude - pasada final de arquitecto
+ - [ ] @antigravity #collections-ui needs:#arch-review-play-async-fix engram:sdd/collections-ui/tasks - FASE 2.1: gestion Playlist/Set/QuouList segun spec 02 (contrato #2260)
+ - [ ] @zen #review-collections-ui needs:#collections-ui engram:workflow/review-criteria - review con el checklist de 7 puntos
+ - [ ] @claude #arch-review-collections-ui needs:#review-collections-ui engram:handoff/claude - pasada final de arquitecto
+System.Management.Automation.RemoteException
+[0m
+[0m$ [0mgit log --oneline -10
+9b36e04 fix(player): handle async play() rejection
+cbdad08 feat: library view with track list, context menu and bulk import
+812dd46 fix: address library view review findings
+3479c2d feat: library view with track list, context menu and bulk import
+63a3b51 feat: bottom navigation shell with view store and show-mode lock
+994bdeb feat: add waveform visualization with seek
+a635e48 fix(ts): narrow undefined type in setCompleter dp indexing
+670f051 fix: player state consistency, back navigation, show-mode locking per spec
+36bbaec fix: resume suspended AudioContext on user gesture and show track titles
+f18038d test: add Miniplayer and PlayerView unit tests
+[0m
+[0m$ [0mgit diff 812dd46..9b36e04 --stat
+AGENTS.md                               |  17 ++++
+ STATUS.md                               |  44 ++++++--
+ app/src/application/importActions.ts    |   9 ++
+ app/src/ui/hooks/useAudioEngine.test.ts |  13 +++
+ app/src/ui/hooks/useAudioEngine.ts      |  13 ++-
+ app/src/ui/miniplayer/Miniplayer.tsx    |   2 +-
+ app/src/ui/nav/BottomNav.tsx            |   8 +-
+ app/src/ui/player/Waveform.test.tsx     |  84 ++++++++++++++++
+ app/src/ui/player/Waveform.tsx          | 171 ++++++++++++++++++++++++++++++++
+ app/src/ui/views/LibraryView.test.tsx   |   4 +-
+ app/src/ui/views/LibraryView.tsx        |   6 +-
+ 11 files changed, 349 insertions(+), 22 deletions(-)
+[0m
+[0m$ [0mgit diff 812dd46..9b36e04
+diff --git a/AGENTS.md b/AGENTS.md
+index fd4533a..5213dbe 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -42,6 +42,23 @@ Procedimiento:
+ Engram es el bus de comunicaci+¦n entre agentes. Si no est+í en Engram,
+ los otros agentes no lo saben.
+ 
++### Autonomy Rule (OBLIGATORIO ÔÇö todos los agentes, tambi+®n en sesiones interactivas)
++
++> **En este repo NUNCA presentes men+¦s de opciones ni pidas confirmaciones al**
++> **usuario. Eleg+¡ la opci+¦n m+ís recomendable (la que sugerir+¡as como default),**
++> **ejecutala, y registr+í la decisi+¦n en Engram (`mem_save`).**
++
++- Solo est+í permitido frenar ante acciones DESTRUCTIVAS (borrar archivos
++  fuera de la tarea, push forzado, tocar `docs/` o `src/domain/`): en ese
++  caso NO preguntes ÔÇö abort+í esa acci+¦n, reportala en Engram y segu+¡ con el
++  resto de la tarea.
++- Si el usuario escribe "Es tu turno" (o similar): busc+í tu primera tarea
++  `- [ ] @tu-nombre` con `needs:` cumplido en la "Cola de despacho aut+¦nomo"
++  de STATUS.md, reclamala (`[ ]`ÔåÆ`[~]`), le+® su contrato en Engram
++  (topic de la l+¡nea), ejecutala, report+í a Engram y marc+í `[x]`.
++- Las preguntas de producto NO se le hacen al usuario en vivo: se registran
++  en Engram y en INBOX.md como "PREGUNTA PARA OMAR" y se contin+¦a.
++
+ ---
+ 
+ ## Skills
+diff --git a/STATUS.md b/STATUS.md
+index 7446fc7..1e70e13 100644
+--- a/STATUS.md
++++ b/STATUS.md
+@@ -12,8 +12,8 @@
+ retrofit-arquitectura-documental
+ ```
+ 
+-+Ültimo commit: `b8f6c0d` ÔÇö Click-to-play wiring (useAudioEngine hook)
+-Anterior: `0bb1d17` ÔÇö File Import UI (drag & drop, import orchestration)
+++Ültimo commit: `812dd46` ÔÇö fix: address library view review findings
++Anterior: `3479c2d` ÔÇö feat: library view with track list, context menu and bulk import
+ Base: `master`
+ 
+ ---
+@@ -138,15 +138,37 @@ src/
+ 
+ ---
+ 
+-## Handoff activo ÔÇö Tareas para Gentle AI
+-
+-(Sin tareas pendientes. Claude deja ac+í las tareas que quiere que Gentle AI ejecute.)
+-
+-Formato:
+-```
+-## Tareas para Gentle AI
+-- [ ] descripci+¦n concisa ÔÇö archivos afectados ÔÇö qu+® test verifica
+-```
++## Cola de despacho aut?nomo (formato m?quina ? tools/dispatch.ps1)
++
++> Detalle completo en Engram: `handoff/claude` (obs #2165). Reparto confirmado:
++> Antigravity (ex Gemini) = navegador/exploraci?n ? Codex = l?gica+tests headless ? Zen = review previo ? Claude = pasada final de arquitecto.
++> Formato: `- [ ] @agente #id engram:topic/key needs:#otra ? descripci?n`
++> Estados: `[ ]` abierta ? `[~]` en curso ? `[x]` hecha. Los agentes editan SOLO su l?nea.
++
++- [x] @codex #ui-player-tests engram:sdd/ui-player-tests/tasks ? tests unitarios Miniplayer + PlayerView (contrato y mocks en el topic)
++- [x] @antigravity #click-to-play-e2e engram:sdd/click-to-play-e2e/tasks ? validaci?n e2e en navegador, entrega reporte a validation/click-to-play-e2e, NO arregla nada
++- [x] @zen #review-ui-player-tests needs:#ui-player-tests engram:workflow/review-criteria ? review del diff de Codex con el checklist de 7 puntos
++- [x] @claude #arch-review-ui-player-tests needs:#review-ui-player-tests engram:handoff/claude ? pasada final de arquitecto: APROBADO (veredicto en Engram review/ui-player-tests-claude; 2 hallazgos folded en #player-state-fixes)
++- [x] @codex #ctp-polish needs:#arch-review-ui-player-tests engram:sdd/ctp-polish/tasks ? P1 completo (commit 36bbaec, reportes #2186/#2188)
++- [x] @zen #review-ctp-polish needs:#ctp-polish engram:workflow/review-criteria ? review del diff de ctp-polish con el checklist de 7 puntos
++- [x] @claude #arch-review-ctp-polish needs:#review-ctp-polish engram:handoff/claude ? pasada final: APROBADO con 2 observaciones a backlog (Engram #2191)
++- [x] @codex #player-state-fixes needs:#arch-review-ctp-polish engram:sdd/player-state-fixes/tasks ? fixes A-D completos (commit 670f051, reportes #2195/#2196)
++- [x] @zen #review-player-state-fixes needs:#player-state-fixes engram:workflow/review-criteria ? review con el checklist de 7 puntos
++- [x] @claude #arch-review-player-state-fixes needs:#review-player-state-fixes engram:handoff/claude ? APROBADO (engram #2205); TS fix (commit a635e48) + 179 tests verde + tsc --noEmit limpio
++- [x] @codex #waveform needs:#arch-review-player-state-fixes engram:sdd/waveform/tasks ? gr?fica de ondas con seek seg?n docs/componentes/06-grafica-ondas.md (pedido de Omar v?a INBOX) (rework: ver Engram review/waveform)
++- [x] @zen #review-waveform needs:#waveform engram:workflow/review-criteria ? review con el checklist de 7 puntos
++- [x] @claude #arch-review-waveform needs:#review-waveform engram:handoff/claude ? pasada final de arquitecto (APROBADO: c+¦digo s+¦lido, tests verdes, 2 mejoras visuales en backlog)
++- [x] @antigravity #waveform-e2e needs:#arch-review-waveform engram:sdd/waveform/tasks ? validaci?n visual en navegador de la waveform (render, seek, bloqueo en show), reporta a validation/waveform-e2e
++- [x] @codex #nav-shell needs:#arch-review-waveform engram:sdd/nav-shell/tasks ? FASE 1.1: navegaci?n + barra inferior + shell de vistas + bloqueo show (contrato #2199) (rework: ver Engram review/nav-shell)
++- [x] @zen #review-nav-shell needs:#nav-shell engram:workflow/review-criteria ? review con el checklist de 7 puntos
++- [x] @claude #arch-review-nav-shell needs:#review-nav-shell engram:handoff/claude ? APROBADO (engram #2227); 204 tests verde + tsc --noEmit limpio + N1-N5 covered
++- [x] @antigravity #library-view needs:#arch-review-nav-shell engram:sdd/library-view/tasks ? FASE 1.2: vista librer+¡a completa seg+¦n spec 03 (contrato #2200) (rework: tests failing, ver Engram #2234) (reasignada: codex sin tokens)
++- [ ] @zen #review-library-view needs:#library-view engram:workflow/review-criteria ? review con el checklist de 7 puntos (reabierta: re-revisar el rework)
++- [ ] @claude #arch-review-library-view needs:#review-library-view engram:handoff/claude ? pasada final de arquitecto (REWORK REQUERIDO: tests, ver Engram #2234)
++- [ ] @antigravity #home-view needs:#arch-review-library-view engram:sdd/home-view/tasks ? FASE 1.3: vista inicio con buscador y filtros seg?n specs 01+11 (contrato #2202) (reasignada: codex sin tokens)
++- [ ] @zen #review-home-view needs:#home-view engram:workflow/review-criteria ? review con el checklist de 7 puntos
++- [ ] @claude #arch-review-home-view needs:#review-home-view engram:handoff/claude ? pasada final de arquitecto
++- [ ] @antigravity #fase1-e2e needs:#arch-review-home-view engram:product/roadmap ? FASE 1 CIERRE: validaci?n e2e completa en navegador (nav, librer?a, home, show-lock), reporta a validation/fase1-e2e
+ 
+ ---
+ 
+diff --git a/app/src/application/importActions.ts b/app/src/application/importActions.ts
+index ef70dc9..7e8f594 100644
+--- a/app/src/application/importActions.ts
++++ b/app/src/application/importActions.ts
+@@ -1,6 +1,8 @@
+ import { importFile } from '../infrastructure/fileSystem'
+ import { trackRepo } from '../infrastructure/dexie'
+ import { useCollectionStore } from './collectionStore'
++import { useWaveformStore } from './waveformStore'
++import { extractPeaks } from './waveform/extractPeaks'
+ import type { PersistedTrack } from '../infrastructure/dexie'
+ 
+ // ---- Lazy AudioContext for file decoding ----
+@@ -41,11 +43,13 @@ export type ImportBatchResult = {
+ export async function importAudioFiles(files: File[]): Promise<ImportBatchResult> {
+   const ctx = getImportAudioContext()
+   const success: PersistedTrack[] = []
++  const waveformPeaks: { trackId: string; peaks: number[] }[] = []
+   const errors: { fileName: string; reason: string }[] = []
+ 
+   for (const file of files) {
+     try {
+       const result = await importFile(file, ctx)
++      const peaks = extractPeaks(result.audioBuffer, 160)
+       const now = new Date()
+       const track: PersistedTrack = {
+         id: result.id,
+@@ -58,6 +62,7 @@ export async function importAudioFiles(files: File[]): Promise<ImportBatchResult
+         createdAt: now,
+         updatedAt: now,
+       }
++      waveformPeaks.push({ trackId: track.id, peaks })
+       success.push(track)
+     } catch (err) {
+       errors.push({
+@@ -69,6 +74,10 @@ export async function importAudioFiles(files: File[]): Promise<ImportBatchResult
+ 
+   if (success.length > 0) {
+     await trackRepo.bulkUpsert(success)
++    const waveformStore = useWaveformStore.getState()
++    for (const { trackId, peaks } of waveformPeaks) {
++      waveformStore.setPeaks(trackId, peaks)
++    }
+     // Reload full track list into store (catches any concurrent updates)
+     const allTracks = await trackRepo.getAll()
+     useCollectionStore.getState().setTracks(allTracks)
+diff --git a/app/src/ui/hooks/useAudioEngine.test.ts b/app/src/ui/hooks/useAudioEngine.test.ts
+index efdc25a..1fb26fb 100644
+--- a/app/src/ui/hooks/useAudioEngine.test.ts
++++ b/app/src/ui/hooks/useAudioEngine.test.ts
+@@ -133,6 +133,19 @@ describe('useAudioEngine', () => {
+     expect(mockResume.mock.invocationCallOrder[0]!).toBeLessThan(mockPlay.mock.invocationCallOrder[0]!)
+   })
+ 
++  it('play reports resume errors and reverts store state', async () => {
++    mockContext.state = 'suspended'
++    mockResume.mockRejectedValue(new Error('autoplay blocked'))
++    const { result } = renderHook(() => useAudioEngine())
++
++    await act(async () => {
++      await result.current.play()
++    })
++
++    expect(result.current.error).toContain('autoplay blocked')
++    expect(usePlayerStore.getState().playing).toBe(false)
++  })
++
+   it('pause calls engine.pause and store.pause', () => {
+     usePlayerStore.getState().play()
+     const { result } = renderHook(() => useAudioEngine())
+diff --git a/app/src/ui/hooks/useAudioEngine.ts b/app/src/ui/hooks/useAudioEngine.ts
+index aa13721..9ee4d96 100644
+--- a/app/src/ui/hooks/useAudioEngine.ts
++++ b/app/src/ui/hooks/useAudioEngine.ts
+@@ -117,9 +117,16 @@ export function useAudioEngine() {
+   const play = useCallback(async () => {
+     const engine = engineRef.current
+     if (!engine?.hasBuffer) return
+-    await resumeContextIfSuspended(engine)
+-    engine.play()
+-    usePlayerStore.getState().play()
++    setError(null)
++    try {
++      await resumeContextIfSuspended(engine)
++      engine.play()
++      usePlayerStore.getState().play()
++    } catch (err) {
++      const msg = err instanceof Error ? err.message : String(err)
++      setError(msg)
++      usePlayerStore.getState().pause()
++    }
+   }, [])
+ 
+   const pause = useCallback(() => {
+diff --git a/app/src/ui/miniplayer/Miniplayer.tsx b/app/src/ui/miniplayer/Miniplayer.tsx
+index 5fe8268..a14d001 100644
+--- a/app/src/ui/miniplayer/Miniplayer.tsx
++++ b/app/src/ui/miniplayer/Miniplayer.tsx
+@@ -20,7 +20,7 @@ function determineState(
+ 
+ const footerStyle: React.CSSProperties = {
+   position: 'fixed',
+-  bottom: 0,
++  bottom: 56,
+   left: 0,
+   right: 0,
+   background: '#1a1a1a',
+diff --git a/app/src/ui/nav/BottomNav.tsx b/app/src/ui/nav/BottomNav.tsx
+index 2c49265..c2408a1 100644
+--- a/app/src/ui/nav/BottomNav.tsx
++++ b/app/src/ui/nav/BottomNav.tsx
+@@ -7,7 +7,7 @@ const DOUBLE_TAP_MS = 650
+ const navItems: Array<{ view: AppView; label: string }> = [
+   { view: 'inicio', label: 'Inicio' },
+   { view: 'reproductor', label: 'Reproductor' },
+-  { view: 'libreria', label: 'Librer´+¢a' },
++  { view: 'libreria', label: 'Librer´+¢a' },
+   { view: 'show', label: 'Show' },
+   { view: 'edit', label: 'Edit' },
+   { view: 'perfil', label: 'Perfil' },
+@@ -30,7 +30,9 @@ const navStyle: React.CSSProperties = {
+ const buttonStyle: React.CSSProperties = {
+   flex: 1,
+   minWidth: 0,
+-  border: '1px solid #333',
++  borderWidth: 1,
++  borderStyle: 'solid',
++  borderColor: '#333',
+   borderRadius: 8,
+   background: '#1f1f1f',
+   color: '#eee',
+@@ -120,7 +122,7 @@ export function BottomNav() {
+       {pendingView && (
+         <div className="panic-modal-confirm" role="dialog" aria-modal="true" aria-label="Confirm show mode exit" style={modalBackdropStyle}>
+           <div style={modalStyle}>
+-            <strong>´+¢CONFIRMAS SALIR DEL MODO SHOW? (Presiona dos veces r´+¢pido)</strong>
++            <strong>´+¢CONFIRMAS SALIR DEL MODO SHOW? (Presiona dos veces r´+¢pido)</strong>
+             <button type="button" onClick={confirmExit} style={activeButtonStyle}>
+               Confirm exit
+             </button>
+diff --git a/app/src/ui/player/Waveform.test.tsx b/app/src/ui/player/Waveform.test.tsx
+new file mode 100644
+index 0000000..776c997
+--- /dev/null
++++ b/app/src/ui/player/Waveform.test.tsx
+@@ -0,0 +1,84 @@
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
++import { cleanup, fireEvent, render, screen } from '@testing-library/react'
++import { Waveform } from './Waveform'
++
++function setRect(element: Element, rect: Partial<DOMRect>) {
++  vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({
++    x: 0,
++    y: 0,
++    width: 200,
++    height: 120,
++    top: 0,
++    right: 200,
++    bottom: 120,
++    left: 0,
++    toJSON: () => ({}),
++    ...rect,
++  })
++}
++
++describe('Waveform', () => {
++  beforeEach(() => {
++    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
++      clearRect: vi.fn(),
++      fillRect: vi.fn(),
++      fillStyle: '',
++    } as unknown as CanvasRenderingContext2D)
++  })
++
++  afterEach(() => {
++    cleanup()
++    vi.restoreAllMocks()
++  })
++
++  it('renders an empty flat state when no peaks are available', () => {
++    render(<Waveform peaks={[]} position={0} duration={0} onSeek={vi.fn()} />)
++
++    expect(screen.getByRole('img', { name: 'Waveform' })).toBeDefined()
++    expect(screen.getByText('Waveform unavailable')).toBeDefined()
++  })
++
++  it('renders normalized peak bars and positions the playhead', () => {
++    render(<Waveform peaks={[0, 0.5, 1]} position={25} duration={100} onSeek={vi.fn()} />)
++
++    expect(screen.getByTestId('waveform-canvas')).toBeDefined()
++    expect(screen.getByTestId('waveform-playhead').style.left).toBe('25%')
++  })
++
++  it('converts click position into seek time', () => {
++    const onSeek = vi.fn()
++    render(<Waveform peaks={[0.2, 0.8]} position={0} duration={120} onSeek={onSeek} />)
++    const waveform = screen.getByRole('img', { name: 'Waveform' })
++    setRect(waveform, { left: 20, width: 200 })
++
++    fireEvent.click(waveform, { clientX: 70 })
++
++    expect(onSeek).toHaveBeenCalledWith(30)
++  })
++
++  it('ignores seek interactions when disabled', () => {
++    const onSeek = vi.fn()
++    render(<Waveform peaks={[0.2, 0.8]} position={0} duration={120} onSeek={onSeek} disabled />)
++    const waveform = screen.getByRole('img', { name: 'Waveform' })
++    setRect(waveform, { left: 0, width: 200 })
++
++    fireEvent.click(waveform, { clientX: 100 })
++
++    expect(waveform.getAttribute('aria-disabled')).toBe('true')
++    expect(onSeek).not.toHaveBeenCalled()
++  })
++
++  it('converts drag position into seek time', () => {
++    const onSeek = vi.fn()
++    render(<Waveform peaks={[0.2, 0.8]} position={0} duration={120} onSeek={onSeek} />)
++    const waveform = screen.getByRole('img', { name: 'Waveform' })
++    setRect(waveform, { left: 0, width: 200 })
++
++    const pointerMove = new Event('pointermove', { bubbles: true })
++    Object.defineProperty(pointerMove, 'clientX', { value: 150 })
++    Object.defineProperty(pointerMove, 'buttons', { value: 1 })
++    fireEvent(waveform, pointerMove)
++
++    expect(onSeek).toHaveBeenCalledWith(90)
++  })
++})
+diff --git a/app/src/ui/player/Waveform.tsx b/app/src/ui/player/Waveform.tsx
+new file mode 100644
+index 0000000..f8143ee
+--- /dev/null
++++ b/app/src/ui/player/Waveform.tsx
+@@ -0,0 +1,171 @@
++import { useEffect, useRef } from 'react'
++
++export type WaveformMarker = {
++  id: string
++  position: number
++  color: 'green' | 'red' | 'yellow' | 'blue'
++  label?: string
++}
++
++type WaveformProps = {
++  peaks: number[]
++  position: number
++  duration: number
++  onSeek?: (position: number) => void
++  disabled?: boolean
++  markers?: WaveformMarker[]
++}
++
++const containerStyle: React.CSSProperties = {
++  position: 'relative',
++  width: '100%',
++  height: 120,
++  overflow: 'hidden',
++  borderRadius: 8,
++  background: 'rgba(255,255,255,0.03)',
++  border: '1px solid rgba(255,255,255,0.08)',
++  cursor: 'pointer',
++  touchAction: 'none',
++}
++
++const canvasStyle: React.CSSProperties = {
++  position: 'absolute',
++  inset: 0,
++  width: '100%',
++  height: '100%',
++  display: 'block',
++}
++
++const flatLineStyle: React.CSSProperties = {
++  position: 'absolute',
++  left: 8,
++  right: 8,
++  top: '50%',
++  height: 2,
++  background: '#333',
++}
++
++const emptyTextStyle: React.CSSProperties = {
++  position: 'absolute',
++  inset: 0,
++  display: 'flex',
++  alignItems: 'center',
++  justifyContent: 'center',
++  color: '#777',
++  fontSize: 12,
++}
++
++const playheadStyle: React.CSSProperties = {
++  position: 'absolute',
++  top: 0,
++  bottom: 0,
++  width: 2,
++  background: '#ff9800',
++  boxShadow: '0 0 6px rgba(255,152,0,0.5)',
++  transform: 'translateX(-1px)',
++  pointerEvents: 'none',
++}
++
++const markerColors: Record<WaveformMarker['color'], string> = {
++  green: '#4caf50',
++  red: '#f44336',
++  yellow: '#ffeb3b',
++  blue: '#2196f3',
++}
++
++function clamp(value: number, min: number, max: number): number {
++  return Math.max(min, Math.min(max, value))
++}
++
++function percent(position: number, duration: number): number {
++  if (duration <= 0) return 0
++  return clamp((position / duration) * 100, 0, 100)
++}
++
++export function Waveform({ peaks, position, duration, onSeek, disabled = false, markers = [] }: WaveformProps) {
++  const canvasRef = useRef<HTMLCanvasElement | null>(null)
++  const hasPeaks = peaks.length > 0
++  const playheadLeft = percent(position, duration)
++
++  useEffect(() => {
++    const canvas = canvasRef.current
++    if (!canvas || !hasPeaks) return
++
++    const rect = canvas.getBoundingClientRect()
++    const width = Math.max(1, Math.floor(rect.width || canvas.clientWidth || 1))
++    const height = Math.max(1, Math.floor(rect.height || canvas.clientHeight || 120))
++    canvas.width = width
++    canvas.height = height
++
++    const context = canvas.getContext('2d')
++    if (!context) return
++
++    context.clearRect(0, 0, width, height)
++    context.fillStyle = '#4caf50'
++
++    const gap = 2
++    const barWidth = Math.max(1, (width - gap * (peaks.length - 1)) / peaks.length)
++    const centerY = height / 2
++
++    peaks.forEach((peak, index) => {
++      const normalizedPeak = clamp(peak, 0, 1)
++      const barHeight = Math.max(2, normalizedPeak * (height - 24))
++      const x = index * (barWidth + gap)
++      const y = centerY - barHeight / 2
++      context.fillRect(x, y, barWidth, barHeight)
++    })
++  }, [hasPeaks, peaks])
++
++  function handlePointer(clientX: number, target: EventTarget | null) {
++    if (disabled || duration <= 0 || !onSeek) return
++    if (!(target instanceof HTMLElement)) return
++
++    const rect = target.getBoundingClientRect()
++    if (rect.width <= 0) return
++
++    const ratio = clamp((clientX - rect.left) / rect.width, 0, 1)
++    onSeek(ratio * duration)
++  }
++
++  return (
++    <div
++      role="img"
++      aria-label="Waveform"
++      aria-disabled={disabled}
++      onClick={(event) => handlePointer(event.clientX, event.currentTarget)}
++      onPointerMove={(event) => {
++        if (event.buttons === 1) handlePointer(event.clientX, event.currentTarget)
++      }}
++      style={{ ...containerStyle, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1 }}
++    >
++      {hasPeaks ? (
++        <canvas ref={canvasRef} data-testid="waveform-canvas" style={canvasStyle} aria-hidden="true" />
++      ) : (
++        <>
++          <div style={flatLineStyle} aria-hidden="true" />
++          <div style={emptyTextStyle}>Waveform unavailable</div>
++        </>
++      )}
++
++      {markers.map((marker) => (
++        <div
++          key={marker.id}
++          title={marker.label}
++          aria-hidden="true"
++          style={{
++            position: 'absolute',
++            left: `${percent(marker.position, duration)}%`,
++            bottom: 10,
++            width: 10,
++            height: 10,
++            borderRadius: '50%',
++            background: markerColors[marker.color],
++            transform: 'translateX(-50%)',
++          }}
++        />
++      ))}
++
++      {duration > 0 && <div data-testid="waveform-playhead" style={{ ...playheadStyle, left: `${playheadLeft}%` }} />}
++    </div>
++  )
++}
+diff --git a/app/src/ui/views/LibraryView.test.tsx b/app/src/ui/views/LibraryView.test.tsx
+index 1cd178a..982a59c 100644
+--- a/app/src/ui/views/LibraryView.test.tsx
++++ b/app/src/ui/views/LibraryView.test.tsx
+@@ -79,9 +79,9 @@ describe('LibraryView', () => {
+     expect(screen.getByRole('heading', { name: /LIBRARY/i })).toBeDefined()
+     expect(screen.getByText('Salsa Brava')).toBeDefined()
+     expect(screen.getByText('3:45')).toBeDefined()
+-    expect(screen.getByText('128 BPM')).toBeDefined()
++    expect(screen.getByText(/128 BPM/)).toBeDefined()
+     expect(screen.getByText('/Music/Importadas/')).toBeDefined()
+-    expect(screen.getByText('Cached')).toBeDefined()
++    expect(screen.getByLabelText('Cached')).toBeDefined()
+     expect(screen.getByText(/Added:/)).toBeDefined()
+   })
+ 
+diff --git a/app/src/ui/views/LibraryView.tsx b/app/src/ui/views/LibraryView.tsx
+index de6810f..5a9d52e 100644
+--- a/app/src/ui/views/LibraryView.tsx
++++ b/app/src/ui/views/LibraryView.tsx
+@@ -256,8 +256,10 @@ export function LibraryView({ onTrackSelected }: LibraryViewProps = {}) {
+                   <div style={metaStyle}>Name: {title}</div>
+                   <div style={trackMetaGridStyle} aria-label={`Metadata for ${title}`}>
+                     <span style={metaStyle}>{formatDuration(track.durationSeconds)}</span>
+-                    <span style={{ ...metaStyle, color: track.bpm ? '#ffd36b' : '#777' }}>{track.bpm ? `${track.bpm} BPM` : 'No BPM'}</span>
+-                    <span style={metaStyle}>Cached</span>
++                    <span style={{ ...metaStyle, color: track.bpm ? '#ffd36b' : '#777' }}>
++                      {track.bpm ? `­ƒöÂ ${track.bpm} BPM` : 'No BPM'}
++                    </span>
++                    <span style={metaStyle} aria-label="Cached">Ô¡É</span>
+                     <span style={metaStyle}>{importedDirectory(track.filePath)}</span>
+                     <span style={metaStyle}>Added: {formatAddedDate(track.createdAt)}</span>
+                   </div>
+[0m
+[0m$ [0mgit diff cbdad08..9b36e04 --stat
+app/src/ui/hooks/useAudioEngine.test.ts | 13 +++++++++++++
+ app/src/ui/hooks/useAudioEngine.ts      | 13 ++++++++++---
+ 2 files changed, 23 insertions(+), 3 deletions(-)
+[0m
+[0m$ [0mgit diff cbdad08..9b36e04
+diff --git a/app/src/ui/hooks/useAudioEngine.test.ts b/app/src/ui/hooks/useAudioEngine.test.ts
+index efdc25a..1fb26fb 100644
+--- a/app/src/ui/hooks/useAudioEngine.test.ts
++++ b/app/src/ui/hooks/useAudioEngine.test.ts
+@@ -133,6 +133,19 @@ describe('useAudioEngine', () => {
+     expect(mockResume.mock.invocationCallOrder[0]!).toBeLessThan(mockPlay.mock.invocationCallOrder[0]!)
+   })
+ 
++  it('play reports resume errors and reverts store state', async () => {
++    mockContext.state = 'suspended'
++    mockResume.mockRejectedValue(new Error('autoplay blocked'))
++    const { result } = renderHook(() => useAudioEngine())
++
++    await act(async () => {
++      await result.current.play()
++    })
++
++    expect(result.current.error).toContain('autoplay blocked')
++    expect(usePlayerStore.getState().playing).toBe(false)
++  })
++
+   it('pause calls engine.pause and store.pause', () => {
+     usePlayerStore.getState().play()
+     const { result } = renderHook(() => useAudioEngine())
+diff --git a/app/src/ui/hooks/useAudioEngine.ts b/app/src/ui/hooks/useAudioEngine.ts
+index aa13721..9ee4d96 100644
+--- a/app/src/ui/hooks/useAudioEngine.ts
++++ b/app/src/ui/hooks/useAudioEngine.ts
+@@ -117,9 +117,16 @@ export function useAudioEngine() {
+   const play = useCallback(async () => {
+     const engine = engineRef.current
+     if (!engine?.hasBuffer) return
+-    await resumeContextIfSuspended(engine)
+-    engine.play()
+-    usePlayerStore.getState().play()
++    setError(null)
++    try {
++      await resumeContextIfSuspended(engine)
++      engine.play()
++      usePlayerStore.getState().play()
++    } catch (err) {
++      const msg = err instanceof Error ? err.message : String(err)
++      setError(msg)
++      usePlayerStore.getState().pause()
++    }
+   }, [])
+ 
+   const pause = useCallback(() => {
+[0m
+[0m$ [0mgit status --short
+M STATUS.md
+ M app/src/ui/App.test.tsx
+ M app/src/ui/App.tsx
+?? INBOX.md
+?? app/src/application/filters.test.ts
+?? app/src/application/filters.ts
+?? app/src/ui/views/HomeView.test.tsx
+?? app/src/ui/views/HomeView.tsx
+?? tools/
+[0m
+[0m$ [0mnpx vitest run 2>&1
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90mC:/Users/omare/OneDrive/Documentos/SUNIPLAYER_V2/app[39m
+System.Management.Automation.RemoteException
+ [32mÔ£ô[39m src/domain/session/interruptionPolicy.test.ts [2m([22m[2m16 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/domain/playback/resolveNext.test.ts [2m([22m[2m15 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32mÔ£ô[39m src/domain/collections/setCompleter.test.ts [2m([22m[2m18 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32mÔ£ô[39m src/infrastructure/audioEngine.test.ts [2m([22m[2m16 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/hooks/useAudioEngine.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 571[2mms[22m[39m
+ [32mÔ£ô[39m src/application/filters.test.ts [2m([22m[2m7 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+[90mstderr[2m | src/infrastructure/fileSystem.test.ts[2m > [22m[2mfileSystem[2m > [22m[2mimportMultiple skips failed files
+[22m[39mFailed to import bad.pdf: Error: Unsupported file type: application/pdf
+    at importFile [90m(C:\Users\omare\OneDrive\Documentos\SUNIPLAYER_V2\app\[39msrc\infrastructure\fileSystem.ts:31:11[90m)[39m
+    at Module.importMultiple [90m(C:\Users\omare\OneDrive\Documentos\SUNIPLAYER_V2\app\[39msrc\infrastructure\fileSystem.ts:52:28[90m)[39m
+[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
+    at [90mC:\Users\omare\OneDrive\Documentos\SUNIPLAYER_V2\app\[39msrc\infrastructure\fileSystem.test.ts:69:21
+    at [90mfile:///C:/Users/omare/OneDrive/Documentos/SUNIPLAYER_V2/app/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:533:5
+    at runTest [90m(file:///C:/Users/omare/OneDrive/Documentos/SUNIPLAYER_V2/app/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1056:11[90m)[39m
+    at runSuite [90m(file:///C:/Users/omare/OneDrive/Documentos/SUNIPLAYER_V2/app/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1205:15[90m)[39m
+    at runSuite [90m(file:///C:/Users/omare/OneDrive/Documentos/SUNIPLAYER_V2/app/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1205:15[90m)[39m
+    at runFiles [90m(file:///C:/Users/omare/OneDrive/Documentos/SUNIPLAYER_V2/app/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1262:5[90m)[39m
+    at startTests [90m(file:///C:/Users/omare/OneDrive/Documentos/SUNIPLAYER_V2/app/[39mnode_modules/[4m@vitest/runner[24m/dist/index.js:1271:3[90m)[39m
+System.Management.Automation.RemoteException
+ [32mÔ£ô[39m src/infrastructure/fileSystem.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 58[2mms[22m[39m
+ [32mÔ£ô[39m src/application/playerStore.test.ts [2m([22m[2m12 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32mÔ£ô[39m src/spike/lib/audioAnalysis.test.ts [2m([22m[2m16 tests[22m[2m)[22m[90m 37[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/views/FileImportView.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 2483[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m FileImportView[2m > [22mshows dropzone when no tracks exist [33m479[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m FileImportView[2m > [22mshows track count when tracks exist [33m406[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m FileImportView[2m > [22mcalls playTrack on track click [33m379[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m FileImportView[2m > [22mshows import more button and toggles dropzone [33m416[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/views/HomeView.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 2565[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m HomeView[2m > [22mrenders correctly with default sections [33m856[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m HomeView[2m > [22mopens filter panel and applies filters [33m358[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m HomeView[2m > [22mclearing filters restores the initial view [33m380[2mms[22m[39m
+ [32mÔ£ô[39m src/application/sessionStore.test.ts [2m([22m[2m8 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/miniplayer/Miniplayer.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2541[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Miniplayer[2m > [22mrenders empty state without transport controls when no track is loaded [33m583[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m Miniplayer[2m > [22mcalls engine.play when active play is clicked [33m752[2mms[22m[39m
+ [32mÔ£ô[39m src/application/collectionStore.test.ts [2m([22m[2m9 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/application/importActions.test.ts [2m([22m[2m2 tests[22m[2m)[22m[90m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/hooks/useMediaSession.test.ts [2m([22m[2m4 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/player/Waveform.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[90m 144[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/views/LibraryView.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 4337[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m LibraryView[2m > [22mrenders tracks from the store with visible title, duration, bpm, path, cache state, and added date [33m1391[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m LibraryView[2m > [22mclicking a track calls playTrack with that track and notifies selection [33m318[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m LibraryView[2m > [22mopens a context menu and shows the spec actions with future items disabled [33m1351[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m LibraryView[2m > [22mkeeps disabled context menu actions visible and inert [33m311[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/player/PlayerView.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 4048[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m PlayerView[2m > [22mrenders empty state without transport controls when no track is loaded [33m489[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m PlayerView[2m > [22mcalls engine transport controls [33m1431[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m PlayerView[2m > [22mcalls engine.seek when the progress bar changes [33m445[2mms[22m[39m
+ [32mÔ£ô[39m src/application/waveform/extractPeaks.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/atoms/Button.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[90m 39[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/waveform/WaveformCanvas.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[90m 49[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/atoms/Slider.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 50[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/atoms/ProgressBar.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[90m 60[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/atoms/FileDropzone.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[90m 61[2mms[22m[39m
+ [32mÔ£ô[39m src/ui/App.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 4177[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m App player navigation[2m > [22mreturns to library without unloading the current track and keeps Miniplayer active [33m2667[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m App player navigation[2m > [22mcan re-enter PlayerView after returning to the library [33m648[2mms[22m[39m
+   [33m[2mÔ£ô[22m[39m App navigation shell[2m > [22mkeeps Miniplayer visible while moving between views [33m313[2mms[22m[39m
+System.Management.Automation.RemoteException
+[2m Test Files [22m [1m[32m26 passed[39m[22m[90m (26)[39m
+[2m      Tests [22m [1m[32m230 passed[39m[22m[90m (230)[39m
+[2m   Start at [22m 20:14:45
+[2m   Duration [22m 8.89s[2m (transform 7.02s, setup 375ms, collect 18.30s, tests 21.34s, environment 31.23s, prepare 4.15s)[22m
+[0m
+[0mÔåÉ [0mEdit STATUS.md
+Index: C:\Users\omare\OneDrive\Documentos\SUNIPLAYER_V2\STATUS.md
+===================================================================
+--- C:\Users\omare\OneDrive\Documentos\SUNIPLAYER_V2\STATUS.md
++++ C:\Users\omare\OneDrive\Documentos\SUNIPLAYER_V2\STATUS.md
+@@ -169,9 +169,9 @@
+ - [x] @zen #review-home-view needs:#home-view engram:workflow/review-criteria ? review con el checklist de 7 puntos
+ - [x] @claude #arch-review-home-view needs:#review-home-view engram:handoff/claude ? pasada final de arquitecto (APROBADO: Engram #2253)
+ - [x] @antigravity #fase1-e2e needs:#arch-review-home-view engram:product/roadmap ? FASE 1 CIERRE: validaci?n e2e completa en navegador (nav, librer?a, home, show-lock), reporta a validation/fase1-e2e
+ - [x] @antigravity #play-async-fix needs:#fase1-e2e engram:sdd/play-async-fix/tasks - FIX backlog: manejar rechazo de play() async, revertir estado a paused (contrato #2259)
+-- [~] @zen #review-play-async-fix needs:#play-async-fix engram:workflow/review-criteria - review con el checklist de 7 puntos
++- [x] @zen #review-play-async-fix needs:#play-async-fix engram:workflow/review-criteria - review con el checklist de 7 puntos
+ - [ ] @claude #arch-review-play-async-fix needs:#review-play-async-fix engram:handoff/claude - pasada final de arquitecto
+ - [ ] @antigravity #collections-ui needs:#arch-review-play-async-fix engram:sdd/collections-ui/tasks - FASE 2.1: gestion Playlist/Set/QuouList segun spec 02 (contrato #2260)
+ - [ ] @zen #review-collections-ui needs:#collections-ui engram:workflow/review-criteria - review con el checklist de 7 puntos
+ - [ ] @claude #arch-review-collections-ui needs:#review-collections-ui engram:handoff/claude - pasada final de arquitecto
+System.Management.Automation.RemoteException
+[0m
+[0mÔÜÖ [0mengram_mem_save {"title":"Zen review: #play-async-fix APROBADO","type":"decision","project":"suniplayer_v2","topic_key":"review/play-async-fix","content":"**What**: Zen review of Antigravity's play-async-fix commit (9b36e04). APRUEBA.\n\n**Checklist de 7 puntos (workflow/review-criteria, obs #2166)**:\n\n1. Ô£à **Tests verdes** ÔÇö 26 files, 230 tests, 0 failures. Nuevo test espec+¡fico (\"play reports resume errors and reverts store state\") pasa. Pre-existentes intactos.\n\n2. Ô£à **Consistencia de estado** ÔÇö Try/catch captura rejection de resumeContextIfSuspended/engine.play(). En catch: `usePlayerStore.getState().pause()` que setea `playing: false`. Test verifica `playing === false` tras error. Sin estado contradictorio.\n\n3. Ô£à **Sin violaci+¦n de capas** ÔÇö Solo modifica `useAudioEngine.ts` (ui/hooks) y su test. No toca domain/, infra/, application/ (stores). Capa UI ÔåÆ hooks ÔåÆ stores, correcto.\n\n4. Ô£à **Edge cases del contrato** ÔÇö Cubre: (A) play/rechazo ÔåÆ store revertido a paused + error expuesto. (B) play/OK ÔåÆ sin regresi+¦n (test pre-existente pasa). `setError(null)` al inicio resetea errores previos. Early return si `!engine?.hasBuffer` se mantiene.\n\n5. Ô£à **Side effects inesperados** ÔÇö Sin timers, listeners nuevos, ni suscripciones. Deps del useCallback sin cambios.\n\n6. Ô£à **Mocks honestos** ÔÇö mockResume.mockRejectedValue con error real. Test fallar+¡a si se quitara el try/catch. Verifica tanto el mensaje de error como el estado revertido.\n\n7. Ô£à **Scope** ÔÇö 2 files, +23/-3 l+¡neas. SOLO `useAudioEngine.ts` y `useAudioEngine.test.ts`. Sin tocar src/domain/, docs/, ni nada fuera del contrato.\n\n**Veredicto**: APROBADO. Pasa al arquitecto (Claude) para pasada final."}
+[0mÔÜÖ [0mengram_mem_session_summary {"content":"## Goal\nTurno aut+¦nomo de Zen: review de #play-async-fix de Antigravity con checklist de 7 puntos.\n\n## Instructions\n- Sesi+¦n aut+¦noma sin humano.\n- NO modificar c+¦digo de src/ ÔÇö solo STATUS.md + Engram.\n\n## Discoveries\n- El commit `9b36e04` de play-async-fix es limpio: solo 2 archivos tocados (+23/-3 l+¡neas). Correcto.\n- El diff del merge-base `812dd46..9b36e04` incluye cambios de `cbdad08` (library-view). La diff real del fix es contra `cbdad08`.\n- Working tree tiene cambios sin commitear de HomeView + filters (tareas futuras) ÔÇö no afectan el review.\n\n## Accomplished\n- Ô£à Reclamada tarea @zen #review-play-async-fix en STATUS.md\n- Ô£à Le+¡do contrato #play-async-fix (Engram #2259) ÔÇö fix de rejection async en useAudioEngine\n- Ô£à Corridos tests: 26 files, 230 tests, ALL GREEN\n- Ô£à Checklist 7 puntos: APROBADO en todos\n- Ô£à Veredicto guardado en Engram `review/play-async-fix` (obs #2265)\n- Ô£à STATUS.md: @zen marcado como [x]\n\n## Next Steps\n- @claude debe tomar `#arch-review-play-async-fix` para pasada final de arquitecto (siguiente en la cola)\n\n## Relevant Files\n- `app/src/ui/hooks/useAudioEngine.ts` ÔÇö try/catch en play(), reverts store to paused on error\n- `app/src/ui/hooks/useAudioEngine.test.ts` ÔÇö new test for play rejection scenario\n- `STATUS.md` ÔÇö @zen task marked [x]"}
+APROBADO. Checklist completo:
+
+1. Ô£à Tests verdes ÔÇö 26 files, 230 tests, 0 failures
+2. Ô£à Consistencia de estado ÔÇö catch revert a `playing: false`
+3. Ô£à Sin violaci+¦n de capas ÔÇö solo ui/hooks/
+4. Ô£à Edge cases ÔÇö rejection y happy path cubiertos
+5. Ô£à Sin side effects ÔÇö ni timers ni listeners nuevos
+6. Ô£à Mocks honestos ÔÇö mockRejectedValue, test fallar+¡a sin try/catch
+7. Ô£à Scope ÔÇö 2 files, +23/-3, solo lo del contrato
+
+Veredicto en Engram `review/play-async-fix` (obs #2265). STATUS.md actualizado. Siguiente: `@claude` para `#arch-review-play-async-fix`.

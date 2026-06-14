@@ -1,0 +1,10 @@
+[build]
+  base    = "app/"
+  command = "npm run build"
+  publish = "dist/"
+
+# SPA redirect — todas las rutas caen al index.html
+[[redirects]]
+  from = "/*"
+  to   = "/index.html"
+  status = 200

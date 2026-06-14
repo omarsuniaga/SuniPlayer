@@ -1,24 +1,124 @@
+---
+ruta: docs/componentes/13-tema.md
+tipo: componente
+origen: "[[06-vista-perfil]]"
+estado: estable
+---
+
 # Sistema de Tema (Dark/Light)
 
-## ¿Qué es?
+## Función
 
-El sistema de **apariencia visual** de Suniplayer. Permite al usuario elegir entre un tema oscuro y uno claro, o seguir automáticamente la configuración del sistema operativo.
+Administrar la apariencia visual de la aplicación (Modos Oscuro, Claro y Sistema); aplicar clases globales y variables CSS al DOM con transiciones suaves; y forzar el Modo Oscuro durante el Modo Show por razones de discreción en el escenario.
+
+## Entrada
+
+- Selección manual de tema por parte del usuario ← [[06-vista-perfil]]
+- Preferencia de tema del sistema operativo (Media Query `prefers-color-scheme`) (físico)
+
+## Proceso
+
+1. **Selección del Tema:** El componente lee la preferencia del usuario guardada en la base de datos. Si está en "Seguir sistema", escucha eventos de cambio del SO.
+2. **Aplicación de Estilos CSS:** Modifica las variables de CSS custom properties (`--bg-primary`, `--text-primary`, `--accent`) en el elemento `:root` del documento. Aplica una transición global de 300ms.
+3. **Optimización de Contraste para Componentes:**
+   - En Modo Oscuro, la [grafica-ondas](file:///C:/Users/omare/OneDrive/Documentos/SUNIPLAYER_V2/docs/componentes/06-grafica-ondas.md) se dibuja en verde/azul neón sobre fondo negro.
+   - En Modo Claro, la gráfica se dibuja en color oscuro sobre fondo blanco.
+   - Las partituras en [[09-partituras]] no se alteran en sí mismas (son archivos PDF/imágenes del usuario), pero el contenedor y la UI que las rodea se ajustan al tema.
+4. **Forzado en Modo Show:** Al activarse el Modo Show, el sistema ignora temporalmente el tema seleccionado y fuerza el **Modo Oscuro** (clase `.theme-dark-forced`) para evitar contaminación lumínica en el escenario. Al salir del show, restaura el tema previo.
+
+### Diagrama de flujo
+
+```text
+      ┌──────────────────┐
+      │  INICIO APP      │
+      └────────┬─────────┘
+               │
+               ▼
+  ┌──────────────────────────┐
+  │  LEER PREFS              │
+  │  TEMA GUARDADO           │
+  │  ← [[04-almacenamiento]] │
+  └─────────────┬────────────┘
+               │
+               ▼
+        ┌──────────────┐
+        │  ¿TEMA =     │
+        │  SISTEMA?    │
+        └──────┬───────┘
+               │
+          ┌────┴────┐
+          │         │
+       [SÍ]▼         ▼[NO]
+      ┌────────┐ ┌──────────────┐
+      │ ESCUCHAR│ │ APLICAR      │
+      │ PREF.  │ │ TEMA         │
+      │ SO     │ │ GUARDADO     │
+      │ (media │ │ (Dark/Light) │
+      │ query) │ └──────────────┘
+      └───┬────┘
+          │
+          ▼
+   ┌──────────────┐
+   │  APLICAR     │
+   │  VARIABLES   │
+   │  CSS :root   │
+   │  + clase     │
+   │  .theme-dark │
+   │  / .theme-   │
+   │  light       │
+   └──────┬───────┘
+          │
+          ▼
+   ┌──────────────┐
+   │  ¿MODO SHOW  │
+   │  ACTIVO?     │
+   └──────┬───────┘
+          │
+     ┌────┴────┐
+     │         │
+  [SÍ]▼         ▼[NO]
+ ┌────────┐ ┌──────────────┐
+ │ FORZAR │ │ USAR TEMA    │
+ │ DARK   │ │ SELECCIONADO │
+ │ (class │ │ (sin forzar) │
+ │ .theme-│ │              │
+ │dark-   │ └──────────────┘
+ │forced) │
+ └───┬────┘
+     │
+     ▼
+ ┌──────────────┐
+ │  TRANSICIÓN  │
+ │  CSS 300ms   │
+ │  SUAVE       │
+ └──────────────┘
+```
+
+## Salida
+
+- Persistencia de la preferencia de tema → [[04-almacenamiento]]
+- Estilos y variables CSS aplicados en el DOM → [[01-vista-inicio]], [[02-vista-reproductor]], [[03-vista-libreria]], [[04-vista-show]], [[05-vista-edit]], [[06-vista-perfil]]
+
+## Errores
+
+- **Lógico:** el dispositivo no soporta la media query del sistema
+  - *Resolución:* se fuerza el Modo Oscuro por defecto.
+- **Semántico:** intentar cambiar el tema mientras el Modo Show está activo
+  - *Resolución:* la operación se bloquea visualmente y el interruptor permanece deshabilitado.
+
+Catálogo global: [[07-modelo-errores]]
 
 ---
 
 ## Modos disponibles
 
-| Modo | Descripción |
-|------|-------------|
-| 🌙 Oscuro (Dark) | Fondo oscuro, texto claro. Ideal para escenarios con poca luz. |
-| ☀️ Claro (Light) | Fondo claro, texto oscuro. Ideal para leer partituras o usar al aire libre. |
-| 🔄 Seguir sistema | Usa la configuración del sistema operativo del dispositivo. |
+- **🌙 Oscuro (Dark):** Fondo oscuro, texto claro. Ideal para escenarios con poca luz.
+- **☀️ Claro (Light):** Fondo claro, texto oscuro. Ideal para leer partituras o usar al aire libre.
+- **🔄 Seguir sistema:** Usa la configuración del sistema operativo del dispositivo.
 
 ---
 
-## ¿Qué cambia cuando cambia el tema?
-
-**No solo cambia el color de fondo.** Cambian todos los aspectos visuales de la app:
+## Qué cambia cuando cambia el tema
 
 ### Colores
 
@@ -34,77 +134,101 @@ El sistema de **apariencia visual** de Suniplayer. Permite al usuario elegir ent
 
 ### Componentes visuales
 
-| Componente | Dark | Light |
-|------------|------|-------|
-| Waveform (gráfica) | Verde/azul neón brillante | Color oscuro sobre fondo claro |
-| Botones de control | Blancos sobre fondo oscuro | Oscuros sobre fondo claro |
-| Cronómetro de Show | Blanco grande, fondo rojo tenue | Mismo estilo, fondo rojo más saturado |
-| Menús y modales | Fondo oscuro, bordes sutiles | Fondo claro, bordes definidos |
-| Scrollbars | Delgadas, color acento | Delgadas, grises |
-
-### Ilustraciones y gráficos
-
-- Las ilustraciones (si las hay) deben tener versión para ambos temas.
-- Las portadas de canciones no se alteran (son archivos del usuario).
+- **Waveform (gráfica):** Verde/azul neón brillante en Dark; oscuro sobre fondo claro en Light.
+- **Botones de control:** Blancos sobre fondo oscuro en Dark; oscuros sobre fondo claro en Light.
+- **Cronómetro de Show:** Blanco grande sobre fondo rojo tenue en Dark; mismo estilo con fondo rojo más saturado en Light.
+- **Menús y modales:** Fondo oscuro, bordes sutiles en Dark; fondo claro, bordes definidos en Light.
+- **Scrollbars:** Delgadas y en color acento en Dark; delgadas y grises en Light.
+- **Ilustraciones:** Poseen versiones específicas adaptadas a cada tema.
+- **Partituras:** El fondo de la partitura NO cambia (es el archivo mismo). Cambia el fondo y la UI del contenedor.
 
 ---
 
-## Configuración
+## Interacción
 
-| Opción | Default | Dónde se configura |
-|--------|---------|-------------------|
-| Modo de tema | Seguir sistema | Perfil → Tema |
-| Transición entre temas | 300ms (animación suave) | No configurable |
+**Tipo:** segmented-control (3 opciones: Dark | Light | Sistema) + badge (tema activo actual)
 
-**Comportamiento:**
-- El cambio de tema es **instantáneo** (con animación suave de 300ms).
-- La preferencia se guarda en la DB local.
-- Si está en "Seguir sistema", la app escucha cambios del SO y se adapta automáticamente.
+**Estados y transiciones:**
+- Dark → [tap Light] → Light (transición 300ms)
+- Light → [tap Sistema] → Sistema (escucha prefers-color-scheme)
+- Sistema → [SO cambia a dark] → Dark (automático)
+- Sistema → [SO cambia a light] → Light (automático)
+- Cualquiera → [Show activo] → Dark forzado (ignora selección)
+- Dark forzado → [Show termina] → Tema previo restaurado
 
----
-
-## Impacto en otros componentes
-
-| Componente | Qué cambia según el tema |
-|-----------|--------------------------|
-| Gráfica de ondas | Color de la onda y del cabezal |
-| Reproductor | Color de fondo de la vista |
-| Editor de sets | Contraste de la lista de canciones |
-| Modo Show | En Show, el tema debería ser siempre OSCURO (para el escenario) |
-| Partituras | El fondo de la partitura NO cambia (es el archivo mismo) — lo que cambia es el fondo y la UI alrededor |
+**Comportamiento por estado:**
+- **Dark:** Clase `.theme-dark` en :root. Fondo #121212. Texto #fff. Interface de bajo perfil.
+- **Light:** Clase `.theme-light` en :root. Fondo #fff. Texto #121212. Ideal para exteriores.
+- **Sistema:** Escucha `prefers-color-scheme`. Sin clase fija. Badge: «Siguiendo sistema».
+- **Dark forzado (Show):** Clase `.theme-dark-forced`. Interruptor de tema deshabilitado visualmente. Tooltip: «Bloqueado durante el show».
+- **Transicionando:** Transición CSS global de 300ms en todas las propiedades de color.
 
 ---
 
-## Comportamiento especial en modo Show
+## Guía de Estilos CSS
 
-En modo Show, el tema se fuerza a **Oscuro** independientemente de la preferencia del usuario:
+**.ui-theme-toggle-group**
+- display: flex; gap: 0; border-radius: 10px; overflow: hidden
+- .theme-dark: background: rgba(255,255,255,0.06)
+- .theme-light: background: rgba(0,0,0,0.04)
 
-```text
-Razón:
-- En un escenario, la luz blanca de un tema claro desentona y molesta.
-- El modo Show es performance, no navegación.
-- La audiencia ve la luz de la pantalla del músico — mejor que sea tenue.
-```
+**.ui-theme-option**
+- padding: 8px 16px; font-size: 13px; cursor: pointer; border: none
+- transition: background 0.2s, color 0.2s
+- .theme-dark: color: rgba(255,255,255,0.5); background: transparent
+- .theme-light: color: rgba(0,0,0,0.5); background: transparent
+- &:hover: .theme-dark: background: rgba(255,255,255,0.08)
 
-Al salir del modo Show, se restaura la preferencia original del usuario.
+**.ui-theme-option--active**
+- .theme-dark: background: #FF9800; color: #fff
+- .theme-light: background: #F57C00; color: #fff
 
----
+**.ui-theme-option--disabled**
+- opacity: 0.4; cursor: not-allowed
+- &:hover: background: transparent
 
-## Relación con otros componentes
+**.ui-theme-badge**
+- font-size: 11px; padding: 2px 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px
+- .ui-theme-badge--dark: .theme-dark: background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5)
+- .ui-theme-badge--light: .theme-light: background: rgba(0,0,0,0.04); color: rgba(0,0,0,0.5)
+- .ui-theme-badge--system: background: rgba(33,150,243,0.15); color: #2196F3
+- .ui-theme-badge--forced: background: rgba(244,67,54,0.15); color: #F44336; animation: pulse 1.5s infinite
 
-| Componente | Relación |
-|-----------|----------|
-| Toda la UI | El tema es global, afecta absolutamente todo |
-| Vista Perfil | Es donde se configura el tema |
-| Modo Show | El tema se fuerza a oscuro durante el show |
+/* Root CSS custom properties */
+:root {
+  --transition-theme: color 0.3s, background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
 
----
+.theme-dark {
+  --bg-primary: #121212;
+  --bg-secondary: #1E1E1E;
+  --bg-card: #252525;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B0B0B0;
+  --border: #333333;
+  --shadow: rgba(0,0,0,0.2);
+}
 
-## Estados
+.theme-light {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F5F5;
+  --bg-card: #FFFFFF;
+  --text-primary: #121212;
+  --text-secondary: #666666;
+  --border: #E0E0E0;
+  --shadow: rgba(0,0,0,0.08);
+}
 
-| Estado | Comportamiento |
-|--------|---------------|
-| Dark activo | App en modo oscuro |
-| Light activo | App en modo claro |
-| Siguiendo sistema | Depende del SO del dispositivo |
-| Forzado (Show) | Oscuro, independientemente de la preferencia |
+/* Universal transition for all themed elements */
+*, *::before, *::after {
+  transition: var(--transition-theme);
+}
+
+/* Show mode override */
+.theme-dark-forced {
+  --bg-primary: #121212 !important;
+  --bg-secondary: #1E1E1E !important;
+  --text-primary: #FFFFFF !important;
+  --text-secondary: #B0B0B0 !important;
+  --border: #333333 !important;
+}
