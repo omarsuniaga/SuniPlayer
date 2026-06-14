@@ -4,6 +4,7 @@ import { importAudioFiles } from '../../application/importActions'
 import { useCollectionStore } from '../../application/collectionStore'
 import { usePlayerStore } from '../../application/playerStore'
 import { useAudioEngine } from '../hooks/useAudioEngine'
+import { TrackProfileModal } from '../atoms/TrackProfileModal'
 import type { PersistedTrack } from '../../infrastructure/dexie'
 
 // ---- Helpers ----
@@ -129,6 +130,8 @@ export function FileImportView({ onTrackSelected }: FileImportViewProps = {}) {
   const [importing, setImporting] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
   const [showDropzone, setShowDropzone] = useState(tracks.length === 0)
+  const [editingTrack, setEditingTrack] = useState<PersistedTrack | null>(null)
+  const updateTrack = useCollectionStore((s) => s.updateTrack)
 
   async function handleFilesSelected(files: File[]) {
     setImporting(true)
@@ -251,6 +254,21 @@ export function FileImportView({ onTrackSelected }: FileImportViewProps = {}) {
                 <div style={{ ...trackMetaStyle, color: '#555', fontSize: 11, marginLeft: 8 }}>
                   {formatDate(track.createdAt)}
                 </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setEditingTrack(track); }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#888',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                  }}
+                  title="Editar metadata"
+                >
+                  ✎
+                </button>
               </div>
             ))}
           </div>
@@ -270,6 +288,14 @@ export function FileImportView({ onTrackSelected }: FileImportViewProps = {}) {
         <div style={emptyTracksStyle}>
           No tracks yet. Click above to import your first audio files.
         </div>
+      )}
+
+      {editingTrack && (
+        <TrackProfileModal
+          track={editingTrack}
+          onSave={(updates) => updateTrack(editingTrack.id, updates)}
+          onClose={() => setEditingTrack(null)}
+        />
       )}
     </div>
   )

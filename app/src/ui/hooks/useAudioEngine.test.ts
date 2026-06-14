@@ -105,6 +105,7 @@ describe('useAudioEngine', () => {
     expect(result.current.play).toBeInstanceOf(Function)
     expect(result.current.pause).toBeInstanceOf(Function)
     expect(result.current.stop).toBeInstanceOf(Function)
+    expect(result.current.stopAll).toBeInstanceOf(Function)
     expect(result.current.seek).toBeInstanceOf(Function)
     expect(result.current.playTrack).toBeInstanceOf(Function)
     expect(result.current.loading).toBe('idle')
@@ -161,6 +162,22 @@ describe('useAudioEngine', () => {
     expect(mockStop).toHaveBeenCalledTimes(1)
     expect(usePlayerStore.getState().playing).toBe(false)
     expect(usePlayerStore.getState().position).toBe(0)
+  })
+
+  it('stopAll calls stop and pauses stray DOM audio/video elements', () => {
+    const audioEl = document.createElement('audio')
+    const pauseSpy = vi.spyOn(audioEl, 'pause')
+    document.body.appendChild(audioEl)
+
+    usePlayerStore.getState().play()
+    const { result } = renderHook(() => useAudioEngine())
+    act(() => result.current.stopAll())
+    expect(mockStop).toHaveBeenCalledTimes(1)
+    expect(usePlayerStore.getState().playing).toBe(false)
+    expect(usePlayerStore.getState().position).toBe(0)
+    expect(pauseSpy).toHaveBeenCalledTimes(1)
+
+    document.body.removeChild(audioEl)
   })
 
   it('seek calls engine.seek and store.seek', () => {
