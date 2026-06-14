@@ -121,13 +121,13 @@ export function ShowView({ onClose }: ShowViewProps) {
       <div style={sectionStyle}>
         <span style={sectionTitleStyle}>NOW PLAYING</span>
         <div style={{ fontSize: 14, fontWeight: 600, color: '#eee' }}>
-          {currentTrack?.title || 'Sin track'}
+          {currentTrack?.track?.title || 'Sin track'}
         </div>
         <div style={infoRowStyle}>
           <span>Tono: La M [{pitch >= 0 ? '+' : ''}{pitch}]</span>
           <span>Tempo: {Math.round(tempo * 100)}%</span>
-          {currentTrack?.durationSeconds && (
-            <span>Duración: {formatDuration(currentTrack.durationSeconds)}</span>
+          {currentTrack?.track?.durationSeconds && (
+            <span>Duración: {formatDuration(currentTrack.track.durationSeconds)}</span>
           )}
         </div>
       </div>

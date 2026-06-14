@@ -99,7 +99,7 @@ describe('ShowView', () => {
     useSessionStore.getState().startShow()
     useCollectionStore.getState().addToQueue({ id: 'track-a' })
     useCollectionStore.getState().setTracks([
-      { id: 'track-a', title: 'Track A', filePath: '/path/a.mp3', durationSeconds: 180, bpm: 120, key: 'C', energy: 5, importDate: Date.now(), fileBlob: new Blob() },
+      { id: 'track-a', title: 'Track A', artist: '', filePath: '/path/a.mp3', durationSeconds: 180, bpm: 120, energy: 'media', playCount: 0, fileBlob: new Blob(), createdAt: new Date(), updatedAt: new Date() },
     ])
 
     render(<ShowView onClose={vi.fn()} />)
