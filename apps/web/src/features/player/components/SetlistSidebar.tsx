@@ -14,11 +14,12 @@ interface SetlistSidebarProps {
     onQueueClick: (track: Track) => void;
     onClose: () => void;
     onDrop: (dragIdx: number, targetIndex: number) => void;
+    onEditSetlist: () => void;
 }
 
 export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
     showQueue, isMobile, pQueue, ci, playing, isLive, stackOrder, mCol,
-    onQueueClick, onClose, onDrop
+    onQueueClick, onClose, onDrop, onEditSetlist
 }) => {
     const touchStartRef = React.useRef<number | null>(null);
 
@@ -58,9 +59,9 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
                 style={{
                 position: "fixed",
                 right: 0, top: 0, bottom: 0,
-                width: showQueue ? (isMobile ? "85vw" : "360px") : 0, 
+                width: showQueue ? (isMobile ? "85vw" : "360px") : 0,
                 transition: "width 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                backgroundColor: isMobile ? THEME.colors.bg : THEME.colors.panel, 
+                backgroundColor: THEME.colors.bg,
                 borderLeft: `1px solid ${THEME.colors.border}`,
                 display: "flex", flexDirection: "column", 
                 overflow: "hidden",
@@ -224,6 +225,24 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
                                 </div>
                             );
                         })}
+                    </div>
+
+                    {/* Footer: edit order / add more songs */}
+                    <div style={{ padding: 12, borderTop: `1px solid ${THEME.colors.border}` }}>
+                        <button
+                            onClick={onEditSetlist}
+                            style={{
+                                width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                                padding: isMobile ? "14px" : "11px", borderRadius: THEME.radius.md,
+                                border: `1px solid ${THEME.colors.brand.violet}40`,
+                                background: `${THEME.colors.brand.violet}12`,
+                                color: THEME.colors.brand.violet, fontSize: 12, fontWeight: 800,
+                                cursor: "pointer", textTransform: "uppercase", letterSpacing: 0.5
+                            }}
+                        >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Editar / agregar canciones
+                        </button>
                     </div>
                 </div>
 

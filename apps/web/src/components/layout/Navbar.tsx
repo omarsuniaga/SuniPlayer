@@ -7,6 +7,8 @@ import { sumTrackDurationMs } from "@suniplayer/core";
 import { InstallButton } from "../common/InstallButton";
 import { useIsMobile } from "../../utils/useMediaQuery";
 import { SyncPanel } from "../../features/sync/SyncPanel";
+import { useUIStore } from "../../store/useUIStore";
+import { useBuilderStore } from "../../store/useBuilderStore";
 
 export const Navbar: React.FC = () => {
     const isMobile = useIsMobile();
@@ -37,6 +39,12 @@ export const Navbar: React.FC = () => {
 
     const [isPressing, setIsPressing] = useState(false);
     const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const setShowQueue = useUIStore(s => s.setShowQueue);
+    const setView = useBuilderStore(s => s.setView);
+
+    // Tapping the chronometer reveals the setlist queue (switching to the player
+    // view first so the panel is actually visible from anywhere).
+    const openSetlist = () => { setView("player"); setShowQueue(true); };
 
     const handlePointerDown = (e: React.PointerEvent) => {
         // Only left click or touch
@@ -115,11 +123,15 @@ export const Navbar: React.FC = () => {
 
                 {/* ⏱️ DUAL SHOW TIMER */}
                 {pQueue.length > 0 && (
-                    <div style={{ 
-                        display: "flex", alignItems: "center", 
+                    <div
+                        onClick={openSetlist}
+                        title="Ver setlist"
+                        style={{
+                        display: "flex", alignItems: "center",
                         backgroundColor: "rgba(255,255,255,0.03)",
                         borderRadius: "10px",
                         padding: "2px",
+                        cursor: "pointer",
                         border: `1px solid ${isShowMode ? THEME.colors.brand.violet + "40" : "rgba(255,255,255,0.05)"}`
                     }}>
                         {/* Elapsed */}

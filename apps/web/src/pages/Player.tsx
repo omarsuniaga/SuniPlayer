@@ -25,6 +25,7 @@ import { VisualizerSection } from "../features/player/components/VisualizerSecti
 import { PlaybackControls } from "../features/player/components/PlaybackControls";
 import { VolumeControl } from "../features/player/components/VolumeControl";
 import { SetlistSidebar } from "../features/player/components/SetlistSidebar";
+import { useUIStore } from "../store/useUIStore";
 import { ShowControl } from "../features/player/components/ShowControl";
 
 interface PlayerProps {
@@ -91,7 +92,9 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
     const [trimmingTrack, setTrimmingTrack] = useState<Track | null>(null);
     const [profileTrack, setProfileTrack] = useState<Track | null>(null);
     const [viewingSheetTrack, setViewingSheetTrack] = useState<Track | null>(null);
-    const [showQueue, setShowQueue] = useState(window.innerWidth > 1200);
+    const showQueue = useUIStore(s => s.showQueue);
+    const setShowQueue = useUIStore(s => s.setShowQueue);
+    const setView = useBuilderStore(s => s.setView);
     const [screenSize, setScreenSize] = useState({
         isMobile: window.innerWidth < 768,
         isTablet: window.innerWidth >= 768 && window.innerWidth < 1200,
@@ -337,7 +340,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                 </main>
             </div>
 
-            <SetlistSidebar showQueue={showQueue} isMobile={screenSize.isMobile} pQueue={pQueue} ci={ci} playing={playing} isLive={isLive} stackOrder={stackOrder} mCol={mCol} onQueueClick={handleQueueClick} onClose={() => setShowQueue(false)} onDrop={onDrop} />
+            <SetlistSidebar showQueue={showQueue} isMobile={screenSize.isMobile} pQueue={pQueue} ci={ci} playing={playing} isLive={isLive} stackOrder={stackOrder} mCol={mCol} onQueueClick={handleQueueClick} onClose={() => setShowQueue(false)} onDrop={onDrop} onEditSetlist={() => { setShowQueue(false); setView("builder"); }} />
 
             {trimmingTrack && <TrackTrimmer track={trimmingTrack} onSave={(s, e) => { setTrackTrim(trimmingTrack.id, s, e); setTrimmingTrack(null); }} onCancel={() => setTrimmingTrack(null)} />}
             {profileTrack && <TrackProfileModal track={profileTrack} onSave={(u) => { updateTrackMetadata(profileTrack.id, u); setProfileTrack(null); }} onCancel={() => setProfileTrack(null)} />}

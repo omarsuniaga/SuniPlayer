@@ -15,6 +15,7 @@ declare global {
 
 export const InstallButton: React.FC = () => {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+    const [showHelp, setShowHelp] = useState(false);
     const [isVisible, setIsVisible] = useState(() => {
         if (typeof window === "undefined") return false;
         return !window.matchMedia('(display-mode: standalone)').matches;
@@ -38,15 +39,21 @@ export const InstallButton: React.FC = () => {
     }, []);
 
     const handleInstallClick = async () => {
-        if (!deferredPrompt) return;
+        // No native prompt available (browser without support, not yet eligible,
+        // or running inside an iframe/preview): guide the user instead of doing
+        // nothing on click.
+        if (!deferredPrompt) {
+            setShowHelp(true);
+            return;
+        }
 
         // Show the prompt
         deferredPrompt.prompt();
-        
+
         // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
         console.log(`[PWA] User response to the install prompt: ${outcome}`);
-        
+
         // We've used the prompt, and can't use it again, so clear it
         setDeferredPrompt(null);
         setIsVisible(false);
@@ -82,6 +89,24 @@ export const InstallButton: React.FC = () => {
                 <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
             <span>INSTALAR</span>
+
+            {showHelp && (
+                <div
+                    onClick={(e) => { e.stopPropagation(); setShowHelp(false); }}
+                    style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+                >
+                    <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, background: "#14181F", border: `1px solid ${THEME.colors.brand.cyan}40`, borderRadius: 14, padding: 22, textAlign: "left", boxShadow: "0 20px 60px rgba(0,0,0,0.8)" }}>
+                        <h3 style={{ margin: "0 0 10px", fontSize: 15, fontWeight: 900, color: THEME.colors.brand.cyan, textTransform: "uppercase", letterSpacing: 0.5 }}>Instalar SuniPlayer</h3>
+                        <p style={{ margin: "0 0 12px", fontSize: 12, color: "#bbb", lineHeight: 1.5 }}>Tu navegador no ofreció el instalador automático. Podés instalarla manualmente:</p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "#ddd", lineHeight: 1.4 }}>
+                            <div><strong style={{ color: "white" }}>Chrome / Edge:</strong> menú ⋮ → “Instalar app”.</div>
+                            <div><strong style={{ color: "white" }}>iPhone (Safari):</strong> Compartir → “Agregar a inicio”.</div>
+                            <div><strong style={{ color: "white" }}>Android:</strong> menú ⋮ → “Agregar a pantalla de inicio”.</div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); setShowHelp(false); }} style={{ width: "100%", marginTop: 18, padding: 12, borderRadius: 8, border: "none", background: THEME.colors.brand.cyan, color: "black", fontWeight: 900, fontSize: 12, cursor: "pointer" }}>ENTENDIDO</button>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 .pwa-install-btn:hover {
