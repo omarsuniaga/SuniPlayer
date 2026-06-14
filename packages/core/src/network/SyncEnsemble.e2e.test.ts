@@ -181,6 +181,27 @@ describe('SyncEnsemble E2E (Core)', () => {
         expect(playMessage?.payload.positionMs).toBe(5000);
     });
 
+    it('lets a follower request play; only the leader schedules (democratic play)', async () => {
+        leaderSession.createSession('session1', 'Tutti');
+        followerSession.joinSession('session1');
+
+        // A FOLLOWER initiates playback — it must route through the leader, not
+        // schedule on its own.
+        followerOrch.requestPlay(5000);
+        // The leader armed quorum; the follower reports ready → tight 3s start.
+        const now = Date.now();
+        const expectedTarget = now + 3000;
+        followerOrch.sendReadySignal();
+
+        const scheduled = usePlayerStore.getState().scheduledPlay;
+        expect(scheduled?.targetWallMs).toBe(expectedTarget);
+        expect(scheduled?.positionMs).toBe(5000);
+
+        const playCalls = (transports.leaderTransport.broadcast as any).mock.calls;
+        const playMessage = playCalls.find(([msg]: [P2PMessage]) => msg.type === 'PLAY')?.[0] as P2PMessage | undefined;
+        expect(playMessage?.payload.targetWallMs).toBe(expectedTarget);
+    });
+
     it('sends CLOCK_PING while calibrating and promotes the leader/member state in the store', async () => {
         leaderSession.createSession('session1', 'Tutti');
         followerSession.joinSession('session1');

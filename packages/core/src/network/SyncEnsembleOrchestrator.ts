@@ -92,6 +92,16 @@ export class SyncEnsembleOrchestrator {
                     );
                     break;
 
+                case 'PLAY_REQUEST':
+                    // Democratic play: any device can ask to start. Only the leader (the
+                    // single scheduler) acts, so two near-simultaneous requests can't spawn
+                    // two competing countdowns — the leader emits one authoritative PLAY.
+                    if (this.sessionManager.getIsLeader()) {
+                        const reqPos = Math.max(0, Number(msg.payload?.positionMs) || 0);
+                        void this.startGlobalPlayback(reqPos);
+                    }
+                    break;
+
                 case 'PAUSE':
                     this.audioEngine.pause();
                     usePlayerStore.setState({ playing: false, countdown: null });
@@ -193,6 +203,26 @@ export class SyncEnsembleOrchestrator {
     }
 
     // ─── PLAYBACK ─────────────────────────────────────────────────────────────
+
+    /**
+     * Democratic play entry point (phase 3). Any device can call this. The leader
+     * schedules directly; a follower asks the leader via PLAY_REQUEST so the leader
+     * stays the single authoritative scheduler (no competing countdowns).
+     */
+    public requestPlay(positionMs: number = 0): void {
+        if (this.sessionManager.getIsLeader()) {
+            void this.startGlobalPlayback(positionMs);
+            return;
+        }
+        const msg: Omit<P2PMessage, 'sequence'> = {
+            type: 'PLAY_REQUEST',
+            senderId: this.sessionManager.getUserId(),
+            timestamp: performance.now(),
+            sessionId: this.sessionManager.getSessionId()!,
+            payload: { positionMs }
+        };
+        this.sessionManager.getTransport()?.broadcast(msg as P2PMessage);
+    }
 
     public async startGlobalPlayback(positionMs: number): Promise<void> {
         if (!this.sessionManager.getIsLeader()) return;

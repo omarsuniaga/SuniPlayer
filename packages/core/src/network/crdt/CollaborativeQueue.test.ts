@@ -77,6 +77,25 @@ describe('CollaborativeQueue', () => {
         expect(q1.getItems().map((i) => i.uid)).toEqual(q2.getItems().map((i) => i.uid));
     });
 
+    it('publishes sourceUrl to every device without changing order (owner-seeding)', () => {
+        q1.addMany([item('a', 'song-a'), item('b', 'song-b')]);
+        // The owner uploads song-b and publishes its URL.
+        q2.setSourceUrl('b', 'https://cdn.example/song-b.mp3');
+        const onB1 = q1.getItems().find((i) => i.uid === 'b');
+        const onB2 = q2.getItems().find((i) => i.uid === 'b');
+        expect(onB1?.sourceUrl).toBe('https://cdn.example/song-b.mp3');
+        expect(onB2?.sourceUrl).toBe('https://cdn.example/song-b.mp3');
+        // Order is preserved.
+        expect(q1.getItems().map((i) => i.uid)).toEqual(['a', 'b']);
+    });
+
+    it('update is a no-op for an unknown uid', () => {
+        q1.add(item('a', 'song-a'));
+        q1.update('nope', { sourceUrl: 'x' });
+        expect(q1.getItems().map((i) => i.uid)).toEqual(['a']);
+        expect(q1.getItems()[0].sourceUrl).toBeUndefined();
+    });
+
     it('clear empties the queue on every device', () => {
         q1.addMany([item('a', 'song-a'), item('b', 'song-b')]);
         q2.clear();

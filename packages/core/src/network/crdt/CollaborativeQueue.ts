@@ -22,6 +22,9 @@ export interface QueueItem {
     musicalKey?: string;
     durationMs?: number;
     filePath?: string;
+    /** CDN/Storage URL of the audio, published by the owner once uploaded (phase 2).
+     *  Any device can download from it, so the track survives the owner leaving. */
+    sourceUrl?: string;
 }
 
 const QUEUE_KEY = 'queue';
@@ -100,6 +103,24 @@ export class CollaborativeQueue {
             const insertAt = Math.max(0, Math.min(toIndex, this.arr.length));
             this.arr.insert(insertAt, [item]);
         });
+    }
+
+    /** Merge a patch into an existing entry (delete + insert in one transaction so
+     *  peers see an atomic update). Used to publish sourceUrl after the upload. */
+    update(uid: string, patch: Partial<QueueItem>): void {
+        const items = this.arr.toArray();
+        const idx = items.findIndex((i) => i.uid === uid);
+        if (idx === -1) return;
+        const merged = { ...items[idx], ...patch, uid };
+        this.doc.transact(() => {
+            this.arr.delete(idx, 1);
+            this.arr.insert(idx, [merged]);
+        });
+    }
+
+    /** Publish the audio's CDN/Storage URL for an entry (owner-seeding). */
+    setSourceUrl(uid: string, url: string): void {
+        this.update(uid, { sourceUrl: url });
     }
 
     /** Clear the whole queue (e.g. on session end). */
