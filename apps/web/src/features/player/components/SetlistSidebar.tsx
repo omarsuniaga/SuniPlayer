@@ -1,6 +1,7 @@
 import React from "react";
 import { THEME } from "../../../data/theme.ts";
-import { Track } from "@suniplayer/core";
+import { Track, usePlayerStore } from "@suniplayer/core";
+import { CollaborativeQueuePanel } from "./CollaborativeQueuePanel";
 
 interface SetlistSidebarProps {
     showQueue: boolean;
@@ -22,6 +23,7 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
     onQueueClick, onClose, onDrop, onEditSetlist
 }) => {
     const touchStartRef = React.useRef<number | null>(null);
+    const sessionId = usePlayerStore((s) => s.sessionId);
 
     const handleTouchStart = (e: React.TouchEvent) => {
         touchStartRef.current = e.touches[0].clientX;
@@ -225,6 +227,9 @@ export const SetlistSidebar: React.FC<SetlistSidebarProps> = ({
                                 </div>
                             );
                         })}
+
+                        {/* Phase 2: shared collaborative queue (only inside a session) */}
+                        {sessionId && <CollaborativeQueuePanel isMobile={isMobile} />}
                     </div>
 
                     {/* Footer: edit order / add more songs */}
