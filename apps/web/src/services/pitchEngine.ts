@@ -72,10 +72,33 @@ const dlog: (...args: unknown[]) => void = import.meta.env.DEV
     : () => { };
 
 let sharedAudioCtx: AudioContext | null = null;
+
+/**
+ * Browsers create an AudioContext in the "suspended" state and only allow
+ * resuming it from a *direct* user-gesture call stack. Our Play button resumes
+ * inside a React effect (several ticks after the click), which mobile browsers
+ * (and Safari) refuse to honor — so the first Play produced no sound until some
+ * other, more direct interaction (e.g. the modal "Probar Audio") unlocked it.
+ *
+ * Fix: the moment the shared context exists, attach one-shot gesture listeners
+ * that call resume() synchronously inside the gesture. After the first gesture
+ * the context is unlocked for every engine that shares it (main + preview).
+ */
+function attachAudioUnlock(ctx: AudioContext): void {
+    if (typeof document === "undefined") return;
+    const events: (keyof DocumentEventMap)[] = ["pointerdown", "touchend", "mousedown", "keydown"];
+    const unlock = () => {
+        if (ctx.state === "suspended") ctx.resume().catch(() => { /* ignore */ });
+        events.forEach((e) => document.removeEventListener(e, unlock));
+    };
+    events.forEach((e) => document.addEventListener(e, unlock, { passive: true }));
+}
+
 function getSharedContext(): AudioContext {
     if (!sharedAudioCtx) {
         const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         sharedAudioCtx = new AudioCtxClass();
+        attachAudioUnlock(sharedAudioCtx);
     }
     return sharedAudioCtx;
 }
