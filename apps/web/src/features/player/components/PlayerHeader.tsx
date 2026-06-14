@@ -16,6 +16,7 @@ interface PlayerHeaderProps {
     onMirrorToggle: () => void;
     currentSetMetadata: { setLabel: string; totalSetsInShow: number } | null;
     onProfileClick: () => void;
+    onResetTrack: () => void;
     onSheetMusicClick: () => void;
     onSetlistToggle: () => void;
     showQueue: boolean;
@@ -23,16 +24,28 @@ interface PlayerHeaderProps {
 
 export const PlayerHeader: React.FC<PlayerHeaderProps> = ({
     track, performanceMode, playing, currentSetMetadata,
-    onProfileClick, onSheetMusicClick, isMirrorOpen, onMirrorToggle,
+    onProfileClick, onResetTrack, onSheetMusicClick, isMirrorOpen, onMirrorToggle,
     onSetlistToggle, showQueue
 }) => {
     const isMobile = useIsMobile();
     const autoGain = useSettingsStore(s => s.autoGain);
     const { syncStatus, isLeader } = usePlayerStore();
     const [showHelp, setShowHelp] = useState(false);
+    const [showModInfo, setShowModInfo] = useState(false);
 
     if (!track) return null;
     const isNormalized = autoGain && typeof track.gainOffset === "number" && Math.abs(track.gainOffset - 1) > 0.02;
+
+    // ── Modified-state detection (derived; the "original" is the neutral baseline) ──
+    const semis = track.transposeSemitones ?? 0;
+    const tempoPct = Math.round((track.playbackTempo ?? 1.0) * 100);
+    const gainDb = track.gainOffset ?? 0;
+    const isTrimmed = (track.startTime ?? 0) > 0 || (typeof track.endTime === "number" && track.endTime < track.duration_ms - 1);
+    const isModified = semis !== 0 || tempoPct !== 100 || Math.abs(gainDb) > 0.001 || isTrimmed;
+    const chipParts: string[] = [];
+    if (semis !== 0) chipParts.push(`${semis > 0 ? "+" : ""}${semis} st`);
+    if (tempoPct !== 100) chipParts.push(`${tempoPct}%`);
+    const chipLabel = chipParts.join(" · ") || "Editado";
 
     const getSyncColor = () => {
         switch(syncStatus) {
@@ -113,22 +126,53 @@ export const PlayerHeader: React.FC<PlayerHeaderProps> = ({
 
                 <div style={{ display: "flex", gap: 6 }}>
                     <button onClick={() => setShowHelp(true)} style={{ background: "rgba(255,255,255,0.05)", border: "none", color: THEME.colors.brand.cyan, width: 28, height: 28, borderRadius: 6, fontSize: 10, fontWeight: 900, cursor: "pointer" }}>?</button>
-                    <button onClick={onProfileClick} style={{ background: "rgba(6, 182, 212, 0.1)", border: "1px solid rgba(6, 182, 212, 0.2)", color: THEME.colors.brand.cyan, width: 28, height: 28, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
                 </div>
             </div>
 
             {/* Main Title & Artist Layer */}
             <div style={{ marginTop: 2 }}>
-                <h1 style={{ 
-                    fontSize: isMobile ? 22 : (performanceMode ? 38 : 28), 
-                    fontWeight: 900, color: "white", margin: 0, 
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                    letterSpacing: "-0.02em", lineHeight: 1.1
-                }}>
-                    {track.title}
-                </h1>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
+                    <h1 style={{
+                        fontSize: isMobile ? 22 : (performanceMode ? 38 : 28),
+                        fontWeight: 900, color: "white", margin: 0, minWidth: 0,
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        letterSpacing: "-0.02em", lineHeight: 1.1
+                    }}>
+                        {track.title}
+                    </h1>
+
+                    {/* Edit / Modified state chip — co-located with the song identity */}
+                    {isModified ? (
+                        <button onClick={() => setShowModInfo(v => !v)} title="Canción modificada — ver ajustes" style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: "rgba(249,115,22,0.15)", border: "1px solid rgba(249,115,22,0.5)", color: "#fb923c", fontSize: 10, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace", cursor: "pointer", whiteSpace: "nowrap", lineHeight: 1 }}>
+                            <span style={{ fontSize: 11 }}>♪</span>{chipLabel}
+                        </button>
+                    ) : (
+                        <button onClick={onProfileClick} title="Editar perfil del track" style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "3px 9px", borderRadius: 999, background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.25)", color: THEME.colors.brand.cyan, fontSize: 10, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", lineHeight: 1 }}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Editar
+                        </button>
+                    )}
+
+                    {/* Modified-detail popover */}
+                    {isModified && showModInfo && (
+                        <>
+                            <div onClick={() => setShowModInfo(false)} style={{ position: "fixed", inset: 0, zIndex: 50 }} />
+                            <div style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 51, width: 230, background: "#14181F", border: "1px solid rgba(249,115,22,0.3)", borderRadius: 10, padding: 12, boxShadow: "0 12px 40px rgba(0,0,0,0.7)" }}>
+                                <div style={{ fontSize: 9, fontWeight: 900, letterSpacing: 1, color: "#fb923c", marginBottom: 8 }}>AJUSTES APLICADOS</div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11 }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#888" }}>Tono</span><span style={{ fontWeight: 800, color: semis !== 0 ? "#fb923c" : "#666" }}>{semis !== 0 ? `${semis > 0 ? "+" : ""}${semis} semitonos` : "Original"}</span></div>
+                                    <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#888" }}>Velocidad</span><span style={{ fontWeight: 800, color: tempoPct !== 100 ? "#fb923c" : "#666" }}>{tempoPct}%</span></div>
+                                    {Math.abs(gainDb) > 0.001 && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#888" }}>Normalización</span><span style={{ fontWeight: 800, color: "#fb923c" }}>{gainDb > 0 ? "+" : ""}{gainDb} dB</span></div>}
+                                    {isTrimmed && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#888" }}>Recorte</span><span style={{ fontWeight: 800, color: "#fb923c" }}>Activo</span></div>}
+                                </div>
+                                <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
+                                    <button onClick={() => { setShowModInfo(false); onProfileClick(); }} style={{ flex: 1, padding: "7px", borderRadius: 6, border: "1px solid rgba(6,182,212,0.3)", background: "rgba(6,182,212,0.1)", color: THEME.colors.brand.cyan, fontSize: 10, fontWeight: 800, cursor: "pointer" }}>Editar</button>
+                                    <button onClick={() => { setShowModInfo(false); onResetTrack(); }} style={{ flex: 1, padding: "7px", borderRadius: 6, border: "1px solid rgba(249,115,22,0.4)", background: "rgba(249,115,22,0.12)", color: "#fb923c", fontSize: 10, fontWeight: 800, cursor: "pointer" }}>Restaurar</button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 2 }}>
                     <span style={{ fontSize: isMobile ? 12 : 16, fontWeight: 600, color: "rgba(255,255,255,0.5)" }}>{track.artist || "Artista Local"}</span>
                     <div style={{ width: 3, height: 3, borderRadius: "50%", backgroundColor: THEME.colors.brand.cyan, boxShadow: `0 0 6px ${THEME.colors.brand.cyan}` }} />

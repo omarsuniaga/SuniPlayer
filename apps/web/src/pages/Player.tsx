@@ -262,8 +262,9 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                         onSetlistToggle={() => setShowQueue(!showQueue)}
                         showQueue={showQueue}
                         currentSetMetadata={currentSetMetadata} 
-                        onProfileClick={() => setProfileTrack(ct)} 
-                        onSheetMusicClick={() => setViewingSheetTrack(ct)} 
+                        onProfileClick={() => setProfileTrack(ct)}
+                        onResetTrack={() => updateTrackMetadata(ct.id, { transposeSemitones: 0, playbackTempo: 1.0, gainOffset: 0, startTime: 0, endTime: ct.duration_ms, targetKey: ct.key })}
+                        onSheetMusicClick={() => setViewingSheetTrack(ct)}
                     />
 
                     <VisualizerSection 

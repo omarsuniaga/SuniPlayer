@@ -72,6 +72,14 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
     const handleStopPreview = () => { getPitchEngine().stop(); setIsPreviewPlaying(false); };
     const handleCancel = () => { handleStopPreview(); onCancel(); };
 
+    // Restore the track to its neutral baseline (no transpose / speed / gain / trim).
+    const handleResetAudio = () => setEdit({ ...edit, targetKey: sourceKey, playbackTempo: 1.0, gainOffset: 0, startTime: 0, endTime: duration });
+    const isAudioModified = transposeSemitones !== 0
+        || Math.abs(playbackTempo - 1) > 0.001
+        || Math.abs(edit.gainOffset ?? 0) > 0.001
+        || (edit.startTime ?? 0) > 0
+        || (edit.endTime !== undefined && edit.endTime < duration - 1);
+
     const startPct = ((edit.startTime || 0) / duration) * 100;
     const endPct = ((edit.endTime || duration) / duration) * 100;
 
@@ -179,6 +187,11 @@ export const TrackProfileModal: React.FC<TrackProfileModalProps> = ({ track, onS
                                 </div>
                                 <input type="range" className="tech-slider" min={0.8} max={1.2} step={0.01} value={edit.playbackTempo || 1.0} onChange={e => setEdit({...edit, playbackTempo: parseFloat(e.target.value)})} style={{ width: "100%", ["--track-accent" as string]: THEME.colors.brand.cyan }} />
                             </div>
+
+                            <button onClick={handleResetAudio} disabled={!isAudioModified} style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, padding: "7px 12px", borderRadius: 6, border: `1px solid ${isAudioModified ? "rgba(249,115,22,0.4)" : "#222"}`, background: isAudioModified ? "rgba(249,115,22,0.1)" : "transparent", color: isAudioModified ? "#fb923c" : "#555", fontSize: 10, fontWeight: 800, cursor: isAudioModified ? "pointer" : "default", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                                Restaurar original
+                            </button>
                         </div>
                     )}
 
