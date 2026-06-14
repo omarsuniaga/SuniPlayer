@@ -14,7 +14,7 @@ import { Track } from "@suniplayer/core";
 import { SheetMusicViewer } from "../components/common/SheetMusicViewer";
 import { Dashboard } from "../components/player/Dashboard";
 import { getWaveformData } from "../services/waveformService";
-import { skipToNextGracefully, togglePlaybackGracefully } from "../services/audioTransport";
+import { skipToNextGracefully, togglePlaybackGracefully, stopAllAudio } from "../services/audioTransport";
 import { StageMirror } from "../components/player/StageMirror";
 import { useMetronome } from "../services/useMetronome";
 import { useTapTempo } from "../services/useTapTempo";
@@ -290,7 +290,7 @@ export const Player: React.FC<PlayerProps> = ({ onModeToggle }) => {
                         onSeek={(newPosMs) => { if (ct) setPos(newPosMs); }} 
                     />
 
-                    <PlaybackControls playing={playing} isLive={isLive} ci={ci} queueLen={pQueue.length} pos={pos} performanceMode={performanceMode} mCol={mCol} onPlayPause={togglePlaybackGracefully} onPrev={() => { setCi(ci - 1); setPos(0); }} onNext={skipToNextGracefully} onStop={() => { setPlaying(false); setPos(0); }} />
+                    <PlaybackControls playing={playing} isLive={isLive} ci={ci} queueLen={pQueue.length} pos={pos} performanceMode={performanceMode} mCol={mCol} onPlayPause={togglePlaybackGracefully} onPrev={() => { setCi(ci - 1); setPos(0); }} onNext={skipToNextGracefully} onStop={stopAllAudio} />
 
                     <VolumeControl vol={vol} mCol={mCol} performanceMode={performanceMode} onVolumeChange={setVol} />
 

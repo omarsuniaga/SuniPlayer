@@ -19,6 +19,7 @@ import {
 } from "./audioTransport";
 import { syncEnsemble } from "./network/SyncEnsembleOrchestrator";
 import { usePreviewStore } from "../store/usePreviewStore";
+import { getPitchEngine } from "./pitchEngine";
 
 /**
  * Fires `onFire` after `delayMs`, but resistant to timer drift. A single long
@@ -140,6 +141,17 @@ export function useAudio() {
             togglePlaybackGracefully: () => {
                 const isPlaying = usePlayerStore.getState().playing;
                 setPlaying(!isPlaying);
+            },
+            stopAllAudio: () => {
+                // Main engine
+                engine.pause();
+                playbackIntent.current = "pause";
+                // Any pending sync-scheduled start must not fire after a STOP
+                usePlayerStore.setState({ playing: false, countdown: null, scheduledPlay: null });
+                setPos(0);
+                // Preview sources (library row preview + modal "Probar Audio")
+                try { usePreviewStore.getState().stopPreview(); } catch { /* ignore */ }
+                try { getPitchEngine().stop(); } catch { /* ignore */ }
             },
         });
 
