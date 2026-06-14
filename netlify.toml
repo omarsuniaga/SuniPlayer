@@ -1,8 +1,7 @@
 [build]
-  publish = "app/"
-
-[build.processing]
-  # skip_processing = true  # uncomment if you need raw passthrough
+  base    = "app/"
+  command = "npm run build"
+  publish = "dist/"
 
 # SPA redirect — todas las rutas caen al index.html
 [[redirects]]
