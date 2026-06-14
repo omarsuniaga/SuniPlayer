@@ -1,7 +1,9 @@
 {
+  "id": "/",
   "short_name": "SuniPlayer",
   "name": "SuniPlayer - Inteligencia Musical",
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#0A0E14",
   "background_color": "#0A0E14",
