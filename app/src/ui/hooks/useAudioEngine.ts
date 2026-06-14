@@ -223,6 +223,81 @@ export function useAudioEngine() {
     engineRef.current?.toggleMute()
   }, [])
 
+  const next = useCallback(() => {
+    const collectionStore = useCollectionStore.getState()
+    const playerStore = usePlayerStore.getState()
+    const sessionStore = useSessionStore.getState()
+    const queue = collectionStore.queue
+    const activeSource = collectionStore.source
+
+    if (!activeSource) {
+      // No source — consume queue directly
+      const queuedTrack = collectionStore.consumeQueue()
+      if (queuedTrack) {
+        const persisted = collectionStore.tracks.find((t) => t.id === queuedTrack.id)
+        if (persisted) playTrack(persisted).catch(console.error)
+      }
+      return
+    }
+
+    const nextRes = resolveNext({
+      queue,
+      source: activeSource,
+      mode: sessionStore.mode,
+      repeat: playerStore.repeat,
+    })
+
+    if (nextRes.action === 'play-queue-item') {
+      const queuedTrack = collectionStore.consumeQueue()
+      if (queuedTrack) {
+        const persisted = collectionStore.tracks.find((t) => t.id === queuedTrack.id)
+        if (persisted) playTrack(persisted).catch(console.error)
+      }
+    } else if (nextRes.action === 'play-source-track') {
+      const sourceTrack = nextRes.track
+      const persisted = collectionStore.tracks.find((t) => t.id === sourceTrack.id)
+      if (persisted) {
+        const trackIdx = activeSource.tracks.findIndex((t) => t.id === sourceTrack.id)
+        if (trackIdx !== -1) {
+          collectionStore.setSource({
+            ...activeSource,
+            currentIndex: trackIdx,
+          })
+        }
+        playTrack(persisted).catch(console.error)
+      }
+    }
+    // action === 'stop' — do nothing, let user press stop manually
+  }, [playTrack])
+
+  const prev = useCallback(() => {
+    const playerStore = usePlayerStore.getState()
+    const collectionStore = useCollectionStore.getState()
+    const activeSource = collectionStore.source
+
+    // If position > 3s, restart current track
+    if (playerStore.position > 3) {
+      engineRef.current?.seek(0)
+      playerStore.seek(0)
+      return
+    }
+
+    // Otherwise go to previous track in source
+    if (!activeSource || activeSource.currentIndex <= 0) return
+
+    const prevTrack = activeSource.tracks[activeSource.currentIndex - 1]
+    if (!prevTrack) return
+
+    const persisted = collectionStore.tracks.find((t) => t.id === prevTrack.id)
+    if (persisted) {
+      collectionStore.setSource({
+        ...activeSource,
+        currentIndex: activeSource.currentIndex - 1,
+      })
+      playTrack(persisted).catch(console.error)
+    }
+  }, [playTrack])
+
   const playerVolume = usePlayerStore((s) => s.volume)
   const isMuted = playerVolume === 0 && !loadingRef.current
 
@@ -238,6 +313,8 @@ export function useAudioEngine() {
     mute,
     unmute,
     toggleMute,
+    next,
+    prev,
     isMuted,
     loading,
     error,
