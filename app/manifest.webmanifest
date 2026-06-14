@@ -1,0 +1,19 @@
+{
+  "name": "Suniplayer",
+  "short_name": "Suniplayer",
+  "description": "Reproductor de audio para músicos, cantantes e intérpretes.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121218",
+  "theme_color": "#16161d",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23121218'/><text x='50' y='68' font-size='52' text-anchor='middle'>🎵</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
